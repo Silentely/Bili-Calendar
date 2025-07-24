@@ -1,0 +1,25 @@
+# Bili-Calendar 服务配置
+# 将B站追番列表转换为日历订阅文件
+
+services:
+  bili-calendar:
+    container_name: bili_calendar
+    ports:
+      - "3000:3000"  # 将容器内的3000端口映射到主机的3011端口
+    environment:
+      - BILIBILI_COOKIE=  # B站Cookie，可选，用于提高API访问成功率
+      - NODE_ENV=production  # 设置为生产环境
+      - TZ=Asia/Shanghai  # 设置时区为上海
+    restart: unless-stopped  # 除非手动停止，否则自动重启
+    image: cosrbackup/bili-calendar:latest
+    # 如果需要使用本地构建，可以取消下面的注释
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    volumes:
+      - ./logs:/app/logs  # 可选：将日志映射到主机
+    healthcheck:  # 健康检查
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
