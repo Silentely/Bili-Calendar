@@ -1,0 +1,21 @@
+{
+  "name": "bili-calendar",
+  "version": "1.0.0",
+  "description": "将B站追番列表转换为日历订阅，支持 iCal/ICS 格式",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "NODE_ENV=development node --watch server.js",
+    "start:prod": "NODE_ENV=production node server.js"
+  },
+  "keywords": ["bilibili", "calendar", "ics", "anime", "bili"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

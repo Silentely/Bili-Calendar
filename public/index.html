@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>B站追番日历订阅</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f4f4f5; padding: 20px 0; }
+    .container { text-align: center; background: white; padding: 2rem 3rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); max-width: 90%; width: 500px; }
+    h1 { color: #fb7299; margin-top: 0; }
+    p { color: #666; line-height: 1.6; }
+    .input-group { display: flex; margin-top: 1.5rem; }
+    input { flex-grow: 1; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px 0 0 8px; font-size: 1rem; min-width: 180px; }
+    input:focus { outline: none; border-color: #00a1d6; }
+    button { padding: 0.8rem 1.5rem; background-color: #00a1d6; border: none; color: white; font-size: 1rem; border-radius: 0 8px 8px 0; cursor: pointer; transition: background-color 0.2s; }
+    button:hover { background-color: #00b5e5; }
+    .info-box { background-color: #f8f9fa; border-left: 4px solid #00a1d6; padding: 1rem; margin-top: 2rem; text-align: left; border-radius: 0 8px 8px 0; }
+    .info-box h3 { margin-top: 0; color: #00a1d6; }
+    .info-box ul { padding-left: 1.5rem; margin-bottom: 0.5rem; }
+    .info-box li { margin-bottom: 0.5rem; }
+    .help-text { font-size: 0.9rem; color: #888; margin-top: 0.5rem; text-align: left; }
+    .loading { display: none; margin-top: 1rem; }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(0, 161, 214, 0.3); border-radius: 50%; border-top-color: #00a1d6; animation: spin 1s ease-in-out infinite; margin-right: 8px; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>B站追番日历订阅</h1>
+    <p>输入您的 B站 用户 ID (UID)，获取追番日历订阅链接</p>
+    <div class="input-group">
+      <input type="text" id="uidInput" placeholder="例如: 614500" onkeydown="if(event.key==='Enter') handleSubscribe()">
+      <button onclick="handleSubscribe()">生成订阅</button>
+    </div>
+    <div class="help-text">UID 可在 B站 个人空间网址中找到，例如：space.bilibili.com/<strong>614500</strong></div>
+    
+    <div class="loading" id="loadingIndicator">
+      <span class="spinner"></span> 正在获取数据，请稍候...
+    </div>
+    
+    <div class="info-box">
+      <h3>📅 关于此工具</h3>
+      <ul>
+        <li><strong>智能识别连载状态</strong>：连载中番剧自动设置每周重复，完结番剧仅保留首播时间</li>
+        <li>生成的日历可添加到 Apple 日历、Google 日历、Outlook 等</li>
+        <li>每集更新时间会自动添加到您的日历中</li>
+        <li>日历链接长期有效，无需重复订阅</li>
+      </ul>
+      <p>注意：您的追番数据必须是公开的，否则无法获取</p>
+    </div>
+  </div>
+  <script>
+    function toHalfWidth(str) {
+      return str.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
+    }
+    function handleSubscribe() {
+      const input = document.getElementById('uidInput');
+      const loading = document.getElementById('loadingIndicator');
+      let uid = input.value.trim();
+      
+      uid = toHalfWidth(uid);
+      
+      if (!uid || !/^[0-9]+$/.test(uid)) {
+        alert('请输入有效的 UID (纯数字)');
+        return;
+      }
+      
+      // 显示加载指示器
+      loading.style.display = 'block';
+      
+      // 延迟跳转，让用户看到加载动画
+      setTimeout(() => {
+        window.location.href = '/' + uid;
+      }, 500);
+    }
+  </script>
+</body>
+</html>
