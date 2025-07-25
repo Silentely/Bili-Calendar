@@ -87,6 +87,8 @@ GET /api/bangumi/:uid
 
 返回：B站追番列表的 JSON 数据
 
+> **速率限制**：为防止滥用，API直接访问限制为每个IP每小时3次。项目内部调用不受此限制。API响应头中包含 `X-RateLimit-*` 系列字段，用于了解当前使用情况。
+
 ## 配置说明
 
 ### 环境变量
@@ -97,6 +99,9 @@ GET /api/bangumi/:uid
 | `BILIBILI_COOKIE` | 空 | B站 Cookie，用于提高API访问成功率 |
 | `NODE_ENV` | development | 运行环境（development/production） |
 | `TZ` | Asia/Shanghai | 时区设置 |
+| `API_RATE_LIMIT` | 3 | API调用速率限制（次数/时间窗口） |
+| `API_RATE_WINDOW` | 3600000 | 速率限制时间窗口（毫秒，默认1小时） |
+| `ENABLE_RATE_LIMIT` | true | 是否启用速率限制（true/false） |
 
 ### 注意事项
 

@@ -2,9 +2,72 @@
 const serverless = require('serverless-http');
 const express = require('express');
 const path = require('path');
+const axios = require('axios');
 
 // 导入主应用逻辑
 const app = express();
+
+// 创建简单的内存存储限流器
+const rateLimiter = {
+  // 存储结构 { ip: { count: 0, resetTime: timestamp } }
+  store: {},
+  
+  // 环境变量控制限制
+  MAX_REQUESTS: process.env.API_RATE_LIMIT || 3, // 默认每小时3次
+  TIME_WINDOW: process.env.API_RATE_WINDOW || 60 * 60 * 1000, // 默认1小时(毫秒)
+  ENABLED: process.env.ENABLE_RATE_LIMIT !== 'false', // 默认启用
+  
+  // 检查并递增计数
+  check(ip) {
+    const now = Date.now();
+    
+    // 如果功能被禁用，始终允许请求
+    if (!this.ENABLED) return true;
+    
+    // 初始化或重置过期的限制
+    if (!this.store[ip] || now > this.store[ip].resetTime) {
+      this.store[ip] = {
+        count: 1,
+        resetTime: now + this.TIME_WINDOW
+      };
+      return true;
+    }
+    
+    // 检查是否达到限制
+    if (this.store[ip].count >= this.MAX_REQUESTS) {
+      return false;
+    }
+    
+    // 递增计数
+    this.store[ip].count += 1;
+    return true;
+  },
+  
+  // 获取剩余可用次数
+  getRemainingRequests(ip) {
+    const now = Date.now();
+    
+    if (!this.store[ip] || now > this.store[ip].resetTime) {
+      return this.MAX_REQUESTS;
+    }
+    
+    return Math.max(0, this.MAX_REQUESTS - this.store[ip].count);
+  },
+  
+  // 获取重置时间
+  getResetTime(ip) {
+    const now = Date.now();
+    
+    if (!this.store[ip] || now > this.store[ip].resetTime) {
+      return now + this.TIME_WINDOW;
+    }
+    
+    return this.store[ip].resetTime;
+  }
+};
+
+// 注意：在Netlify函数环境中，因为函数是无状态的，内存存储在每次调用之间不会保留
+// 在生产环境中应该考虑使用Redis等外部存储来实现持久化的限流
 
 // 设置跨域支持
 app.use((req, res, next) => {
@@ -18,6 +81,45 @@ app.use((req, res, next) => {
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
+
+// 限流中间件
+const rateLimiterMiddleware = (req, res, next) => {
+  // 获取客户端IP
+  const ip = req.headers['x-forwarded-for'] || 
+             req.connection.remoteAddress || 
+             req.socket.remoteAddress ||
+             (req.connection.socket ? req.connection.socket.remoteAddress : null);
+  
+  // 区分内部调用和外部直接访问
+  const isDirectAccess = !req.headers['x-bili-calendar-internal'];
+  
+  // 仅对直接访问应用限流
+  if (isDirectAccess && !rateLimiter.check(ip)) {
+    const resetTime = new Date(rateLimiter.getResetTime(ip)).toISOString();
+    
+    // 设置速率限制响应头
+    res.setHeader('X-RateLimit-Limit', rateLimiter.MAX_REQUESTS);
+    res.setHeader('X-RateLimit-Remaining', 0);
+    res.setHeader('X-RateLimit-Reset', resetTime);
+    
+    return res.status(429).json({
+      error: '请求过于频繁',
+      message: `API调用次数已达上限，请在${resetTime}后再试`,
+      limit: rateLimiter.MAX_REQUESTS,
+      window: '1小时',
+      reset: resetTime
+    });
+  }
+  
+  // 对于允许的请求，设置剩余次数响应头
+  if (isDirectAccess) {
+    res.setHeader('X-RateLimit-Limit', rateLimiter.MAX_REQUESTS);
+    res.setHeader('X-RateLimit-Remaining', rateLimiter.getRemainingRequests(ip));
+    res.setHeader('X-RateLimit-Reset', new Date(rateLimiter.getResetTime(ip)).toISOString());
+  }
+  
+  next();
+};
 
 // 提供静态文件服务
 app.use(express.static(path.join(__dirname, '../../public')));
@@ -48,7 +150,7 @@ app.use((err, req, res, next) => {
 });
 
 // 获取 B站追番数据
-app.get('/api/bangumi/:uid', async (req, res, next) => {
+app.get('/api/bangumi/:uid', rateLimiterMiddleware, async (req, res, next) => {
   const uid = req.params.uid;
 
   if (!/^\d+$/.test(uid)) {
