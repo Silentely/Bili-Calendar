@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = "public"
+  functions = "netlify/functions"
+
+# 将所有路径重定向到我们的服务函数
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/server"
+  status = 200 

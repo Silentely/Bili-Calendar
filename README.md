@@ -29,7 +29,7 @@
 version: '3.8'
 services:
   bili-calendar:
-    image: cosrbackup/bili-calendar:latest
+    image: ghcr.io/Silentely/bili-calendar:latest
     ports:
       - "3000:3000"
     environment:
@@ -107,6 +107,7 @@ GET /api/bangumi/:uid
 - **后端**：Node.js + Express
 - **前端**：原生 HTML/CSS/JavaScript
 - **容器化**：Docker + Docker Compose
+- **Serverless**：支持 Netlify Functions 部署
 - **日历格式**：遵循 RFC 5545 标准的 ICS 格式
 
 ## 开发指南
@@ -115,13 +116,19 @@ GET /api/bangumi/:uid
 
 ```
 bili-calendar/
-├── server.js          # 主服务文件
-├── public/            # 静态文件目录
-│   └── index.html     # 前端页面
-├── Dockerfile         # Docker 镜像配置
-├── docker-compose.yml # Docker Compose 配置
-├── package.json       # Node.js 项目配置
-└── README.md          # 项目说明文档
+├── server.js              # 主服务文件
+├── main.js                # 主应用逻辑
+├── netlify.toml           # Netlify配置
+├── netlify-functions.js   # Netlify函数构建助手
+├── netlify/               # Netlify函数目录
+│   └── functions/         # 函数代码
+│       └── server.js      # Serverless版本的服务器
+├── public/                # 静态文件目录
+│   └── index.html         # 前端页面
+├── Dockerfile             # Docker 镜像配置
+├── docker-compose.yml     # Docker Compose 配置
+├── package.json           # Node.js 项目配置
+└── README.md              # 项目说明文档
 ```
 
 ### 本地开发
@@ -147,6 +154,29 @@ npm run start:prod
 4. 安装项目依赖：`npm install`
 5. 启动服务：`pm2 start npm --name "bili-calendar" -- start`
 6. 设置开机自启：`pm2 startup && pm2 save`
+
+### 部署到 Netlify
+
+1. 在 Netlify 导入 GitHub 仓库
+2. 配置以下构建设置:
+   - 构建命令: `npm run build`
+   - 发布目录: `public`
+   - 环境变量: 根据需要设置 `BILIBILI_COOKIE` 等
+3. Netlify.toml 文件已包含必要配置:
+   ```toml
+   [build]
+     command = "npm run build"
+     publish = "public"
+     functions = "netlify/functions"
+
+   [[redirects]]
+     from = "/*"
+     to = "/.netlify/functions/server"
+     status = 200
+   ```
+4. 本项目已包含所有必要的Netlify Functions配置，无需额外设置
+
+> **注意**: 项目已通过 `serverless-http` 将Express应用包装为Netlify函数，并使用ES模块格式，所有必要的依赖已添加到package.json中。
 
 ### 部署到 Vercel
 
@@ -191,4 +221,4 @@ npm run start:prod
 
 ## 免责声明
 
-本项目仅供学习交流使用，不提供任何 B站 相关的账号服务。请遵守 B站 的相关服务条款和使用规范。
+本项目仅供学习交流使用，不提供任何 B站 相关的账号服务。请遵守 B站 的相关服务条款和使用规范。 
