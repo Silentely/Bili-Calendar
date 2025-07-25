@@ -315,15 +315,18 @@ END:VTIMEZONE`;
       const dtstart = formatDate(defaultDate);
 
       // 构建标题，添加季度信息
-      const titleWithSeason = item.season_title ? `${item.title} ${item.season_title}` : item.title;
-      // 在描述中添加更新到第几话的信息
+      const titleWithSeason = item.season_title && !item.title.includes(item.season_title) ? 
+        `${item.title} ${item.season_title}` : item.title;
+      // 在描述中添加更新到第几话的信息，并调整顺序
       const descriptionParts = [];
-      descriptionParts.push(`番剧简介: ${item.evaluate || '暂无简介'}`);
+      // 将更新状态移到首行
       if (item.index_show) {
         descriptionParts.push(`更新状态: ${item.index_show}`);
       } else if (item.new_ep && item.new_ep.index_show) {
         descriptionParts.push(`更新状态: ${item.new_ep.index_show}`);
       }
+      // 番剧简介放到第二行
+      descriptionParts.push(`番剧简介: ${item.evaluate || '暂无简介'}`);
       lines.push(
         'BEGIN:VEVENT',
         `UID:${item.season_id}@bilibili.com`,
@@ -354,15 +357,18 @@ END:VTIMEZONE`;
     }
 
     // 构建标题，添加季度信息
-    const normalTitleWithSeason = item.season_title ? `${item.title} ${item.season_title}` : item.title;
-    // 在描述中添加更新到第几话的信息
+    const normalTitleWithSeason = item.season_title && !item.title.includes(item.season_title) ? 
+      `${item.title} ${item.season_title}` : item.title;
+    // 在描述中添加更新到第几话的信息，并调整顺序
     const normalDescriptionParts = [];
-    normalDescriptionParts.push(`番剧简介: ${item.evaluate || '暂无简介'}`);
+    // 将更新状态移到首行
     if (item.index_show) {
       normalDescriptionParts.push(`更新状态: ${item.index_show}`);
     } else if (item.new_ep && item.new_ep.index_show) {
       normalDescriptionParts.push(`更新状态: ${item.new_ep.index_show}`);
     }
+    // 番剧简介放到第二行
+    normalDescriptionParts.push(`番剧简介: ${item.evaluate || '暂无简介'}`);
     normalDescriptionParts.push(`状态: ${item.is_finish === 0 ? '连载中' : '已完结'}`);
     
     eventLines.push(
