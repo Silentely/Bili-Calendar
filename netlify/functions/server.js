@@ -1,12 +1,7 @@
 // netlify/functions/server.js
-import serverless from 'serverless-http';
-import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-// 获取__dirname (ES Modules中需要特殊处理)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const serverless = require('serverless-http');
+const express = require('express');
+const path = require('path');
 
 // 导入主应用逻辑
 const app = express();
@@ -338,4 +333,4 @@ function respondWithEmptyCalendar(res, uid, reason) {
 }
 
 // 将Express应用包装为serverless函数
-export const handler = serverless(app); 
+exports.handler = serverless(app); 
