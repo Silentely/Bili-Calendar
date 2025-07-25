@@ -167,7 +167,7 @@ npm run start:prod
    [build]
      command = "npm run build"
      publish = "public"
-     functions = "netlify/functions"
+     functions = "netlify/functions-build"
 
    [[redirects]]
      from = "/*"

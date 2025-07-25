@@ -8,7 +8,7 @@
     "start": "node server.js",
     "dev": "NODE_ENV=development node --watch server.js",
     "start:prod": "NODE_ENV=production node server.js",
-    "build": "netlify-lambda build netlify/functions"
+    "build": "netlify-lambda build netlify/functions -o netlify/functions-build"
   },
   "keywords": ["bilibili", "calendar", "ics", "anime", "bili"],
   "author": "",

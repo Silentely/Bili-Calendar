@@ -1,7 +1,7 @@
 [build]
   command = "npm run build"
   publish = "public"
-  functions = "netlify/functions"
+  functions = "netlify/functions-build"
 
 # 将所有路径重定向到我们的服务函数
 [[redirects]]
