@@ -359,13 +359,23 @@ END:VTIMEZONE`;
       const defaultDate = new Date();
       const dtstart = formatDate(defaultDate);
 
+      // 构建标题，添加季度信息
+      const titleWithSeason = item.season_title ? `${item.title} ${item.season_title}` : item.title;
+      // 在描述中添加更新到第几话的信息
+      const descriptionParts = [];
+      descriptionParts.push(`番剧简介: ${item.evaluate || '暂无简介'}`);
+      if (item.index_show) {
+        descriptionParts.push(`更新状态: ${item.index_show}`);
+      } else if (item.new_ep && item.new_ep.index_show) {
+        descriptionParts.push(`更新状态: ${item.new_ep.index_show}`);
+      }
       lines.push(
         'BEGIN:VEVENT',
         `UID:${item.season_id}@bilibili.com`,
         `DTSTAMP:${now}`,
         `DTSTART;VALUE=DATE:${defaultDate.toISOString().split('T')[0].replace(/-/g, '')}`,
-        `SUMMARY:${escapeICSText('[时间未知] ' + item.title)}`,
-        `DESCRIPTION:${escapeICSText(`番剧简介: ${item.evaluate || '暂无简介'}`)}`,
+        `SUMMARY:${escapeICSText('[时间未知] ' + titleWithSeason)}`,
+        `DESCRIPTION:${escapeICSText(descriptionParts.join('\\n'))}`,
         `URL;VALUE=URI:https://www.bilibili.com/bangumi/play/ss${item.season_id}`,
         'END:VEVENT'
       );
@@ -388,9 +398,21 @@ END:VTIMEZONE`;
       eventLines.push(`RRULE:FREQ=WEEKLY;BYDAY=${info.rruleDay}`);
     }
 
+    // 构建标题，添加季度信息
+    const normalTitleWithSeason = item.season_title ? `${item.title} ${item.season_title}` : item.title;
+    // 在描述中添加更新到第几话的信息
+    const normalDescriptionParts = [];
+    normalDescriptionParts.push(`番剧简介: ${item.evaluate || '暂无简介'}`);
+    if (item.index_show) {
+      normalDescriptionParts.push(`更新状态: ${item.index_show}`);
+    } else if (item.new_ep && item.new_ep.index_show) {
+      normalDescriptionParts.push(`更新状态: ${item.new_ep.index_show}`);
+    }
+    normalDescriptionParts.push(`状态: ${item.is_finish === 0 ? '连载中' : '已完结'}`);
+    
     eventLines.push(
-      `SUMMARY:${escapeICSText(item.title)}`,
-      `DESCRIPTION:${escapeICSText(`番剧简介: ${item.evaluate || '暂无简介'}\n状态: ${item.is_finish === 0 ? '连载中' : '已完结'}`)}`,
+      `SUMMARY:${escapeICSText(normalTitleWithSeason)}`,
+      `DESCRIPTION:${escapeICSText(normalDescriptionParts.join('\\n'))}`,
       `URL;VALUE=URI:https://www.bilibili.com/bangumi/play/ss${item.season_id}`,
       'END:VEVENT'
     );
