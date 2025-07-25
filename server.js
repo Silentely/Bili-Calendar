@@ -367,16 +367,22 @@ END:VTIMEZONE`;
       // 构建标题，添加季度信息
       const titleWithSeason = item.season_title && !item.title.includes(item.season_title) ? 
         `${item.title} ${item.season_title}` : item.title;
-      // 在描述中添加更新到第几话的信息，并调整顺序
-      const descriptionParts = [];
-      // 将更新状态移到首行
+      
+      // 在描述中添加更新到第几话的信息，使用emoji分隔符而非换行
+      let description = "";
+      
+      // 更新状态
       if (item.index_show) {
-        descriptionParts.push(`更新状态: ${item.index_show}`);
+        description += `🌟 更新状态: ${item.index_show}`;
       } else if (item.new_ep && item.new_ep.index_show) {
-        descriptionParts.push(`更新状态: ${item.new_ep.index_show}`);
+        description += `🌟 更新状态: ${item.new_ep.index_show}`;
       }
-      // 番剧简介放到第二行
-      descriptionParts.push(`番剧简介: ${item.evaluate || '暂无简介'}`);
+      
+      // 添加连载状态 (带emoji分隔符)
+      description += ` ➡️ 状态: ${item.is_finish === 0 ? '连载中' : '已完结'}`;
+      
+      // 番剧简介 (带emoji分隔符)
+      description += ` ✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
       
       lines.push(
         'BEGIN:VEVENT',
@@ -384,7 +390,7 @@ END:VTIMEZONE`;
         `DTSTAMP:${now}`,
         `DTSTART;VALUE=DATE:${defaultDate.toISOString().split('T')[0].replace(/-/g, '')}`,
         `SUMMARY:${escapeICSText('[时间未知] ' + titleWithSeason)}`,
-        `DESCRIPTION:${escapeICSText(descriptionParts.join('\\n'))}`,
+        `DESCRIPTION:${escapeICSText(description)}`,
         `URL;VALUE=URI:https://www.bilibili.com/bangumi/play/ss${item.season_id}`,
         'END:VEVENT'
       );
@@ -402,29 +408,34 @@ END:VTIMEZONE`;
       `DTSTART;TZID=Asia/Shanghai:${dtstart}`,
     ];
 
-    // 只有连载中的番剧才添加重复规则
+    // 只有连载中的番剧才添加重复规则，限制为2次
     if (item.is_finish === 0) {
-      eventLines.push(`RRULE:FREQ=WEEKLY;BYDAY=${info.rruleDay}`);
+      eventLines.push(`RRULE:FREQ=WEEKLY;COUNT=2;BYDAY=${info.rruleDay}`);
     }
 
     // 构建标题，添加季度信息
     const normalTitleWithSeason = item.season_title && !item.title.includes(item.season_title) ? 
       `${item.title} ${item.season_title}` : item.title;
-    // 在描述中添加更新到第几话的信息，并调整顺序
-    const normalDescriptionParts = [];
-    // 将更新状态移到首行
+    
+    // 在描述中添加更新到第几话的信息，使用emoji分隔符而非换行
+    let normalDescription = "";
+    
+    // 更新状态
     if (item.index_show) {
-      normalDescriptionParts.push(`更新状态: ${item.index_show}`);
+      normalDescription += `🌟 更新状态: ${item.index_show}`;
     } else if (item.new_ep && item.new_ep.index_show) {
-      normalDescriptionParts.push(`更新状态: ${item.new_ep.index_show}`);
+      normalDescription += `🌟 更新状态: ${item.new_ep.index_show}`;
     }
-    // 番剧简介放到第二行
-    normalDescriptionParts.push(`番剧简介: ${item.evaluate || '暂无简介'}`);
-    normalDescriptionParts.push(`状态: ${item.is_finish === 0 ? '连载中' : '已完结'}`);
+    
+    // 添加连载状态 (带emoji分隔符)
+    normalDescription += ` ➡️ 状态: ${item.is_finish === 0 ? '连载中' : '已完结'}`;
+    
+    // 番剧简介 (带emoji分隔符)
+    normalDescription += ` ✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
     
     eventLines.push(
       `SUMMARY:${escapeICSText(normalTitleWithSeason)}`,
-      `DESCRIPTION:${escapeICSText(normalDescriptionParts.join('\\n'))}`,
+      `DESCRIPTION:${escapeICSText(normalDescription)}`,
       `URL;VALUE=URI:https://www.bilibili.com/bangumi/play/ss${item.season_id}`,
       'END:VEVENT'
     );
