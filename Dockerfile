@@ -14,7 +14,7 @@ RUN apk add --no-cache tzdata && \
 COPY package*.json ./
 
 # 安装依赖，使用生产模式
-RUN npm ci --production
+RUN npm install --omit=dev
 
 # 复制应用程序代码
 COPY . .
