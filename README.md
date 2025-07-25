@@ -1,5 +1,7 @@
 # Bili-Calendar (B站追番日历)
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/efdead58-803f-40c4-bd24-f0f25a92922f/deploy-status)](https://app.netlify.com/projects/bili-calendar/deploys)
+
 将B站追番列表转换为日历订阅，支持 iCal/ICS 格式，可导入 Apple 日历、Google 日历、Outlook 等主流日历应用。
 
 ## 功能特点
@@ -15,7 +17,7 @@
 
 ### 公共服务（推荐）
 
-1. 访问 [https://bili-calendar.example.com](https://bili-calendar.example.com)（请替换为实际部署地址）
+1. 访问 [https://calendar.cosr.eu.org](https://calendar.cosr.eu.org)
 2. 输入您的 B站 UID（在 B站个人空间网址中找到，例如：space.bilibili.com/614500 中的 614500）
 3. 点击"生成订阅"按钮
 4. 将生成的订阅链接添加到您的日历应用中
@@ -29,7 +31,7 @@
 version: '3.8'
 services:
   bili-calendar:
-    image: ghcr.io/Silentely/bili-calendar:latest
+    image: ghcr.io/silentely/bili-calendar:latest
     ports:
       - "3000:3000"
     environment:
@@ -106,7 +108,7 @@ GET /api/bangumi/:uid
 
 - **后端**：Node.js + Express
 - **前端**：原生 HTML/CSS/JavaScript
-- **容器化**：Docker + Docker Compose
+- **容器化**：Docker + Docker Compose (amd64, arm64)
 - **Serverless**：支持 Netlify Functions 部署
 - **日历格式**：遵循 RFC 5545 标准的 ICS 格式
 
@@ -120,8 +122,12 @@ bili-calendar/
 ├── main.js                # 主应用逻辑
 ├── netlify.toml           # Netlify配置
 ├── netlify-functions.js   # Netlify函数构建助手
+├── webpack.functions.js   # Webpack配置文件，用于Netlify函数构建
+├── .github/               # GitHub配置目录
+│   └── workflows/         # GitHub Actions工作流配置
+│       └── docker-build.yml # Docker镜像自动构建配置
 ├── netlify/               # Netlify函数目录
-│   └── functions/         # 函数代码
+│   └── functions/         # 函数源代码
 │       └── server.js      # Serverless版本的服务器
 ├── public/                # 静态文件目录
 │   └── index.html         # 前端页面
@@ -176,7 +182,7 @@ npm run start:prod
    ```
 4. 本项目已包含所有必要的Netlify Functions配置，无需额外设置
 
-> **注意**: 项目已通过 `serverless-http` 将Express应用包装为Netlify函数，并使用ES模块格式，所有必要的依赖已添加到package.json中。
+> **注意**: 项目已通过 `serverless-http` 将Express应用包装为Netlify函数，并使用CommonJS模块格式，所有必要的依赖已添加到package.json中。
 
 ### 部署到 Vercel
 
