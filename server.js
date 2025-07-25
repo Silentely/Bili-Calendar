@@ -353,6 +353,11 @@ END:VTIMEZONE`;
     if (!info && item.new_ep && item.new_ep.pub_time) {
       info = parseNewEpTime(item.new_ep.pub_time);
     }
+    
+    // 尝试从renewal_time解析
+    if (!info && item.renewal_time) {
+      info = parseBroadcastTime(item.renewal_time);
+    }
 
     if (!info) {
       // 即使无法解析时间也创建事件（使用默认时间）
