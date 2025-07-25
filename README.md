@@ -1,23 +1,47 @@
-# Bili-Calendar (B站追番日历)
-
+# Bili-Calendar (B站追番日历)  
 [![Netlify Status](https://api.netlify.com/api/v1/badges/efdead58-803f-40c4-bd24-f0f25a92922f/deploy-status)](https://app.netlify.com/projects/bili-calendar/deploys)
+[![Docker Image](https://img.shields.io/badge/Docker-ghcr.io%2Fsilentely%2Fbili--calendar-blue?logo=docker)](https://github.com/Silentely/bili-calendar/pkgs/container/bili-calendar)
 
-将B站追番列表转换为日历订阅，支持 iCal/ICS 格式，可导入 Apple 日历、Google 日历、Outlook 等主流日历应用。
+> 🎉 **将B站追番列表一键转换为日历订阅，支持 Apple/Google/Outlook 等主流日历应用！**
 
-## 功能特点
+---
 
-- 📅 **自动同步**：根据 B站追番列表自动生成日历订阅
-- 🕒 **准确时间**：精确解析番剧更新时间，支持时区自动转换
-- 🔁 **智能重复**：连载中番剧自动设置每周重复，完结番剧仅保留首播时间
-- 📱 **多平台支持**：兼容 Apple 日历、Google 日历、Outlook 等所有支持 ICS 格式的日历应用
-- 🚀 **简单易用**：只需提供 B站 UID 即可生成订阅链接
-- 🌐 **隐私保护**：服务端不存储任何用户数据，支持自部署
+## 目录
+- [效果预览](#效果预览)
+- [功能特点](#功能特点)
+- [使用方法](#使用方法)
+- [API 接口](#api-接口)
+- [配置说明](#配置说明)
+- [技术架构](#技术架构)
+- [开发指南](#开发指南)
+- [部署指南](#部署指南)
+- [常见问题](#常见问题)
+- [贡献指南](#贡献指南)
+- [许可证](#许可证)
+- [免责声明](#免责声明)
+
+---
 
 ## 效果预览
+
+> 下图展示了 Apple 日历中的订阅效果、事件详情与服务端日志：
 
 | 日历视图 | 事件详情 | 服务端日志 |
 |:---:|:---:|:---:|
 | ![](./assets/calendar-view.jpg) | ![](./assets/event-detail.jpg) | ![](./assets/server-log.jpg) |
+
+---
+
+## 功能特点
+
+- 📅 **自动同步**：B站追番列表一键生成日历订阅
+- 🕒 **准确时间**：精确解析番剧更新时间，支持时区自动转换
+- 🔁 **智能重复**：连载中番剧自动每周重复，完结番剧仅保留首播
+- 📱 **多平台支持**：兼容 Apple/Google/Outlook 等所有支持 ICS 的日历应用
+- 🚀 **简单易用**：只需提供 B站 UID 即可生成订阅链接
+- 🔒 **隐私保护**：服务端不存储任何用户数据，支持自部署
+
+---
 
 ## 使用方法
 
@@ -26,8 +50,10 @@
 1. 访问 [https://calendar.cosr.eu.org](https://calendar.cosr.eu.org)
 2. 输入您的 B站 UID（在 B站个人空间网址中找到，例如：`https://space.bilibili.com/614500` 中的 614500）
 3. 点击"生成订阅"按钮
-4. 将生成的订阅链接添加到您的日历应用中
-PS:也可直接通过`https://calendar.cosr.eu.org/uid`形式复制到日历新增订阅里填入链接
+4. 将生成的订阅链接添加到您的日历应用中  
+   PS: 也可直接通过 `https://calendar.cosr.eu.org/uid` 形式复制到日历新增订阅里填入链接
+
+---
 
 ### 私有部署
 
@@ -70,6 +96,8 @@ npm start
 npm run dev
 ```
 
+---
+
 ## API 接口
 
 ### 获取用户追番日历
@@ -96,6 +124,8 @@ GET /api/bangumi/:uid
 
 > **速率限制**：为防止滥用，API直接访问限制为每个IP每小时3次。项目内部调用不受此限制。API响应头中包含 `X-RateLimit-*` 系列字段，用于了解当前使用情况。
 
+---
+
 ## 配置说明
 
 ### 环境变量
@@ -116,6 +146,8 @@ GET /api/bangumi/:uid
 2. **Cookie 设置**：如果遇到访问频率限制，可以设置 `BILIBILI_COOKIE` 环境变量
 3. **时区处理**：服务默认使用东八区时间（北京时间），请确保部署环境时区正确
 
+---
+
 ## 技术架构
 
 - **后端**：Node.js + Express
@@ -123,6 +155,8 @@ GET /api/bangumi/:uid
 - **容器化**：Docker + Docker Compose (amd64, arm64)
 - **Serverless**：支持 Netlify Functions 部署
 - **日历格式**：遵循 RFC 5545 标准的 ICS 格式
+
+---
 
 ## 开发指南
 
@@ -161,6 +195,8 @@ npm run dev
 # 构建并启动生产服务器
 npm run start:prod
 ```
+
+---
 
 ## 部署指南
 
@@ -203,6 +239,8 @@ npm run start:prod
 3. 设置环境变量（如需要）
 4. 部署完成
 
+---
+
 ## 常见问题
 
 ### 为什么显示"[时间未知]"？
@@ -221,6 +259,8 @@ npm run start:prod
 
 日历订阅链接是动态生成的，会自动获取最新的追番列表。大多数日历应用会定期自动同步更新。
 
+---
+
 ## 贡献指南
 
 欢迎提交 Issue 和 Pull Request 来帮助改进本项目！
@@ -232,6 +272,8 @@ npm run start:prod
 3. 提交更改：`git commit -am 'Add some feature'`
 4. 推送到分支：`git push origin feature/your-feature-name`
 5. 创建 Pull Request
+
+---
 
 ## 许可证
 
