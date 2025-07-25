@@ -18,9 +18,10 @@
 ### 公共服务（推荐）
 
 1. 访问 [https://calendar.cosr.eu.org](https://calendar.cosr.eu.org)
-2. 输入您的 B站 UID（在 B站个人空间网址中找到，例如：space.bilibili.com/614500 中的 614500）
+2. 输入您的 B站 UID（在 B站个人空间网址中找到，例如：`https://space.bilibili.com/614500` 中的 614500）
 3. 点击"生成订阅"按钮
 4. 将生成的订阅链接添加到您的日历应用中
+PS:也可直接通过`https://calendar.cosr.eu.org/uid`形式复制到日历新增订阅里填入链接
 
 ### 私有部署
 
@@ -207,7 +208,7 @@ npm run start:prod
 
 ### 如何获取 B站 UID？
 
-1. 打开 B站个人空间页面（例如：https://space.bilibili.com/614500）
+1. 打开 B站个人空间页面（例如：`https://space.bilibili.com/614500`）
 2. URL中的数字部分就是您的 UID（示例中为 614500）
 
 ### 如何更新日历？
