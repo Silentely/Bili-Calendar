@@ -148,11 +148,9 @@ GET /api/bangumi/:uid
 
 ```
 bili-calendar/
-├── server.js              # 主服务文件
-├── main.js                # 主应用逻辑
+├── server.js              # Docker部署的主服务文件
+├── main.js                # Docker部署的主应用逻辑
 ├── netlify.toml           # Netlify配置
-├── netlify-functions.js   # Netlify函数构建助手
-├── webpack.functions.js   # Webpack配置文件，用于Netlify函数构建
 ├── .github/               # GitHub配置目录
 │   └── workflows/         # GitHub Actions工作流配置
 │       └── docker-build.yml # Docker镜像自动构建配置
@@ -222,6 +220,36 @@ npm run start:prod
 2. 在 Vercel 官网导入项目
 3. 设置环境变量（如需要）
 4. 部署完成
+
+---
+
+## 多平台部署说明
+
+本项目支持多种部署方式，每种方式使用不同的代码实现以适应特定平台的要求：
+
+### Docker部署
+- 使用 `server.js` 和 `main.js` 作为主应用文件
+- 包含完整的 Express 应用实现
+- 适用于传统服务器部署或容器化部署
+
+### Netlify Functions部署
+- 使用 `netlify/functions/server.js` 作为函数入口
+- 通过 `serverless-http` 将 Express 应用包装为无服务器函数
+- 使用 CommonJS 模块系统以适应 Netlify 环境
+
+### 各平台实现差异
+1. **限流机制**：
+   - Docker版本使用定时清理的限流机制
+   - Netlify版本使用机会性清理的限流机制
+
+2. **日志处理**：
+   - 不同平台使用不同的日志格式以适应各自环境
+
+3. **错误处理**：
+   - 各平台针对特定错误场景进行了优化处理
+
+4. **IP地址处理**：
+   - Netlify版本包含更完善的IP地址处理逻辑
 
 ---
 
