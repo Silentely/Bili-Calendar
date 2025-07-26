@@ -168,7 +168,7 @@ const rateLimiterMiddleware = (req, res, next) => {
 
 // 获取 B站追番数据
 app.get('/api/bangumi/:uid', rateLimiterMiddleware, async (req, res, next) => {
-  const uid = req.params.uid;
+  const {uid} = req.params;
 
   if (!/^\d+$/.test(uid)) {
     console.warn(`[${new Date().toISOString()}] ⚠️ 无效的UID格式: ${uid}`);
@@ -341,7 +341,14 @@ app.use((req, res) => {
 });
 
 /**
- * 获取番剧数据的内部函数
+ * Fetches and filters the Bilibili bangumi (anime) follow list for a given user ID.
+ *
+ * Retrieves the user's followed bangumi list from the Bilibili API, handling HTTP and API errors.
+ * Filters the list to include only currently airing series (not finished and with broadcast or update information).
+ * Adds metadata about the filtering process to the returned object.
+ *
+ * @param {string|number} uid - The Bilibili user ID.
+ * @returns {Promise<Object|null>} The filtered bangumi data object, or null if the request fails.
  */
 async function getBangumiData(uid) {
   try {
@@ -410,7 +417,11 @@ async function getBangumiData(uid) {
   }
 }
 
-// 格式化运行时间
+/**
+ * Converts a duration in seconds to a human-readable string in Chinese, including days, hours, minutes, and seconds.
+ * @param {number} seconds - The total number of seconds to format.
+ * @return {string} The formatted uptime string in Chinese.
+ */
 function formatUptime(seconds) {
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
@@ -427,7 +438,13 @@ function formatUptime(seconds) {
 }
 
 /**
- * 生成 ICS 文件内容
+ * Generates an ICS calendar file containing events for each currently airing Bilibili bangumi series.
+ *
+ * For each bangumi, creates a calendar event with broadcast time (if available), title, update status, airing status, and a link to the Bilibili page. If broadcast time cannot be determined, the event is marked as having unknown time. Ongoing series include a weekly recurrence rule.
+ *
+ * @param {Array<Object>} bangumis - List of bangumi objects to include in the calendar.
+ * @param {string|number} uid - The Bilibili user ID for whom the calendar is generated.
+ * @return {string} The generated ICS calendar content as a string.
  */
 function generateICS(bangumis, uid) {
   const VTIMEZONE_DEFINITION = `BEGIN:VTIMEZONE
@@ -561,7 +578,12 @@ END:VTIMEZONE`;
 }
 
 /**
- * 解析播出时间
+ * Parses a broadcast time string in Chinese and extracts the day of week and time.
+ *
+ * Attempts to interpret various common formats describing weekly broadcast schedules, returning the corresponding day of week (0-6, Sunday-Saturday), time string, and RRULE day code for calendar recurrence. Returns null if parsing fails.
+ *
+ * @param {string} pubIndex - The broadcast time description, typically in Chinese (e.g., "每周三 20:00").
+ * @return {Object|null} An object with `dayOfWeek`, `time`, and `rruleDay` properties, or null if parsing is unsuccessful.
  */
 function parseBroadcastTime(pubIndex) {
   if (!pubIndex) return null;
@@ -605,7 +627,10 @@ function parseBroadcastTime(pubIndex) {
 }
 
 /**
- * 获取下一个播出日期
+ * Calculates the next occurrence of a specified weekday and time in the Asia/Shanghai timezone.
+ * @param {number} targetDay - The target day of the week (0 for Sunday, 6 for Saturday).
+ * @param {string} timeStr - The target time in "HH:mm" format.
+ * @return {Date} The Date object representing the next broadcast date and time in Asia/Shanghai timezone.
  */
 function getNextBroadcastDate(targetDay, timeStr) {
   const now = new Date();
@@ -634,7 +659,12 @@ function getNextBroadcastDate(targetDay, timeStr) {
 }
 
 /**
- * 解析新剧集时间
+ * Parses a Bilibili new episode publish time string and extracts the broadcast weekday and time.
+ *
+ * Supports both standard datetime formats (e.g., "YYYY-MM-DD HH:MM:SS") and descriptive formats (e.g., "每周四 20:00更新").
+ *
+ * @param {string} pubTime - The publish time string to parse.
+ * @return {Object|null} An object containing `dayOfWeek` (0-6, Sunday-Saturday), `time` ("HH:MM"), and `rruleDay` (ICS weekday code), or null if parsing fails.
  */
 function parseNewEpTime(pubTime) {
   if (!pubTime) return null;
@@ -690,7 +720,9 @@ function parseNewEpTime(pubTime) {
 }
 
 /**
- * 格式化日期
+ * Formats a Date object as an ICS-compatible UTC datetime string (YYYYMMDDTHHMMSS).
+ * @param {Date} date - The date to format.
+ * @return {string} The formatted datetime string in UTC.
  */
 function formatDate(date) {
   const pad = (n) => n.toString().padStart(2, '0');
@@ -698,7 +730,10 @@ function formatDate(date) {
 }
 
 /**
- * 转义 ICS 文本
+ * Escapes special characters in a string for use in ICS (iCalendar) text fields.
+ * Replaces backslashes, semicolons, commas, and newlines with their ICS-escaped equivalents.
+ * @param {string} text - The text to escape for ICS formatting.
+ * @return {string} The escaped ICS-compatible text.
  */
 function escapeICSText(text) {
   return text
@@ -709,7 +744,10 @@ function escapeICSText(text) {
 }
 
 /**
- * 返回 ICS 文件
+ * Sends an ICS calendar file as a downloadable response for the specified user.
+ * @param {object} res - Express response object.
+ * @param {string} content - The ICS file content to send.
+ * @param {string|number} uid - The user ID used in the filename.
  */
 function respondWithICS(res, content, uid) {
   res.set({
@@ -721,7 +759,12 @@ function respondWithICS(res, content, uid) {
 }
 
 /**
- * 返回空的日历文件
+ * Sends an empty ICS calendar file indicating failure to retrieve bangumi information for the specified user.
+ * 
+ * The calendar contains a single event summarizing the reason for the failure.
+ * @param {object} res - Express response object.
+ * @param {string|number} uid - The user ID for whom the calendar was requested.
+ * @param {string} [reason] - Optional reason describing why the bangumi information could not be retrieved.
  */
 function respondWithEmptyCalendar(res, uid, reason) {
   const now = new Date().toISOString().replace(/[-:.]/g, '').substring(0, 15) + 'Z';
