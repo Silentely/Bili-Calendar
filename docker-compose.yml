@@ -5,7 +5,7 @@ services:
   bili-calendar:
     container_name: bili_calendar
     ports:
-      - "3000:3000"  # 将容器内的3000端口映射到主机的3011端口
+      - "3000:3000"  # 将容器内的3000端口映射到主机的3000端口
     environment:
       - BILIBILI_COOKIE=  # B站Cookie，可选，用于提高API访问成功率
       - NODE_ENV=production  # 设置为生产环境

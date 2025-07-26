@@ -19,6 +19,11 @@ RUN npm install --omit=dev
 # 复制应用程序代码
 COPY . .
 
+# 确保目录权限正确
+RUN mkdir -p netlify/functions-build && \
+    cp -r netlify/functions/* netlify/functions-build/ && \
+    cp main.js netlify/functions-build/
+
 # 暴露端口
 EXPOSE 3000
 
