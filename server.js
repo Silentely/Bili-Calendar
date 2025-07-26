@@ -2,6 +2,8 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import axios from 'axios';
+
 const app = express();
 
 const PORT = process.env.PORT || 3000;
@@ -28,6 +30,9 @@ const rateLimiter = {
     // 如果功能被禁用，始终允许请求
     if (!this.ENABLED) return true;
     
+    // 清理过期的条目（机会性清理）
+    this.cleanup(now);
+    
     // 初始化或重置过期的限制
     if (!this.store[ip] || now > this.store[ip].resetTime) {
       this.store[ip] = {
@@ -51,6 +56,9 @@ const rateLimiter = {
   getRemainingRequests(ip) {
     const now = Date.now();
     
+    // 清理过期的条目（机会性清理）
+    this.cleanup(now);
+    
     if (!this.store[ip] || now > this.store[ip].resetTime) {
       return this.MAX_REQUESTS;
     }
@@ -62,6 +70,9 @@ const rateLimiter = {
   getResetTime(ip) {
     const now = Date.now();
     
+    // 清理过期的条目（机会性清理）
+    this.cleanup(now);
+    
     if (!this.store[ip] || now > this.store[ip].resetTime) {
       return now + this.TIME_WINDOW;
     }
@@ -69,9 +80,8 @@ const rateLimiter = {
     return this.store[ip].resetTime;
   },
   
-  // 清理过期的记录 (定期调用)
-  cleanup() {
-    const now = Date.now();
+  // 清理过期的条目
+  cleanup(now = Date.now()) {
     for (const ip in this.store) {
       if (now > this.store[ip].resetTime) {
         delete this.store[ip];
@@ -80,8 +90,8 @@ const rateLimiter = {
   }
 };
 
-// 每小时清理一次过期的限流记录
-setInterval(() => rateLimiter.cleanup(), 60 * 60 * 1000);
+// 注意：在Docker容器环境中，内存存储在每次重启时会被重置
+// 在生产环境中应该考虑使用Redis等外部存储来实现持久化的限流
 
 // 设置跨域支持
 app.use((req, res, next) => {
@@ -98,40 +108,37 @@ app.use(express.static(path.join(__dirname, 'public')));
 // 日志中间件
 app.use((req, res, next) => {
   const start = Date.now();
-  const timestamp = new Date().toISOString();
-  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  console.log(`📥 ${req.method} ${req.originalUrl}`);
   
-  // 请求开始日志
-  console.log(`[${timestamp}] 📥 ${req.method} ${req.originalUrl} - IP: ${ip}`);
-  
-  // 响应完成后的日志
   res.on('finish', () => {
     const duration = Date.now() - start;
     const statusCode = res.statusCode;
     const statusEmoji = statusCode >= 400 ? '❌' : '✅';
     
-    console.log(`[${timestamp}] ${statusEmoji} ${req.method} ${req.originalUrl} - ${statusCode} - ${duration}ms`);
+    console.log(`${statusEmoji} ${req.method} ${req.originalUrl} - ${statusCode} - ${duration}ms`);
   });
   
   next();
 });
 
-// 错误处理中间件
-app.use((err, req, res, next) => {
-  console.error(`[${new Date().toISOString()}] ❌ 服务器错误:`, err);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'production' ? '服务器内部错误' : err.message
-  });
-});
-
 // 限流中间件
 const rateLimiterMiddleware = (req, res, next) => {
-  // 获取客户端IP
-  const ip = req.headers['x-forwarded-for'] || 
-             req.connection.remoteAddress || 
-             req.socket.remoteAddress ||
-             (req.connection.socket ? req.connection.socket.remoteAddress : null);
+  // 获取客户端IP，处理代理和IPv6地址
+  let ip = req.headers['x-forwarded-for'] || 
+           req.connection.remoteAddress || 
+           req.socket.remoteAddress ||
+           (req.connection.socket ? req.connection.socket.remoteAddress : null);
+  
+  // 处理 x-forwarded-for 头部可能包含多个IP地址的情况（逗号分隔）
+  if (ip && ip.includes(',')) {
+    // 使用第一个IP地址（最原始的客户端IP）
+    ip = ip.split(',')[0].trim();
+  }
+  
+  // 处理IPv6地址的格式（例如：::ffff:127.0.0.1）
+  if (ip && ip.includes('::ffff:')) {
+    ip = ip.replace('::ffff:', '');
+  }
   
   // 区分内部调用和外部直接访问
   const isDirectAccess = !req.headers['x-bili-calendar-internal'];
@@ -164,12 +171,21 @@ const rateLimiterMiddleware = (req, res, next) => {
   next();
 };
 
+// 错误处理中间件
+app.use((err, req, res, next) => {
+  console.error(`❌ 服务器错误:`, err);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'production' ? '服务器内部错误' : err.message
+  });
+});
+
 // 获取 B站追番数据
 app.get('/api/bangumi/:uid', rateLimiterMiddleware, async (req, res, next) => {
-  const uid = req.params.uid;
+  const { uid } = req.params;
 
   if (!/^\d+$/.test(uid)) {
-    console.warn(`[${new Date().toISOString()}] ⚠️ 无效的UID格式: ${uid}`);
+    console.warn(`⚠️ 无效的UID格式: ${uid}`);
     return res.status(400).json({ 
       error: 'Invalid UID',
       message: 'UID必须是纯数字'
@@ -177,123 +193,38 @@ app.get('/api/bangumi/:uid', rateLimiterMiddleware, async (req, res, next) => {
   }
 
   try {
-    console.log(`[${new Date().toISOString()}] 🔍 获取用户 ${uid} 的追番数据`);
-    const url = `https://api.bilibili.com/x/space/bangumi/follow/list?type=1&follow_status=0&vmid=${uid}&pn=1&ps=30`;
-
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-        Referer: 'https://www.bilibili.com/',
-        Cookie: process.env.BILIBILI_COOKIE || '' // 使用环境变量传入 Cookie
-      }
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[${new Date().toISOString()}] ❌ B站API返回错误: ${response.status} - ${errorText}`);
-      return res.status(response.status).json({ 
-        error: 'Bilibili API Error',
-        message: `B站API返回错误: ${response.status}`,
-        details: errorText
-      });
-    }
-
-    const data = await response.json();
+    const data = await getBangumiData(uid);
     
-    // 检查B站API返回的错误码
-    if (data.code !== 0) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ B站API返回业务错误: code=${data.code}, message=${data.message}`);
-      
-      // 特殊处理一些常见错误
-      if (data.code === 53013) {
-        return res.status(403).json({
-          error: 'Privacy Settings',
-          message: '该用户的追番列表已设为隐私，无法获取',
-          code: data.code
-        });
-      }
-      
-      // 返回原始错误
-      return res.json(data);
-    }
-    
-    // 如果API返回成功，过滤出正在播出的番剧
-    if (data.data && data.data.list) {
-      const originalCount = data.data.list.length;
-      
-      // 过滤条件：
-      // 1. 番剧的状态不是已完结 (is_finish 为 0)
-      // 2. 番剧有播出时间信息 (pub_index 不为空) 或者有更新时间信息 (renewal_time 不为空) 或者有新剧集信息 (new_ep 不为空)
-      const currentlyAiring = data.data.list.filter(bangumi => {
-        // 检查是否未完结 (is_finish: 0 表示连载中，1 表示已完结)
-        const isOngoing = bangumi.is_finish === 0;
-        
-        // 检查是否有播出时间信息
-        const hasBroadcastInfo = (bangumi.pub_index && bangumi.pub_index.trim() !== '') ||
-                                   (bangumi.renewal_time && bangumi.renewal_time.trim() !== '') ||
-                                   (bangumi.new_ep && bangumi.new_ep.pub_time && bangumi.new_ep.pub_time.trim() !== '');
-        
-        // 检查最近是否有更新 (可选，如果需要更严格的过滤)
-        const hasRecentProgress = bangumi.progress && bangumi.progress.includes('更新至');
-        
-        return isOngoing && hasBroadcastInfo;
+    if (!data) {
+      return res.status(500).json({
+        error: 'Internal Server Error',
+        message: '获取数据失败'
       });
-      
-      // 替换原始列表为过滤后的列表
-      data.data.list = currentlyAiring;
-      console.log(`[${new Date().toISOString()}] 📊 [UID:${uid}] 总共 ${originalCount} 部番剧，过滤后 ${currentlyAiring.length} 部正在播出`);
-      
-      // 添加自定义字段表明数据已被过滤
-      data.filtered = true;
-      data.filtered_count = currentlyAiring.length;
-      data.original_count = originalCount;
     }
     
     res.json(data);
   } catch (err) {
-    console.error(`[${new Date().toISOString()}] ❌ 处理请求时出错:`, err);
-    
-    // 使用next(err)将错误传递给错误处理中间件
+    console.error(`❌ 处理请求时出错:`, err);
     next(err);
   }
 });
 
-// 健康检查接口
-app.get('/status', (req, res) => {
-  const uptime = process.uptime();
-  const uptimeFormatted = formatUptime(uptime);
-  
-  res.send(`✅ Bili-Calendar Service is running here.
-  
-服务状态:
-- 运行时间: ${uptimeFormatted}
-- 内存使用: ${Math.round(process.memoryUsage().rss / 1024 / 1024)} MB
-- 环境: ${process.env.NODE_ENV || 'development'}
-- 端口: ${PORT}
-`);
-});
-
-// 根路径返回前端页面
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
 // 处理 /{UID} 路径，生成并返回 ICS 文件
 app.get('/:uid', async (req, res, next) => {
-  const uid = req.params.uid.replace('.ics', '');
+  const { uid } = req.params;
+  const cleanUid = uid.replace('.ics', '');
   
   // 验证 UID 是否为数字
-  if (!/^\d+$/.test(uid)) {
-    console.warn(`[${new Date().toISOString()}] ⚠️ 无效的UID格式: ${uid}`);
+  if (!/^\d+$/.test(cleanUid)) {
+    console.warn(`⚠️ 无效的UID格式: ${cleanUid}`);
     return res.status(400).send('❌ 无效的 UID (只允许是数字)');
   }
   
   try {
-    console.log(`[${new Date().toISOString()}] 🔍 处理UID: ${uid}`);
+    console.log(`🔍 处理UID: ${cleanUid}`);
     
-    // 直接调用内部函数获取数据，而不是通过 HTTP 请求
-    const data = await getBangumiData(uid);
+    // 调用获取数据函数
+    const data = await getBangumiData(cleanUid);
     
     if (!data) {
       return res.status(500).send('获取数据失败');
@@ -302,131 +233,189 @@ app.get('/:uid', async (req, res, next) => {
     // 检查API返回的错误码
     if (data.code !== 0) {
       if (data.code === 53013) {
-        console.warn(`[${new Date().toISOString()}] ⚠️ 用户隐私设置限制: ${uid}`);
-        return respondWithEmptyCalendar(res, uid, '用户设置为隐私');
+        console.warn(`⚠️ 用户隐私设置限制: ${cleanUid}`);
+        return respondWithEmptyCalendar(res, cleanUid, '用户设置为隐私');
       }
-      console.error(`[${new Date().toISOString()}] ❌ B站API错误: ${data.message} (code: ${data.code})`);
+      console.error(`❌ B站API错误: ${data.message} (code: ${data.code})`);
       return res.status(500).send(`Bilibili API 错误: ${data.message} (code: ${data.code})`);
     }
     
-    
     // 检查数据列表
     const bangumiList = data.data?.list || [];
-    console.log(`[${new Date().toISOString()}] 📋 获取到番剧列表数量: ${bangumiList.length}`);
+    console.log(`📋 获取到番剧列表数量: ${bangumiList.length}`);
     
     if (bangumiList.length === 0) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ 未找到正在播出的番剧: ${uid}`);
-      return respondWithEmptyCalendar(res, uid, '未找到正在播出的番剧');
+      console.warn(`⚠️ 未找到正在播出的番剧: ${cleanUid}`);
+      return respondWithEmptyCalendar(res, cleanUid, '未找到正在播出的番剧');
     }
     
-    console.log(`[${new Date().toISOString()}] 📅 生成日历文件`);
-    const icsContent = generateICS(bangumiList, uid);
+    console.log(`📅 生成日历文件`);
+    const icsContent = generateICS(bangumiList, cleanUid);
     
-    return respondWithICS(res, icsContent, uid);
+    return respondWithICS(res, icsContent, cleanUid);
   } catch (err) {
-    console.error(`[${new Date().toISOString()}] ❌ 处理请求时出错:`, err);
+    console.error(`❌ 处理请求时出错:`, err);
     next(err);
   }
 });
 
-// 处理404错误
-app.use((req, res) => {
-  console.warn(`[${new Date().toISOString()}] ⚠️ 404 Not Found: ${req.originalUrl}`);
-  res.status(404).json({ 
-    error: 'Not Found',
-    message: `路径 ${req.originalUrl} 不存在` 
-  });
+// 健康检查接口
+app.get('/status', (req, res) => {
+  res.send(`✅ Bili-Calendar Service is running.`);
 });
 
-/**
- * 获取番剧数据的内部函数
- */
+// 根路径返回前端页面
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// 处理404错误 - 为浏览器请求返回HTML页面
+app.use((req, res) => {
+  // 检查是否为API请求
+  if (req.originalUrl.startsWith('/api/')) {
+    // API请求返回JSON错误
+    console.warn(`⚠️ 404 Not Found: ${req.originalUrl}`);
+    return res.status(404).json({ 
+      error: 'Not Found',
+      message: `路径 ${req.originalUrl} 不存在` 
+    });
+  } else {
+    // 非API请求返回HTML错误页面
+    return res.status(404).send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>页面未找到 - Bili-Calendar</title>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              text-align: center;
+              padding: 50px;
+              background-color: #f5f5f5;
+            }
+            .container {
+              max-width: 500px;
+              margin: 0 auto;
+              background: white;
+              padding: 30px;
+              border-radius: 8px;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            h1 {
+              color: #e53935;
+              font-size: 24px;
+              margin-bottom: 20px;
+            }
+            p {
+              color: #666;
+              font-size: 16px;
+              line-height: 1.6;
+            }
+            a {
+              color: #1976d2;
+              text-decoration: none;
+              font-weight: 500;
+            }
+            a:hover {
+              text-decoration: underline;
+            }
+            .error-code {
+              font-size: 64px;
+              font-weight: bold;
+              color: #ddd;
+              margin: 20px 0;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="error-code">404</div>
+            <h1>页面未找到</h1>
+            <p>抱歉，您访问的页面不存在。</p>
+            <p><a href="/">返回首页</a></p>
+          </div>
+        </body>
+      </html>
+    `);
+  }
+});
+
 async function getBangumiData(uid) {
   try {
-    console.log(`[${new Date().toISOString()}] 🔍 获取用户 ${uid} 的追番数据`);
+    console.log(`🔍 获取用户 ${uid} 的追番数据`);
     const url = `https://api.bilibili.com/x/space/bangumi/follow/list?type=1&follow_status=0&vmid=${uid}&pn=1&ps=30`;
 
-    const response = await fetch(url, {
+    const response = await axios.get(url, {
       headers: {
         'User-Agent':
           'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
         Referer: 'https://www.bilibili.com/',
-        Cookie: process.env.BILIBILI_COOKIE || '' // 使用环境变量传入 Cookie
+        Cookie: process.env.BILIBILI_COOKIE || ''
       }
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[${new Date().toISOString()}] ❌ B站API返回错误: ${response.status} - ${errorText}`);
-      return null;
-    }
-
-    const data = await response.json();
-    
     // 检查B站API返回的错误码
-    if (data.code !== 0) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ B站API返回业务错误: code=${data.code}, message=${data.message}`);
-      return data;
+    if (response.data.code !== 0) {
+      console.warn(`⚠️ B站API返回业务错误: code=${response.data.code}, message=${response.data.message}`);
+      
+      // 特殊处理一些常见错误
+      if (response.data.code === 53013) {
+        return {
+          error: 'Privacy Settings',
+          message: '该用户的追番列表已设为隐私，无法获取',
+          code: response.data.code
+        };
+      }
+      
+      // 返回原始错误
+      return response.data;
     }
     
     // 如果API返回成功，过滤出正在播出的番剧
-    if (data.data && data.data.list) {
-      const originalCount = data.data.list.length;
+    if (response.data.data && response.data.data.list) {
+      const originalCount = response.data.data.list.length;
       
       // 过滤条件：
       // 1. 番剧的状态不是已完结 (is_finish 为 0)
       // 2. 番剧有播出时间信息 (pub_index 不为空) 或者有更新时间信息 (renewal_time 不为空) 或者有新剧集信息 (new_ep 不为空)
-      const currentlyAiring = data.data.list.filter(bangumi => {
+      const currentlyAiring = response.data.data.list.filter(bangumi => {
         // 检查是否未完结 (is_finish: 0 表示连载中，1 表示已完结)
         const isOngoing = bangumi.is_finish === 0;
         
         // 检查是否有播出时间信息
         const hasBroadcastInfo = (bangumi.pub_index && bangumi.pub_index.trim() !== '') ||
-                                   (bangumi.renewal_time && bangumi.renewal_time.trim() !== '') ||
-                                   (bangumi.new_ep && bangumi.new_ep.pub_time && bangumi.new_ep.pub_time.trim() !== '');
-        
-        // 检查最近是否有更新 (可选，如果需要更严格的过滤)
-        const hasRecentProgress = bangumi.progress && bangumi.progress.includes('更新至');
+                                 (bangumi.renewal_time && bangumi.renewal_time.trim() !== '') ||
+                                 (bangumi.new_ep && bangumi.new_ep.pub_time && bangumi.new_ep.pub_time.trim() !== '');
         
         return isOngoing && hasBroadcastInfo;
       });
       
       // 替换原始列表为过滤后的列表
-      data.data.list = currentlyAiring;
-      console.log(`[${new Date().toISOString()}] 📊 [UID:${uid}] 总共 ${originalCount} 部番剧，过滤后 ${currentlyAiring.length} 部正在播出`);
+      response.data.data.list = currentlyAiring;
+      console.log(`📊 [UID:${uid}] 总共 ${originalCount} 部番剧，过滤后 ${currentlyAiring.length} 部正在播出`);
       
       // 添加自定义字段表明数据已被过滤
-      data.filtered = true;
-      data.filtered_count = currentlyAiring.length;
-      data.original_count = originalCount;
+      response.data.filtered = true;
+      response.data.filtered_count = currentlyAiring.length;
+      response.data.original_count = originalCount;
     }
     
-    return data;
+    return response.data;
   } catch (err) {
-    console.error(`[${new Date().toISOString()}] ❌ 处理请求时出错:`, err);
+    console.error(`❌ 获取追番数据失败:`, err);
+    if (err.response) {
+      return {
+        error: 'Bilibili API Error',
+        message: `B站API返回错误: ${err.response.status}`,
+        details: err.response.data
+      };
+    }
     return null;
   }
 }
 
-// 格式化运行时间
-function formatUptime(seconds) {
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-  
-  const parts = [];
-  if (days > 0) parts.push(`${days}天`);
-  if (hours > 0) parts.push(`${hours}小时`);
-  if (minutes > 0) parts.push(`${minutes}分钟`);
-  if (secs > 0 || parts.length === 0) parts.push(`${secs}秒`);
-  
-  return parts.join(' ');
-}
-
-/**
- * 生成 ICS 文件内容
- */
 function generateICS(bangumis, uid) {
   const VTIMEZONE_DEFINITION = `BEGIN:VTIMEZONE
 TZID:Asia/Shanghai
@@ -706,9 +695,6 @@ function escapeICSText(text) {
     .replace(/\n/g, "\\n");
 }
 
-/**
- * 返回 ICS 文件
- */
 function respondWithICS(res, content, uid) {
   res.set({
     'Content-Type': 'text/calendar; charset=utf-8',
@@ -718,9 +704,6 @@ function respondWithICS(res, content, uid) {
   res.send(content);
 }
 
-/**
- * 返回空的日历文件
- */
 function respondWithEmptyCalendar(res, uid, reason) {
   const now = new Date().toISOString().replace(/[-:.]/g, '').substring(0, 15) + 'Z';
   const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
@@ -733,15 +716,6 @@ function respondWithEmptyCalendar(res, uid, reason) {
     'METHOD:PUBLISH',
     'X-WR-CALNAME:B站追番（无内容）',
     'X-WR-TIMEZONE:Asia/Shanghai',
-    'BEGIN:VTIMEZONE',
-    'TZID:Asia/Shanghai',
-    'BEGIN:STANDARD',
-    'DTSTART:19700101T000000',
-    'TZOFFSETFROM:+0800',
-    'TZOFFSETTO:+0800',
-    'TZNAME:CST',
-    'END:STANDARD',
-    'END:VTIMEZONE',
     'BEGIN:VEVENT',
     'UID:error-' + uid + '@bilibili.com',
     'DTSTAMP:' + now,
@@ -759,5 +733,5 @@ function respondWithEmptyCalendar(res, uid, reason) {
 }
 
 app.listen(PORT, () => {
-  console.log(`[${new Date().toISOString()}] 🚀 Bili-Calendar service running on port ${PORT}`);
+  console.log(`🚀 Bili-Calendar service running on port ${PORT}`);
 });
