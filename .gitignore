@@ -26,5 +26,8 @@ Thumbs.db
 dist/
 build/
 
+# Netlify build directory
+netlify/functions-build/
+
 # Docker
 docker-compose.override.yml
