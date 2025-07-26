@@ -8,7 +8,7 @@
     "start": "node server.js",
     "dev": "NODE_ENV=development node --watch server.js",
     "start:prod": "NODE_ENV=production node server.js",
-    "build": "mkdir -p netlify/functions-build && cp -r netlify/functions/* netlify/functions-build/ && cp main.js netlify/functions-build/"
+    "build": "mkdir -p netlify/functions-build && cp netlify/functions/server.js netlify/functions-build/"
   },
   "keywords": [
     "bilibili",
