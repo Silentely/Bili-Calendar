@@ -8,8 +8,7 @@
     "start": "node server.js",
     "dev": "NODE_ENV=development node --watch server.js",
     "start:prod": "NODE_ENV=production node server.js",
-    "build": "BUILD_DIR=netlify/functions-build netlify-lambda build netlify/functions",
-    "preinstall": "npx npm-force-resolutions"
+    "build": "cp -r netlify_functions/* netlify/functions-build/ && cp main.js netlify/functions-build/"
   },
   "keywords": [
     "bilibili",
