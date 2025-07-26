@@ -84,11 +84,22 @@ app.use((req, res, next) => {
 
 // 限流中间件
 const rateLimiterMiddleware = (req, res, next) => {
-  // 获取客户端IP
-  const ip = req.headers['x-forwarded-for'] || 
-             req.connection.remoteAddress || 
-             req.socket.remoteAddress ||
-             (req.connection.socket ? req.connection.socket.remoteAddress : null);
+  // 获取客户端IP，处理代理和IPv6地址
+  let ip = req.headers['x-forwarded-for'] || 
+           req.connection.remoteAddress || 
+           req.socket.remoteAddress ||
+           (req.connection.socket ? req.connection.socket.remoteAddress : null);
+  
+  // 处理 x-forwarded-for 头部可能包含多个IP地址的情况（逗号分隔）
+  if (ip && ip.includes(',')) {
+    // 使用第一个IP地址（最原始的客户端IP）
+    ip = ip.split(',')[0].trim();
+  }
+  
+  // 处理IPv6地址的格式（例如：::ffff:127.0.0.1）
+  if (ip && ip.includes('::ffff:')) {
+    ip = ip.replace('::ffff:', '');
+  }
   
   // 区分内部调用和外部直接访问
   const isDirectAccess = !req.headers['x-bili-calendar-internal'];
@@ -165,7 +176,7 @@ app.get('/api/bangumi/:uid', rateLimiterMiddleware, async (req, res, next) => {
     console.log(`🔍 获取用户 ${uid} 的追番数据`);
     const url = `https://api.bilibili.com/x/space/bangumi/follow/list?type=1&follow_status=0&vmid=${uid}&pn=1&ps=30`;
 
-    const response = await fetch(url, {
+    const response = await axios.get(url, {
       headers: {
         'User-Agent':
           'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
@@ -174,33 +185,21 @@ app.get('/api/bangumi/:uid', rateLimiterMiddleware, async (req, res, next) => {
       }
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ B站API返回错误: ${response.status} - ${errorText}`);
-      return res.status(response.status).json({ 
-        error: 'Bilibili API Error',
-        message: `B站API返回错误: ${response.status}`,
-        details: errorText
-      });
-    }
-
-    const data = await response.json();
-    
     // 检查B站API返回的错误码
-    if (data.code !== 0) {
-      console.warn(`⚠️ B站API返回业务错误: code=${data.code}, message=${data.message}`);
+    if (response.data.code !== 0) {
+      console.warn(`⚠️ B站API返回业务错误: code=${response.data.code}, message=${response.data.message}`);
       
       // 特殊处理一些常见错误
-      if (data.code === 53013) {
+      if (response.data.code === 53013) {
         return res.status(403).json({
           error: 'Privacy Settings',
           message: '该用户的追番列表已设为隐私，无法获取',
-          code: data.code
+          code: response.data.code
         });
       }
       
       // 返回原始错误
-      return res.json(data);
+      return res.json(response.data);
     }
     
     // 如果API返回成功，过滤出正在播出的番剧
@@ -319,7 +318,7 @@ async function fetchBangumiData(uid) {
     console.log(`🔍 获取用户 ${uid} 的追番数据`);
     const url = `https://api.bilibili.com/x/space/bangumi/follow/list?type=1&follow_status=0&vmid=${uid}&pn=1&ps=30`;
 
-    const response = await fetch(url, {
+    const response = await axios.get(url, {
       headers: {
         'User-Agent':
           'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
@@ -328,16 +327,9 @@ async function fetchBangumiData(uid) {
       }
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ B站API返回错误: ${response.status} - ${errorText}`);
-      return null;
-    }
-
-    const data = await response.json();
-    
-    if (data.code !== 0) {
-      return data;
+    // 检查B站API返回的错误码
+    if (response.data.code !== 0) {
+      return response.data;
     }
     
     if (data.data && data.data.list) {
