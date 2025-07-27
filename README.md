@@ -19,11 +19,15 @@
 
 ## 效果预览
 
-> 下图展示了 Apple 日历中的订阅效果、事件详情与服务端日志：
+> 下图展示了前端界面、Apple 日历中的订阅效果与事件详情：
 
-| 日历视图 | 事件详情 | 服务端日志 |
+| 前端界面 | 日历视图 | 事件详情 |
 |:---:|:---:|:---:|
-| ![](./assets/calendar-view.jpg) | ![](./assets/event-detail.jpg) | ![](./assets/server-log.jpg) |
+| ![](./assets/front-end-web.jpg) | ![](./assets/calendar-view.jpg) | ![](./assets/event-detail.jpg) |
+
+前端界面展示了用户输入 B站 UID 后生成订阅链接的过程。用户可以根据设备类型选择不同的操作：
+- **桌面端**：显示订阅链接和使用说明，用户可以复制链接手动添加到日历应用
+- **移动端**：直接跳转到系统日历应用进行订阅
 
 ---
 
@@ -35,7 +39,7 @@
 2. 输入您的 B站 UID（在 B站个人空间网址中找到，例如：`https://space.bilibili.com/614500` 中的 614500）
 3. 点击"生成订阅"按钮
 4. 将生成的订阅链接添加到您的日历应用中  
-   PS: 也可直接通过 `https://calendar.cosr.eu.org/uid` 形式复制到日历新增订阅里填入链接
+PS: 也可直接通过 `https://calendar.cosr.eu.org/uid` 形式复制到日历新增订阅里填入链接
 
 ---
 
@@ -290,4 +294,4 @@ npm run start:prod
 
 ## 免责声明
 
-本项目仅供学习交流使用，不提供任何BiliBili相关的账号服务。请遵守BiliBili的相关服务条款和使用规范。
+本项目仅供学习交流使用，不提供任何BiliBili相关的账号服务。请遵守BiliBili的相关服务条款和使用规范.
