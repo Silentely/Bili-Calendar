@@ -214,13 +214,6 @@ npm run start:prod
 
 > **注意**: 项目已通过 `serverless-http` 将Express应用包装为Netlify函数，并使用CommonJS模块格式，所有必要的依赖已添加到package.json中。
 
-### 部署到 Vercel
-
-1. Fork 本项目到您的 GitHub 账户
-2. 在 Vercel 官网导入项目
-3. 设置环境变量（如需要）
-4. 部署完成
-
 ---
 
 ## 多平台部署说明
@@ -297,4 +290,4 @@ npm run start:prod
 
 ## 免责声明
 
-本项目仅供学习交流使用，不提供任何 B站 相关的账号服务。请遵守 B站 的相关服务条款和使用规范。
+本项目仅供学习交流使用，不提供任何BiliBili相关的账号服务。请遵守BiliBili的相关服务条款和使用规范。

@@ -5,7 +5,6 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  # 也可以手动触发
   workflow_dispatch:
 
 env:
@@ -15,7 +14,6 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    # 设置权限，以便能够推送到GHCR
     permissions:
       contents: read
       packages: write
@@ -39,7 +37,6 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          # 设置自动标签策略
           tags: |
             type=schedule
             type=ref,event=branch
@@ -60,3 +57,9 @@ jobs:
           platforms: linux/amd64,linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max 
+
+      - name: Delete workflow runs
+        uses: GitRML/delete-workflow-runs@main
+        with:
+          retain_days: '3'
+          keep_minimum_runs: '0'
