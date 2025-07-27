@@ -28,6 +28,15 @@
     .help-text { font-size: 0.9rem; color: #888; margin-top: 0.5rem; text-align: left; }
     .loading { display: none; margin-top: 1rem; }
     .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(0, 161, 214, 0.3); border-radius: 50%; border-top-color: #00a1d6; animation: spin 1s ease-in-out infinite; margin-right: 8px; vertical-align: middle; }
+    .privacy-warning { background-color: #fff7e6; border-left: 4px solid #faad14; padding: 0.8rem; margin-top: 1rem; border-radius: 0 8px 8px 0; color: #d46b08; font-weight: 500; }
+    .result-box { display: none; margin-top: 1.5rem; padding: 1rem; background-color: #f6ffed; border: 1px solid #b7eb8f; border-radius: 8px; text-align: left; }
+    .result-box h3 { margin-top: 0; color: #52c41a; }
+    .result-box p { margin: 0.5rem 0; }
+    .subscribe-link { display: inline-block; padding: 0.5rem 1rem; background-color: #00a1d6; color: white; text-decoration: none; border-radius: 4px; margin-top: 0.5rem; }
+    .subscribe-link:hover { background-color: #00b5e5; }
+    .copy-button { display: inline-block; padding: 0.5rem 1rem; background-color: #52c41a; color: white; text-decoration: none; border-radius: 4px; margin-top: 0.5rem; cursor: pointer; border: none; margin-right: 10px; }
+    .copy-button:hover { background-color: #73d13d; }
+    .instructions { margin-top: 1rem; padding: 1rem; background-color: #e6f7ff; border-left: 4px solid #1890ff; border-radius: 0 4px 4px 0; text-align: left; }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
@@ -45,6 +54,22 @@
       <span class="spinner"></span> 正在获取数据，请稍候...
     </div>
     
+    <div class="result-box" id="resultBox">
+      <h3>✅ 订阅链接生成成功</h3>
+      <p>请复制以下链接并添加到您的日历应用中：</p>
+      <p><strong>订阅链接：</strong><span id="subscribeUrl"></span></p>
+      <button class="copy-button" onclick="copyToClipboard()">复制链接</button>
+      <a href="#" id="subscribeLink" class="subscribe-link" target="_blank">添加到日历应用</a>
+      <div class="instructions">
+        <h4>📌 使用说明：</h4>
+        <ul>
+          <li><strong>Apple 日历</strong>：打开设置 > 密码与账户 > 添加账户 > 其他 > 添加已订阅日历</li>
+          <li><strong>Google 日历</strong>：在左侧"我的日历"下点击"添加其他日历" > "从URL添加"</li>
+          <li><strong>Outlook</strong>：在日历视图中点击"添加日历" > "从Internet"</li>
+        </ul>
+      </div>
+    </div>
+    
     <div class="info-box">
       <h3>📅 关于此工具</h3>
       <ul>
@@ -53,7 +78,7 @@
         <li>每集更新时间会自动添加到您的日历中</li>
         <li>日历链接长期有效，无需重复订阅</li>
       </ul>
-      <p>注意：您的追番数据必须是公开的，否则无法获取</p>
+      <div class="privacy-warning">⚠️ 重要：您的追番数据必须设置为公开，否则无法获取</div>
     </div>
     
     <div class="project-info">
@@ -67,9 +92,27 @@
     function toHalfWidth(str) {
       return str.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
     }
+    
+    function isMobile() {
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+    
+    function copyToClipboard() {
+      const url = document.getElementById('subscribeUrl').textContent;
+      navigator.clipboard.writeText(url).then(() => {
+        alert('链接已复制到剪贴板');
+      }).catch(err => {
+        console.error('复制失败: ', err);
+        alert('复制失败，请手动选择并复制链接');
+      });
+    }
+    
     function handleSubscribe() {
       const input = document.getElementById('uidInput');
       const loading = document.getElementById('loadingIndicator');
+      const resultBox = document.getElementById('resultBox');
+      const subscribeUrl = document.getElementById('subscribeUrl');
+      const subscribeLink = document.getElementById('subscribeLink');
       let uid = input.value.trim();
       
       uid = toHalfWidth(uid);
@@ -82,10 +125,28 @@
       // 显示加载指示器
       loading.style.display = 'block';
       
-      // 延迟跳转，让用户看到加载动画
-      setTimeout(() => {
-        window.location.href = '/' + uid;
-      }, 500);
+      // 构造订阅链接
+      const url = window.location.origin + '/' + uid + '.ics';
+      
+      // 根据设备类型采取不同行为
+      if (isMobile()) {
+        // 移动端直接跳转到日历应用
+        setTimeout(() => {
+          loading.style.display = 'none';
+          window.location.href = url;
+        }, 500);
+      } else {
+        // PC端显示链接供用户复制
+        setTimeout(() => {
+          loading.style.display = 'none';
+          subscribeUrl.textContent = url;
+          subscribeLink.href = url;
+          resultBox.style.display = 'block';
+          
+          // 滚动到结果区域
+          resultBox.scrollIntoView({ behavior: 'smooth' });
+        }, 500);
+      }
     }
   </script>
 </body>
