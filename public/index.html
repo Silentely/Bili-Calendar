@@ -28,7 +28,7 @@
     .help-text { font-size: 0.9rem; color: #888; margin-top: 0.5rem; text-align: left; }
     .loading { display: none; margin-top: 1rem; }
     .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(0, 161, 214, 0.3); border-radius: 50%; border-top-color: #00a1d6; animation: spin 1s ease-in-out infinite; margin-right: 8px; vertical-align: middle; }
-    .privacy-warning { background-color: #fff7e6; border-left: 4px solid #faad14; padding: 0.8rem; margin-top: 1rem; border-radius: 0 8px 8px 0; color: #d46b08; font-weight: 500; }
+    .privacy-warning { background-color: #fff2f0; border-left: 4px solid #ff4d4f; padding: 1rem; margin-top: 1rem; border-radius: 0 8px 8px 0; color: #ff4d4f; font-weight: bold; font-size: 1.1em; text-align: center; box-shadow: 0 2px 8px rgba(255, 77, 79, 0.1); }
     .result-box { display: none; margin-top: 1.5rem; padding: 1rem; background-color: #f6ffed; border: 1px solid #b7eb8f; border-radius: 8px; text-align: left; }
     .result-box h3 { margin-top: 0; color: #52c41a; }
     .result-box p { margin: 0.5rem 0; }
@@ -78,7 +78,7 @@
         <li>每集更新时间会自动添加到您的日历中</li>
         <li>日历链接长期有效，无需重复订阅</li>
       </ul>
-      <div class="privacy-warning">⚠️ 重要：您的追番数据必须设置为公开，否则无法获取</div>
+      <div class="privacy-warning">⚠️ 重要提醒：您的追番数据必须设置为公开，否则无法获取</div>
     </div>
     
     <div class="project-info">
@@ -141,6 +141,16 @@
           loading.style.display = 'none';
           subscribeUrl.textContent = url;
           subscribeLink.href = url;
+          
+          // 在MacOS上，通过webcal协议尝试打开日历应用
+          if (navigator.userAgent.includes('Mac')) {
+            subscribeLink.onclick = function(e) {
+              e.preventDefault();
+              const webcalUrl = url.replace('http://', 'webcal://').replace('https://', 'webcal://');
+              window.location.href = webcalUrl;
+            };
+          }
+          
           resultBox.style.display = 'block';
           
           // 滚动到结果区域
