@@ -1,15 +1,19 @@
-// main.js
+ // main.js
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import axios from 'axios';
+import { httpClient } from './utils/http.js';
+
+// 复用时间与ICS工具
+import { parseBroadcastTime, parseNewEpTime, getNextBroadcastDate, formatDate, escapeICSText } from './utils/time.js';
+import { generateICS, respondWithICS, respondWithEmptyCalendar } from './utils/ics.js';
 
 const app = express();
 
 const PORT = process.env.PORT || 3000;
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type'
 };
 
@@ -85,8 +89,12 @@ const rateLimiter = {
 // 每小时清理一次过期的限流记录
 setInterval(() => rateLimiter.cleanup(), 60 * 60 * 1000);
 
-// 设置跨域支持
+/** 安全响应头 + CORS */
 app.use((req, res, next) => {
+  // 基础安全头
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  // CORS
   Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
@@ -182,26 +190,15 @@ app.get('/api/bangumi/:uid', rateLimiterMiddleware, async (req, res, next) => {
     console.log(`[${new Date().toISOString()}] 🔍 获取用户 ${uid} 的追番数据`);
     const url = `https://api.bilibili.com/x/space/bangumi/follow/list?type=1&follow_status=0&vmid=${uid}&pn=1&ps=30`;
 
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-        Referer: 'https://www.bilibili.com/',
-        Cookie: process.env.BILIBILI_COOKIE || '' // 使用环境变量传入 Cookie
+    const response = await httpClient.get(url).catch(err => {
+      if (err.response) {
+        console.error(`[${new Date().toISOString()}] ❌ B站API返回错误: ${err.response.status}`);
+        return { data: { error: 'Bilibili API Error', message: `B站API返回错误: ${err.response.status}`, details: err.response.data } };
       }
+      throw err;
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[${new Date().toISOString()}] ❌ B站API返回错误: ${response.status} - ${errorText}`);
-      return res.status(response.status).json({ 
-        error: 'Bilibili API Error',
-        message: `B站API返回错误: ${response.status}`,
-        details: errorText
-      });
-    }
-
-    const data = await response.json();
+    const data = response.data;
     
     // 检查B站API返回的错误码
     if (data.code !== 0) {
@@ -355,64 +352,64 @@ async function getBangumiData(uid) {
     console.log(`[${new Date().toISOString()}] 🔍 获取用户 ${uid} 的追番数据`);
     const url = `https://api.bilibili.com/x/space/bangumi/follow/list?type=1&follow_status=0&vmid=${uid}&pn=1&ps=30`;
 
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-        Referer: 'https://www.bilibili.com/',
-        Cookie: process.env.BILIBILI_COOKIE || '' // 使用环境变量传入 Cookie
-      }
-    });
+    const response = await httpClient.get(url);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[${new Date().toISOString()}] ❌ B站API返回错误: ${response.status} - ${errorText}`);
-      return null;
-    }
-
-    const data = await response.json();
-    
     // 检查B站API返回的错误码
-    if (data.code !== 0) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ B站API返回业务错误: code=${data.code}, message=${data.message}`);
-      return data;
+    if (response.data.code !== 0) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ B站API返回业务错误: code=${response.data.code}, message=${response.data.message}`);
+      
+      // 特殊处理一些常见错误
+      if (response.data.code === 53013) {
+        return {
+          error: 'Privacy Settings',
+          message: '该用户的追番列表已设为隐私，无法获取',
+          code: response.data.code
+        };
+      }
+      
+      // 返回原始错误
+      return response.data;
     }
     
     // 如果API返回成功，过滤出正在播出的番剧
-    if (data.data && data.data.list) {
-      const originalCount = data.data.list.length;
+    if (response.data.data && response.data.data.list) {
+      const originalCount = response.data.data.list.length;
       
       // 过滤条件：
       // 1. 番剧的状态不是已完结 (is_finish 为 0)
       // 2. 番剧有播出时间信息 (pub_index 不为空) 或者有更新时间信息 (renewal_time 不为空) 或者有新剧集信息 (new_ep 不为空)
-      const currentlyAiring = data.data.list.filter(bangumi => {
+      const currentlyAiring = response.data.data.list.filter(bangumi => {
         // 检查是否未完结 (is_finish: 0 表示连载中，1 表示已完结)
         const isOngoing = bangumi.is_finish === 0;
         
         // 检查是否有播出时间信息
         const hasBroadcastInfo = (bangumi.pub_index && bangumi.pub_index.trim() !== '') ||
-                                   (bangumi.renewal_time && bangumi.renewal_time.trim() !== '') ||
-                                   (bangumi.new_ep && bangumi.new_ep.pub_time && bangumi.new_ep.pub_time.trim() !== '');
-        
-        // 检查最近是否有更新 (可选，如果需要更严格的过滤)
-        const hasRecentProgress = bangumi.progress && bangumi.progress.includes('更新至');
+                                 (bangumi.renewal_time && bangumi.renewal_time.trim() !== '') ||
+                                 (bangumi.new_ep && bangumi.new_ep.pub_time && bangumi.new_ep.pub_time.trim() !== '');
         
         return isOngoing && hasBroadcastInfo;
       });
       
       // 替换原始列表为过滤后的列表
-      data.data.list = currentlyAiring;
+      response.data.data.list = currentlyAiring;
       console.log(`[${new Date().toISOString()}] 📊 [UID:${uid}] 总共 ${originalCount} 部番剧，过滤后 ${currentlyAiring.length} 部正在播出`);
       
       // 添加自定义字段表明数据已被过滤
-      data.filtered = true;
-      data.filtered_count = currentlyAiring.length;
-      data.original_count = originalCount;
+      response.data.filtered = true;
+      response.data.filtered_count = currentlyAiring.length;
+      response.data.original_count = originalCount;
     }
     
-    return data;
+    return response.data;
   } catch (err) {
-    console.error(`[${new Date().toISOString()}] ❌ 处理请求时出错:`, err);
+    console.error(`[${new Date().toISOString()}] ❌ 获取追番数据失败:`, err);
+    if (err.response) {
+      return {
+        error: 'Bilibili API Error',
+        message: `B站API返回错误: ${err.response.status}`,
+        details: err.response.data
+      };
+    }
     return null;
   }
 }
@@ -437,361 +434,11 @@ function formatUptime(seconds) {
   return parts.join(' ');
 }
 
-/**
- * Generates an ICS calendar file containing events for each currently airing Bilibili bangumi series.
- *
- * For each bangumi, creates a calendar event with broadcast time (if available), title, update status, airing status, and a link to the Bilibili page. If broadcast time cannot be determined, the event is marked as having unknown time. Ongoing series include a weekly recurrence rule.
- *
- * @param {Array<Object>} bangumis - List of bangumi objects to include in the calendar.
- * @param {string|number} uid - The Bilibili user ID for whom the calendar is generated.
- * @return {string} The generated ICS calendar content as a string.
- */
-function generateICS(bangumis, uid) {
-  const VTIMEZONE_DEFINITION = `BEGIN:VTIMEZONE
-TZID:Asia/Shanghai
-BEGIN:STANDARD
-DTSTART:19700101T000000
-TZOFFSETFROM:+0800
-TZOFFSETTO:+0800
-TZNAME:CST
-END:STANDARD
-END:VTIMEZONE`;
+/* moved to utils/time.js: parseBroadcastTime */
 
-  const lines = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//BiliCalendar//EN',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    `X-WR-CALNAME:B站追番 (UID: ${uid})`,
-    'X-WR-TIMEZONE:Asia/Shanghai',
-    VTIMEZONE_DEFINITION
-  ];
 
-  const now = new Date().toISOString().replace(/[-:.]/g, '').substring(0, 15) + 'Z';
 
-  for (const item of bangumis) {
-    // 检查必需字段
-    if (!item.title || !item.season_id) {
-      continue;
-    }
 
-    // 尝试解析播出时间
-    let info = parseBroadcastTime(item.pub_index);
-    
-    // 如果无法从 pub_index 解析，则尝试从 new_ep.pub_time 解析
-    if (!info && item.new_ep && item.new_ep.pub_time) {
-      info = parseNewEpTime(item.new_ep.pub_time);
-    }
-    
-    // 尝试从renewal_time解析
-    if (!info && item.renewal_time) {
-      info = parseBroadcastTime(item.renewal_time);
-    }
 
-    if (!info) {
-      // 即使无法解析时间也创建事件（使用默认时间）
-      const defaultDate = new Date();
-      const dtstart = formatDate(defaultDate);
-
-      // 构建标题，添加季度信息
-      const titleWithSeason = item.season_title && !item.title.includes(item.season_title) ? 
-        `${item.title} ${item.season_title}` : item.title;
-      
-      // 在描述中添加更新到第几话的信息，使用emoji分隔符而非换行
-      let description = "";
-      
-      // 更新状态
-      if (item.index_show) {
-        description += `🌟 更新状态: ${item.index_show}`;
-      } else if (item.new_ep && item.new_ep.index_show) {
-        description += `🌟 更新状态: ${item.new_ep.index_show}`;
-      }
-      
-      // 添加连载状态 (带emoji分隔符)
-      description += ` ➡️ 状态: ${item.is_finish === 0 ? '连载中' : '已完结'}`;
-      
-      // 番剧简介 (带emoji分隔符)
-      description += ` ✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
-      
-      lines.push(
-        'BEGIN:VEVENT',
-        `UID:${item.season_id}@bilibili.com`,
-        `DTSTAMP:${now}`,
-        `DTSTART;VALUE=DATE:${defaultDate.toISOString().split('T')[0].replace(/-/g, '')}`,
-        `SUMMARY:${escapeICSText('[时间未知] ' + titleWithSeason)}`,
-        `DESCRIPTION:${escapeICSText(description)}`,
-        `URL;VALUE=URI:https://www.bilibili.com/bangumi/play/ss${item.season_id}`,
-        'END:VEVENT'
-      );
-      continue;
-    }
-
-    const firstDate = getNextBroadcastDate(info.dayOfWeek, info.time);
-    const dtstart = formatDate(firstDate);
-
-    // 准备事件内容
-    const eventLines = [
-      'BEGIN:VEVENT',
-      `UID:${item.season_id}@bilibili.com`,
-      `DTSTAMP:${now}`,
-      `DTSTART;TZID=Asia/Shanghai:${dtstart}`,
-    ];
-
-    // 只有连载中的番剧才添加重复规则，限制为2次
-    if (item.is_finish === 0) {
-      eventLines.push(`RRULE:FREQ=WEEKLY;COUNT=2;BYDAY=${info.rruleDay}`);
-    }
-
-    // 构建标题，添加季度信息
-    const normalTitleWithSeason = item.season_title && !item.title.includes(item.season_title) ? 
-      `${item.title} ${item.season_title}` : item.title;
-    
-    // 在描述中添加更新到第几话的信息，使用emoji分隔符而非换行
-    let normalDescription = "";
-    
-    // 更新状态
-    if (item.index_show) {
-      normalDescription += `🌟 更新状态: ${item.index_show}`;
-    } else if (item.new_ep && item.new_ep.index_show) {
-      normalDescription += `🌟 更新状态: ${item.new_ep.index_show}`;
-    }
-    
-    // 添加连载状态 (带emoji分隔符)
-    normalDescription += ` ➡️ 状态: ${item.is_finish === 0 ? '连载中' : '已完结'}`;
-    
-    // 番剧简介 (带emoji分隔符)
-    normalDescription += ` ✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
-    
-    eventLines.push(
-      `SUMMARY:${escapeICSText(normalTitleWithSeason)}`,
-      `DESCRIPTION:${escapeICSText(normalDescription)}`,
-      `URL;VALUE=URI:https://www.bilibili.com/bangumi/play/ss${item.season_id}`,
-      'END:VEVENT'
-    );
-
-    lines.push(...eventLines);
-  }
-
-  lines.push('END:VCALENDAR');
-  return lines.join('\r\n');
-}
-
-/**
- * Parses a broadcast time string in Chinese and extracts the day of week and time.
- *
- * Attempts to interpret various common formats describing weekly broadcast schedules, returning the corresponding day of week (0-6, Sunday-Saturday), time string, and RRULE day code for calendar recurrence. Returns null if parsing fails.
- *
- * @param {string} pubIndex - The broadcast time description, typically in Chinese (e.g., "每周三 20:00").
- * @return {Object|null} An object with `dayOfWeek`, `time`, and `rruleDay` properties, or null if parsing is unsuccessful.
- */
-function parseBroadcastTime(pubIndex) {
-  if (!pubIndex) return null;
-
-  const dayMap = { '日': 0, '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6 };
-  const rruleMap = { '日': 'SU', '一': 'MO', '二': 'TU', '三': 'WE', '四': 'TH', '五': 'FR', '六': 'SA' };
-
-  // 尝试多种格式
-  const patterns = [
-    /(?:(?:每周|周)([日一二三四五六]))?.*?(\d{1,2}:\d{2})/,  // 标准格式
-    /([日一二三四五六]).*?(\d{1,2}:\d{2})/,                 // 简化格式
-    /(\d{1,2}:\d{2})/,                                       // 仅时间
-    /(?:.*?日起)?([日一二三四五六])?.*?(\d{1,2}:\d{2})/,      // 包含"日起"的格式
-    /(?:.*?起)?([日一二三四五六])?.*?(\d{1,2}:\d{2})/         // 包含"起"的格式
-  ];
-
-  for (const pattern of patterns) {
-    const match = pubIndex.match(pattern);
-    if (match) {
-      const dayChar = match[1] || '一'; // 默认周一
-      const time = match[2];
-
-      if (dayChar in dayMap) {
-        return {
-          dayOfWeek: dayMap[dayChar],
-          time: time,
-          rruleDay: rruleMap[dayChar]
-        };
-      } else if (time.match(/\d{1,2}:\d{2}/)) {
-        // 只有时间，使用默认周一
-        return {
-          dayOfWeek: 1,
-          time: time,
-          rruleDay: 'MO'
-        };
-      }
-    }
-  }
-
-  return null;
-}
-
-/**
- * Calculates the next occurrence of a specified weekday and time in the Asia/Shanghai timezone.
- * @param {number} targetDay - The target day of the week (0 for Sunday, 6 for Saturday).
- * @param {string} timeStr - The target time in "HH:mm" format.
- * @return {Date} The Date object representing the next broadcast date and time in Asia/Shanghai timezone.
- */
-function getNextBroadcastDate(targetDay, timeStr) {
-  const now = new Date();
-  const [hh, mm] = timeStr.split(':').map(Number);
-
-  const utcOffset = 8 * 60;
-  const nowInShanghai = new Date(now.getTime() + utcOffset * 60 * 1000);
-
-  const today = nowInShanghai.getUTCDay();
-  let diff = (targetDay - today + 7) % 7;
-
-  if (diff === 0) {
-    const currH = nowInShanghai.getUTCHours();
-    const currM = nowInShanghai.getUTCMinutes();
-
-    if (currH > hh || (currH === hh && currM >= mm)) {
-      diff = 7;
-    }
-  }
-
-  const nextDate = new Date(nowInShanghai);
-  nextDate.setUTCDate(nextDate.getUTCDate() + diff);
-  nextDate.setUTCHours(hh, mm, 0, 0);
-
-  return nextDate;
-}
-
-/**
- * Parses a Bilibili new episode publish time string and extracts the broadcast weekday and time.
- *
- * Supports both standard datetime formats (e.g., "YYYY-MM-DD HH:MM:SS") and descriptive formats (e.g., "每周四 20:00更新").
- *
- * @param {string} pubTime - The publish time string to parse.
- * @return {Object|null} An object containing `dayOfWeek` (0-6, Sunday-Saturday), `time` ("HH:MM"), and `rruleDay` (ICS weekday code), or null if parsing fails.
- */
-function parseNewEpTime(pubTime) {
-  if (!pubTime) return null;
-
-  const dayMap = { '日': 0, '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6 };
-  const rruleMap = { '日': 'SU', '一': 'MO', '二': 'TU', '三': 'WE', '四': 'TH', '五': 'FR', '六': 'SA' };
-
-  // 尝试解析 "YYYY-MM-DD HH:MM:SS" 格式 (B站标准时间格式)
-  const dateTimePattern = /^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})$/;
-  const dateTimeMatch = pubTime.match(dateTimePattern);
-  if (dateTimeMatch) {
-    const dateStr = dateTimeMatch[1];
-    const timeStr = dateTimeMatch[2].substring(0, 5); // 提取 HH:MM 部分
-    
-    // 正确解析日期，考虑时区 (B站时间是北京时间 UTC+8)
-    const date = new Date(dateStr + 'T' + timeStr + ':00+08:00');
-    const dayOfWeek = date.getUTCDay();
-    
-    // 获取对应的 rruleDay
-    const rruleDay = rruleMap[Object.keys(dayMap)[dayOfWeek]];
-    
-    return {
-      dayOfWeek: dayOfWeek,
-      time: timeStr,
-      rruleDay: rruleDay
-    };
-  }
-
-  // 尝试解析 "MM月DD日起周四 HH:MM更新" 格式
-  const pattern = /(?:.*?日起)?([日一二三四五六])?.*?(\d{1,2}:\d{2})/;
-  const match = pubTime.match(pattern);
-  if (match) {
-    const dayChar = match[1] || '一'; // 默认周一
-    const time = match[2];
-
-    if (dayChar in dayMap) {
-      return {
-        dayOfWeek: dayMap[dayChar],
-        time: time,
-        rruleDay: rruleMap[dayChar]
-      };
-    } else if (time.match(/\d{1,2}:\d{2}/)) {
-      // 只有时间，使用默认周一
-      return {
-        dayOfWeek: 1,
-        time: time,
-        rruleDay: 'MO'
-      };
-    }
-  }
-
-  return null;
-}
-
-/**
- * Formats a Date object as an ICS-compatible UTC datetime string (YYYYMMDDTHHMMSS).
- * @param {Date} date - The date to format.
- * @return {string} The formatted datetime string in UTC.
- */
-function formatDate(date) {
-  const pad = (n) => n.toString().padStart(2, '0');
-  return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}T${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}00`;
-}
-
-/**
- * Escapes special characters in a string for use in ICS (iCalendar) text fields.
- * Replaces backslashes, semicolons, commas, and newlines with their ICS-escaped equivalents.
- * @param {string} text - The text to escape for ICS formatting.
- * @return {string} The escaped ICS-compatible text.
- */
-function escapeICSText(text) {
-  return text
-    .replace(/\\/g, "\\\\")
-    .replace(/;/g, "\\;")
-    .replace(/,/g, "\\,")
-    .replace(/\n/g, "\\n");
-}
-
-/**
- * Sends an ICS calendar file as a downloadable response for the specified user.
- * @param {object} res - Express response object.
- * @param {string} content - The ICS file content to send.
- * @param {string|number} uid - The user ID used in the filename.
- */
-function respondWithICS(res, content, uid) {
-  res.set({
-    'Content-Type': 'text/calendar; charset=utf-8',
-    'Content-Disposition': `attachment; filename="bili_bangumi_${uid}.ics"`,
-    'Cache-Control': 'public, max-age=3600'
-  });
-  res.send(content);
-}
-
-/**
- * Sends an empty ICS calendar file indicating failure to retrieve bangumi information for the specified user.
- * 
- * The calendar contains a single event summarizing the reason for the failure.
- * @param {object} res - Express response object.
- * @param {string|number} uid - The user ID for whom the calendar was requested.
- * @param {string} [reason] - Optional reason describing why the bangumi information could not be retrieved.
- */
-function respondWithEmptyCalendar(res, uid, reason) {
-  const now = new Date().toISOString().replace(/[-:.]/g, '').substring(0, 15) + 'Z';
-  const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
-
-  const lines = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//BiliCalendarGenerator//CFW//EN',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    'X-WR-CALNAME:B站追番（无内容）',
-    'X-WR-TIMEZONE:Asia/Shanghai',
-    'BEGIN:VEVENT',
-    'UID:error-' + uid + '@bilibili.com',
-    'DTSTAMP:' + now,
-    'DTSTART;VALUE=DATE:' + date,
-    'SUMMARY:无法获取番剧信息：' + (reason || '未知'),
-    'END:VEVENT',
-    'END:VCALENDAR'
-  ];
-
-  res.set({
-    'Content-Type': 'text/calendar; charset=utf-8',
-    'Content-Disposition': `attachment; filename="bili_bangumi_${uid}_empty.ics"`
-  });
-  res.send(lines.join('\r\n'));
-}
 
 export { app };

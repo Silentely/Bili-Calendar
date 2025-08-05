@@ -112,6 +112,22 @@ GET /api/bangumi/:uid
 
 > **速率限制**：为防止滥用，API直接访问限制为每个IP每小时3次。项目内部调用不受此限制。API响应头中包含 `X-RateLimit-*` 系列字段，用于了解当前使用情况。
 
+### 前端页面
+
+```
+GET /
+```
+
+返回：前端页面，用户可以输入 B站 UID 生成订阅链接
+
+### 健康检查
+
+```
+GET /status
+```
+
+返回：服务状态信息，用于健康检查
+
 ---
 
 ## 配置说明
@@ -127,6 +143,9 @@ GET /api/bangumi/:uid
 | `API_RATE_LIMIT` | 3 | API调用速率限制（次数/时间窗口） |
 | `API_RATE_WINDOW` | 3600000 | 速率限制时间窗口（毫秒，默认1小时） |
 | `ENABLE_RATE_LIMIT` | true | 是否启用速率限制（true/false） |
+| `HTTP_TIMEOUT_MS` | 10000 | HTTP请求超时时间（毫秒） |
+| `HTTP_RETRY_MAX` | 2 | HTTP请求最大重试次数 |
+| `HTTP_RETRY_BASE_DELAY_MS` | 300 | HTTP重试基础延迟时间（毫秒） |
 
 ### 注意事项
 
@@ -162,7 +181,13 @@ bili-calendar/
 │   └── functions/         # 函数源代码
 │       └── server.js      # Serverless版本的服务器
 ├── public/                # 静态文件目录
-│   └── index.html         # 前端页面
+│   ├── index.html         # 前端页面
+│   ├── styles.css         # 样式文件
+│   └── app.js             # 前端JavaScript文件
+├── utils/                # 工具函数目录
+│   ├── time.js            # 时间处理工具
+│   ├── ics.js             # ICS生成工具
+│   └── http.js            # HTTP客户端工具
 ├── Dockerfile             # Docker 镜像配置
 ├── docker-compose.yml     # Docker Compose 配置
 ├── package.json           # Node.js 项目配置
@@ -285,6 +310,29 @@ npm run start:prod
 3. 提交更改：`git commit -am 'Add some feature'`
 4. 推送到分支：`git push origin feature/your-feature-name`
 5. 创建 Pull Request
+
+### API 使用示例
+
+```bash
+# 获取用户追番数据
+curl -X GET "http://localhost:3000/api/bangumi/614500" \
+  -H "Accept: application/json"
+
+# 生成ICS日历文件
+curl -X GET "http://localhost:3000/614500.ics" \
+  -H "Accept: text/calendar"
+
+# 健康检查
+curl -X GET "http://localhost:3000/status"
+```
+
+### 响应头说明
+
+API响应包含以下速率限制相关头部信息：
+
+- `X-RateLimit-Limit`: 每个时间窗口内的最大请求数
+- `X-RateLimit-Remaining`: 当前时间窗口内剩余的请求数
+- `X-RateLimit-Reset`: 当前时间窗口的重置时间（ISO 8601格式）
 
 ---
 

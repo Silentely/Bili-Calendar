@@ -1,15 +1,19 @@
-// server.js
-import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import axios from 'axios';
+  // server.js
+ import express from 'express';
+ import path from 'path';
+ import { fileURLToPath } from 'url';
+ import { httpClient } from './utils/http.js';
+ 
+ // 抽离的通用工具（从本地文件导入）
+ import { parseBroadcastTime, parseNewEpTime, getNextBroadcastDate, formatDate, escapeICSText } from './utils/time.js';
+ import { generateICS, respondWithICS, respondWithEmptyCalendar } from './utils/ics.js';
 
-const app = express();
+ const app = express();
 
 const PORT = process.env.PORT || 3000;
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type'
 };
 
@@ -93,8 +97,12 @@ const rateLimiter = {
 // 注意：在Docker容器环境中，内存存储在每次重启时会被重置
 // 在生产环境中应该考虑使用Redis等外部存储来实现持久化的限流
 
-// 设置跨域支持
+/** 安全响应头 + CORS */
 app.use((req, res, next) => {
+  // 基础安全头
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  // CORS
   Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
@@ -347,14 +355,7 @@ async function getBangumiData(uid) {
     console.log(`🔍 获取用户 ${uid} 的追番数据`);
     const url = `https://api.bilibili.com/x/space/bangumi/follow/list?type=1&follow_status=0&vmid=${uid}&pn=1&ps=30`;
 
-    const response = await axios.get(url, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-        Referer: 'https://www.bilibili.com/',
-        Cookie: process.env.BILIBILI_COOKIE || ''
-      }
-    });
+    const response = await httpClient.get(url);
 
     // 检查B站API返回的错误码
     if (response.data.code !== 0) {
@@ -416,321 +417,10 @@ async function getBangumiData(uid) {
   }
 }
 
-function generateICS(bangumis, uid) {
-  const VTIMEZONE_DEFINITION = `BEGIN:VTIMEZONE
-TZID:Asia/Shanghai
-BEGIN:STANDARD
-DTSTART:19700101T000000
-TZOFFSETFROM:+0800
-TZOFFSETTO:+0800
-TZNAME:CST
-END:STANDARD
-END:VTIMEZONE`;
 
-  const lines = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//BiliCalendar//EN',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    `X-WR-CALNAME:B站追番 (UID: ${uid})`,
-    'X-WR-TIMEZONE:Asia/Shanghai',
-    VTIMEZONE_DEFINITION
-  ];
+/* 已迁移至 utils/time.js: formatDate */
 
-  const now = new Date().toISOString().replace(/[-:.]/g, '').substring(0, 15) + 'Z';
-
-  for (const item of bangumis) {
-    // 检查必需字段
-    if (!item.title || !item.season_id) {
-      continue;
-    }
-
-    // 尝试解析播出时间
-    let info = parseBroadcastTime(item.pub_index);
-    
-    // 如果无法从 pub_index 解析，则尝试从 new_ep.pub_time 解析
-    if (!info && item.new_ep && item.new_ep.pub_time) {
-      info = parseNewEpTime(item.new_ep.pub_time);
-    }
-    
-    // 尝试从renewal_time解析
-    if (!info && item.renewal_time) {
-      info = parseBroadcastTime(item.renewal_time);
-    }
-
-    if (!info) {
-      // 即使无法解析时间也创建事件（使用默认时间）
-      const defaultDate = new Date();
-      const dtstart = formatDate(defaultDate);
-
-      // 构建标题，添加季度信息
-      const titleWithSeason = item.season_title && !item.title.includes(item.season_title) ? 
-        `${item.title} ${item.season_title}` : item.title;
-      
-      // 在描述中添加更新到第几话的信息，使用emoji分隔符而非换行
-      let description = "";
-      
-      // 更新状态
-      if (item.index_show) {
-        description += `🌟 更新状态: ${item.index_show}`;
-      } else if (item.new_ep && item.new_ep.index_show) {
-        description += `🌟 更新状态: ${item.new_ep.index_show}`;
-      }
-      
-      // 添加连载状态 (带emoji分隔符)
-      description += ` ➡️ 状态: ${item.is_finish === 0 ? '连载中' : '已完结'}`;
-      
-      // 番剧简介 (带emoji分隔符)
-      description += ` ✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
-      
-      lines.push(
-        'BEGIN:VEVENT',
-        `UID:${item.season_id}@bilibili.com`,
-        `DTSTAMP:${now}`,
-        `DTSTART;VALUE=DATE:${defaultDate.toISOString().split('T')[0].replace(/-/g, '')}`,
-        `SUMMARY:${escapeICSText('[时间未知] ' + titleWithSeason)}`,
-        `DESCRIPTION:${escapeICSText(description)}`,
-        `URL;VALUE=URI:https://www.bilibili.com/bangumi/play/ss${item.season_id}`,
-        'END:VEVENT'
-      );
-      continue;
-    }
-
-    const firstDate = getNextBroadcastDate(info.dayOfWeek, info.time);
-    const dtstart = formatDate(firstDate);
-
-    // 准备事件内容
-    const eventLines = [
-      'BEGIN:VEVENT',
-      `UID:${item.season_id}@bilibili.com`,
-      `DTSTAMP:${now}`,
-      `DTSTART;TZID=Asia/Shanghai:${dtstart}`,
-    ];
-
-    // 只有连载中的番剧才添加重复规则，限制为2次
-    if (item.is_finish === 0) {
-      eventLines.push(`RRULE:FREQ=WEEKLY;COUNT=2;BYDAY=${info.rruleDay}`);
-    }
-
-    // 构建标题，添加季度信息
-    const normalTitleWithSeason = item.season_title && !item.title.includes(item.season_title) ? 
-      `${item.title} ${item.season_title}` : item.title;
-    
-    // 在描述中添加更新到第几话的信息，使用emoji分隔符而非换行
-    let normalDescription = "";
-    
-    // 更新状态
-    if (item.index_show) {
-      normalDescription += `🌟 更新状态: ${item.index_show}`;
-    } else if (item.new_ep && item.new_ep.index_show) {
-      normalDescription += `🌟 更新状态: ${item.new_ep.index_show}`;
-    }
-    
-    // 添加连载状态 (带emoji分隔符)
-    normalDescription += ` ➡️ 状态: ${item.is_finish === 0 ? '连载中' : '已完结'}`;
-    
-    // 番剧简介 (带emoji分隔符)
-    normalDescription += ` ✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
-    
-    eventLines.push(
-      `SUMMARY:${escapeICSText(normalTitleWithSeason)}`,
-      `DESCRIPTION:${escapeICSText(normalDescription)}`,
-      `URL;VALUE=URI:https://www.bilibili.com/bangumi/play/ss${item.season_id}`,
-      'END:VEVENT'
-    );
-
-    lines.push(...eventLines);
-  }
-
-  lines.push('END:VCALENDAR');
-  return lines.join('\r\n');
-}
-
-/**
- * 解析播出时间
- */
-function parseBroadcastTime(pubIndex) {
-  if (!pubIndex) return null;
-
-  const dayMap = { '日': 0, '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6 };
-  const rruleMap = { '日': 'SU', '一': 'MO', '二': 'TU', '三': 'WE', '四': 'TH', '五': 'FR', '六': 'SA' };
-
-  // 尝试多种格式
-  const patterns = [
-    /(?:(?:每周|周)([日一二三四五六]))?.*?(\d{1,2}:\d{2})/,  // 标准格式
-    /([日一二三四五六]).*?(\d{1,2}:\d{2})/,                 // 简化格式
-    /(\d{1,2}:\d{2})/,                                       // 仅时间
-    /(?:.*?日起)?([日一二三四五六])?.*?(\d{1,2}:\d{2})/,      // 包含"日起"的格式
-    /(?:.*?起)?([日一二三四五六])?.*?(\d{1,2}:\d{2})/         // 包含"起"的格式
-  ];
-
-  for (const pattern of patterns) {
-    const match = pubIndex.match(pattern);
-    if (match) {
-      const dayChar = match[1] || '一'; // 默认周一
-      const time = match[2];
-
-      if (dayChar in dayMap) {
-        return {
-          dayOfWeek: dayMap[dayChar],
-          time: time,
-          rruleDay: rruleMap[dayChar]
-        };
-      } else if (time.match(/\d{1,2}:\d{2}/)) {
-        // 只有时间，使用默认周一
-        return {
-          dayOfWeek: 1,
-          time: time,
-          rruleDay: 'MO'
-        };
-      }
-    }
-  }
-
-  return null;
-}
-
-/**
- * 获取下一个播出日期
- */
-function getNextBroadcastDate(targetDay, timeStr) {
-  const now = new Date();
-  const [hh, mm] = timeStr.split(':').map(Number);
-
-  const utcOffset = 8 * 60;
-  const nowInShanghai = new Date(now.getTime() + utcOffset * 60 * 1000);
-
-  const today = nowInShanghai.getUTCDay();
-  let diff = (targetDay - today + 7) % 7;
-
-  if (diff === 0) {
-    const currH = nowInShanghai.getUTCHours();
-    const currM = nowInShanghai.getUTCMinutes();
-
-    if (currH > hh || (currH === hh && currM >= mm)) {
-      diff = 7;
-    }
-  }
-
-  const nextDate = new Date(nowInShanghai);
-  nextDate.setUTCDate(nextDate.getUTCDate() + diff);
-  nextDate.setUTCHours(hh, mm, 0, 0);
-
-  return nextDate;
-}
-
-/**
- * 解析新剧集时间
- */
-function parseNewEpTime(pubTime) {
-  if (!pubTime) return null;
-
-  const dayMap = { '日': 0, '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6 };
-  const rruleMap = { '日': 'SU', '一': 'MO', '二': 'TU', '三': 'WE', '四': 'TH', '五': 'FR', '六': 'SA' };
-
-  // 尝试解析 "YYYY-MM-DD HH:MM:SS" 格式 (B站标准时间格式)
-  const dateTimePattern = /^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})$/;
-  const dateTimeMatch = pubTime.match(dateTimePattern);
-  if (dateTimeMatch) {
-    const dateStr = dateTimeMatch[1];
-    const timeStr = dateTimeMatch[2].substring(0, 5); // 提取 HH:MM 部分
-    
-    // 正确解析日期，考虑时区 (B站时间是北京时间 UTC+8)
-    const date = new Date(dateStr + 'T' + timeStr + ':00+08:00');
-    const dayOfWeek = date.getUTCDay();
-    
-    // 获取对应的 rruleDay
-    const rruleDay = rruleMap[Object.keys(dayMap)[dayOfWeek]];
-    
-    return {
-      dayOfWeek: dayOfWeek,
-      time: timeStr,
-      rruleDay: rruleDay
-    };
-  }
-
-  // 尝试解析 "MM月DD日起周四 HH:MM更新" 格式
-  const pattern = /(?:.*?日起)?([日一二三四五六])?.*?(\d{1,2}:\d{2})/;
-  const match = pubTime.match(pattern);
-  if (match) {
-    const dayChar = match[1] || '一'; // 默认周一
-    const time = match[2];
-
-    if (dayChar in dayMap) {
-      return {
-        dayOfWeek: dayMap[dayChar],
-        time: time,
-        rruleDay: rruleMap[dayChar]
-      };
-    } else if (time.match(/\d{1,2}:\d{2}/)) {
-      // 只有时间，使用默认周一
-      return {
-        dayOfWeek: 1,
-        time: time,
-        rruleDay: 'MO'
-      };
-    }
-  }
-
-  return null;
-}
-
-/**
- * 格式化日期
- */
-function formatDate(date) {
-  const pad = (n) => n.toString().padStart(2, '0');
-  return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}T${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}00`;
-}
-
-/**
- * 转义 ICS 文本
- */
-function escapeICSText(text) {
-  return text
-    .replace(/\\/g, "\\\\")
-    .replace(/;/g, "\\;")
-    .replace(/,/g, "\\,")
-    .replace(/\n/g, "\\n");
-}
-
-function respondWithICS(res, content, uid) {
-  res.set({
-    'Content-Type': 'text/calendar; charset=utf-8',
-    'Content-Disposition': `attachment; filename="bili_bangumi_${uid}.ics"`,
-    'Cache-Control': 'public, max-age=3600'
-  });
-  res.send(content);
-}
-
-function respondWithEmptyCalendar(res, uid, reason) {
-  const now = new Date().toISOString().replace(/[-:.]/g, '').substring(0, 15) + 'Z';
-  const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
-
-  const lines = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//BiliCalendarGenerator//CFW//EN',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    'X-WR-CALNAME:B站追番（无内容）',
-    'X-WR-TIMEZONE:Asia/Shanghai',
-    'BEGIN:VEVENT',
-    'UID:error-' + uid + '@bilibili.com',
-    'DTSTAMP:' + now,
-    'DTSTART;VALUE=DATE:' + date,
-    'SUMMARY:无法获取番剧信息：' + (reason || '未知'),
-    'END:VEVENT',
-    'END:VCALENDAR'
-  ];
-
-  res.set({
-    'Content-Type': 'text/calendar; charset=utf-8',
-    'Content-Disposition': `attachment; filename="bili_bangumi_${uid}_empty.ics"`
-  });
-  res.send(lines.join('\r\n'));
-}
+/* 已迁移至 utils/time.js: escapeICSText */
 
 app.listen(PORT, () => {
   console.log(`🚀 Bili-Calendar service running on port ${PORT}`);
