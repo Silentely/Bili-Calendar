@@ -492,6 +492,17 @@ body {
   .input-group { flex-direction: column; }
   .btn-group { flex-direction: column; }
   .btn { width: 100%; }
+  
+  /* 修复移动端输入框显示不全的问题 */
+  .form-control {
+    min-height: 50px;
+    font-size: 16px; /* 防止iOS Safari缩放 */
+  }
+  
+  .btn-primary {
+    min-height: 50px;
+    font-size: 16px;
+  }
 }
 
 @media (max-width: 480px) {
