@@ -174,13 +174,23 @@ app.use((req, res, next) => {
   next();
 });
 
+// 健康检查接口
+app.get('/status', (req, res) => {
+  res.send(`✅ Bili-Calendar Service is running here (Netlify Function).`);
+});
+
+// 根路径返回前端页面
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../public', 'index.html'));
+});
+
 // 获取 B站追番数据
 app.get('/api/bangumi/:uid', rateLimiterMiddleware, async (req, res, next) => {
   const { uid } = req.params;
 
   if (!/^\d+$/.test(uid)) {
     console.warn(`⚠️ 无效的UID格式: ${uid}`);
-    return res.status(400).json({ 
+    return res.status(400).json({
       error: 'Invalid UID',
       message: 'UID必须是纯数字'
     });
@@ -207,6 +217,11 @@ app.get('/api/bangumi/:uid', rateLimiterMiddleware, async (req, res, next) => {
 app.get('/:uid', async (req, res, next) => {
   const { uid } = req.params;
   const cleanUid = uid.replace('.ics', '');
+  
+  // 特殊路径处理，避免将/status等路径当作UID处理
+  if (uid === 'status' || uid === 'favicon.ico') {
+    return next(); // 让后续中间件处理
+  }
   
   // 验证 UID 是否为数字
   if (!/^\d+$/.test(cleanUid)) {
@@ -251,16 +266,6 @@ app.get('/:uid', async (req, res, next) => {
     console.error(`❌ 处理请求时出错:`, err);
     next(err);
   }
-});
-
-// 健康检查接口
-app.get('/status', (req, res) => {
-  res.send(`✅ Bili-Calendar Service is running here (Netlify Function).`);
-});
-
-// 根路径返回前端页面
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../public', 'index.html'));
 });
 
 // 处理404错误 - 为浏览器请求返回HTML页面
