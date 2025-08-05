@@ -614,3 +614,70 @@ body {
 .toast-notification.show { opacity: 1; }
 .toast-content { display: flex; align-items: center; gap: 8px; }
 .toast-content i { color: var(--success); font-size: 18px; }
+
+/* PC端美观样式 */
+@media (min-width: 769px) {
+  .form-control {
+    flex-grow: 1;
+    padding: 16px 20px;
+    border: 2px solid rgba(251, 114, 153, 0.2);
+    border-radius: 12px;
+    font-size: 16px;
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--dark);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    min-width: 180px;
+    width: 100%;
+    transition: all 0.3s ease;
+    display: block;
+  }
+  .form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(251, 114, 153, 0.1);
+    background: #fff;
+    outline: none;
+  }
+  .btn-primary {
+    background: var(--bili-gradient);
+    border: none;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 16px 24px;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(251, 114, 153, 0.3);
+    min-width: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #fb7299 0%, #00a1d6 100%);
+    color: #fff;
+  }
+}
+
+/* 移动端样式（max-width: 768px）保持当前修复方案 */
+@media (max-width: 768px) {
+  .form-control {
+    padding: 0.8rem !important;
+    font-size: 16px !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    border: 1px solid #ddd !important;
+  }
+  .btn-primary {
+    font-size: 1rem !important;
+    padding: 0.8rem 1.5rem !important;
+    border-radius: 8px !important;
+    min-width: 0 !important;
+    box-shadow: none !important;
+    background: #00a1d6 !important;
+  }
+}
