@@ -154,60 +154,57 @@ body {
 }
 
 .input-group {
+  /* 参考重构前的简单样式 */
   display: flex !important; /* 覆盖Bootstrap的display */
-  gap: 12px !important; /* 覆盖Bootstrap的gap */
-  margin-bottom: 15px !important; /* 覆盖Bootstrap的margin */
+  margin-top: 1.5rem !important; /* 使用重构前的margin-top */
   width: 100% !important; /* 确保容器占满宽度，覆盖Bootstrap */
 }
 
 .form-control {
-  flex: 1 !important; /* 使用flex: 1替代flex-grow: 1，添加!important覆盖Bootstrap */
-  padding: 16px 20px !important; /* 覆盖Bootstrap的padding */
-  border: 2px solid rgba(251, 114, 153, 0.2) !important; /* 覆盖Bootstrap的border */
-  border-radius: 12px !important; /* 覆盖Bootstrap的border-radius */
-  font-size: 16px !important; /* 覆盖Bootstrap的font-size */
-  background: rgba(255, 255, 255, 0.9) !important; /* 覆盖Bootstrap的background */
-  color: var(--dark) !important; /* 覆盖Bootstrap的color */
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important; /* 覆盖Bootstrap的box-shadow */
-  box-sizing: border-box !important; /* 覆盖Bootstrap的box-sizing */
-  min-width: 0; /* 防止flex项目溢出 */
-  width: 100% !important; /* 确保宽度占满，覆盖Bootstrap */
-  display: block !important; /* 确保显示为块级元素，覆盖Bootstrap */
+  /* 参考重构前的简单样式，避免Bootstrap冲突 */
+  flex-grow: 1 !important; /* 使用flex-grow: 1，参考重构前样式 */
+  padding: 0.8rem !important; /* 使用重构前的padding值 */
+  border: 1px solid #ddd !important; /* 使用重构前的border样式 */
+  border-radius: 8px !important; /* 使用重构前的border-radius */
+  font-size: 1rem !important; /* 使用重构前的font-size */
+  background: white !important; /* 使用简单的白色背景 */
+  color: #333 !important; /* 使用简单的文字颜色 */
+  transition: border-color 0.2s;
+  box-sizing: border-box !important;
+  min-width: 180px !important; /* 参考重构前的最小宽度 */
+  width: 100% !important;
+  display: block !important;
 }
 
 .form-control:focus {
-  outline: none !important; /* 覆盖Bootstrap的outline */
-  border-color: var(--primary) !important; /* 覆盖Bootstrap的border-color */
-  box-shadow: 0 0 0 4px rgba(251, 114, 153, 0.1) !important; /* 覆盖Bootstrap的box-shadow */
-  background: rgba(255, 255, 255, 1) !important; /* 覆盖Bootstrap的background */
+  outline: none !important; /* 参考重构前样式 */
+  border-color: #00a1d6 !important; /* 使用重构前的focus颜色 */
+  background: white !important;
 }
 
 /* 主操作按钮 */
 .btn-primary {
-  background: var(--bili-gradient);
-  border: none;
-  color: white;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 16px 24px;
-  border-radius: 12px;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  /* 参考重构前的按钮样式 */
+  background-color: #00a1d6 !important; /* 使用重构前的背景色 */
+  border: none !important;
+  color: white !important;
+  font-size: 1rem !important; /* 使用重构前的字体大小 */
+  cursor: pointer !important;
+  padding: 0.8rem 1.5rem !important; /* 使用重构前的padding */
+  border-radius: 8px !important; /* 使用重构前的border-radius */
+  transition: background-color 0.2s;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   gap: 8px;
-  box-shadow: 0 4px 15px rgba(251, 114, 153, 0.3);
   min-width: 140px;
   flex-shrink: 0; /* 防止按钮被压缩 */
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(251, 114, 153, 0.4);
-  color: white;
-  text-decoration: none;
+  background-color: #00b5e5 !important; /* 使用重构前的hover颜色 */
+  color: white !important;
+  text-decoration: none !important;
 }
 
 .btn-primary:disabled {
@@ -501,7 +498,7 @@ body {
   .page-title h1 { font-size: 26px; }
   .input-group { 
     flex-direction: column; 
-    gap: 10px; /* 减少移动端间距 */
+    gap: 8px; /* 使用更小的间距 */
   }
   .btn-group { flex-direction: column; }
   .btn { width: 100%; }
@@ -510,9 +507,9 @@ body {
   .form-control {
     min-height: 50px;
     font-size: 16px; /* 防止iOS Safari缩放 */
-    padding: 12px 16px; /* 调整移动端内边距 */
+    padding: 0.8rem !important; /* 使用重构前的padding */
     width: 100% !important; /* 强制确保宽度占满 */
-    box-sizing: border-box; /* 确保盒模型正确 */
+    box-sizing: border-box !important;
     flex: none; /* 在移动端取消flex属性 */
     display: block !important; /* 强制显示为块级元素 */
     max-width: none; /* 移除最大宽度限制 */
@@ -524,7 +521,8 @@ body {
   
   .btn-primary {
     min-height: 50px;
-    font-size: 16px;
+    font-size: 1rem !important; /* 使用重构前的字体大小 */
+    padding: 0.8rem 1.5rem !important; /* 使用重构前的padding */
   }
 }
 
@@ -535,7 +533,7 @@ body {
   
   /* 进一步优化小屏幕输入框 */
   .form-control {
-    padding: 10px 14px;
+    padding: 0.8rem !important; /* 使用重构前的padding */
     font-size: 16px;
     min-height: 48px;
     flex: none; /* 在小屏幕设备上取消flex属性 */
@@ -550,7 +548,8 @@ body {
   
   .btn-primary {
     min-height: 48px;
-    padding: 12px 20px;
+    font-size: 1rem !important; /* 使用重构前的字体大小 */
+    padding: 0.8rem 1.5rem !important; /* 使用重构前的padding */
   }
 }
 
@@ -566,7 +565,7 @@ body {
   }
   
   .form-control {
-    padding: 8px 12px;
+    padding: 0.8rem !important; /* 使用重构前的padding */
     font-size: 16px;
     min-height: 44px;
     flex: none; /* 在超小屏幕设备上取消flex属性 */
@@ -577,8 +576,8 @@ body {
   
   .btn-primary {
     min-height: 44px;
-    padding: 10px 16px;
-    font-size: 14px;
+    font-size: 1rem !important; /* 使用重构前的字体大小 */
+    padding: 0.8rem 1.5rem !important; /* 使用重构前的padding */
   }
   
   .page-title h1 { 
