@@ -4,7 +4,7 @@
 /**
  * 解析播出时间
  */
-export function parseBroadcastTime(pubIndex) {
+function parseBroadcastTime(pubIndex) {
   if (!pubIndex) return null;
 
   const dayMap = { '日': 0, '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6 };
@@ -48,7 +48,7 @@ export function parseBroadcastTime(pubIndex) {
 /**
  * 解析新剧集时间
  */
-export function parseNewEpTime(pubTime) {
+function parseNewEpTime(pubTime) {
   if (!pubTime) return null;
 
   const dayMap = { '日': 0, '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6 };
@@ -104,7 +104,7 @@ export function parseNewEpTime(pubTime) {
 /**
  * 获取下一个播出日期（Asia/Shanghai）
  */
-export function getNextBroadcastDate(targetDay, timeStr) {
+function getNextBroadcastDate(targetDay, timeStr) {
   const now = new Date();
   const [hh, mm] = timeStr.split(':').map(Number);
 
@@ -133,7 +133,7 @@ export function getNextBroadcastDate(targetDay, timeStr) {
 /**
  * 格式化日期为 ICS 可用 UTC 字符串
  */
-export function formatDate(date) {
+function formatDate(date) {
   const pad = (n) => n.toString().padStart(2, '0');
   return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}T${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}00`;
 }
@@ -141,10 +141,18 @@ export function formatDate(date) {
 /**
  * 转义 ICS 文本
  */
-export function escapeICSText(text) {
+function escapeICSText(text) {
   return String(text ?? '')
     .replace(/\\/g, "\\\\")
     .replace(/;/g, "\\;")
     .replace(/,/g, "\\,")
     .replace(/\n/g, "\\n");
 }
+
+module.exports = {
+  parseBroadcastTime,
+  parseNewEpTime,
+  getNextBroadcastDate,
+  formatDate,
+  escapeICSText
+};

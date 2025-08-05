@@ -1,8 +1,6 @@
-/**
- * utils/http.js
- * 统一的 Axios 客户端：默认超时、有限重试（429/5xx）、统一Headers注入、环境变量健壮解析
- */
-import axios from 'axios';
+// utils/http.js
+// 统一的 Axios 客户端：默认超时、有限重试（429/5xx）、统一Headers注入、环境变量健壮解析
+const axios = require('axios');
 
 /** 将字符串环境变量解析为整数，带上下界与默认值 */
 function parseIntEnv(name, def, min, max) {
@@ -61,4 +59,4 @@ httpClient.interceptors.response.use(
   }
 );
 
-export { httpClient, DEFAULT_HEADERS, DEFAULT_TIMEOUT_MS, RETRY_MAX };
+module.exports = { httpClient, DEFAULT_HEADERS, DEFAULT_TIMEOUT_MS, RETRY_MAX };

@@ -1,6 +1,6 @@
 // utils/ics.js
 // 生成与响应 ICS 的通用工具
-import { parseBroadcastTime, parseNewEpTime, getNextBroadcastDate, formatDate, escapeICSText } from './time.js';
+const { parseBroadcastTime, parseNewEpTime, getNextBroadcastDate, formatDate, escapeICSText } = require('./time.js');
 
 /**
  * 生成 ICS 内容
@@ -8,7 +8,7 @@ import { parseBroadcastTime, parseNewEpTime, getNextBroadcastDate, formatDate, e
  * @param {string|number} uid
  * @returns {string}
  */
-export function generateICS(bangumis, uid) {
+function generateICS(bangumis, uid) {
   const VTIMEZONE_DEFINITION = `BEGIN:VTIMEZONE
 TZID:Asia/Shanghai
 BEGIN:STANDARD
@@ -117,7 +117,7 @@ END:VTIMEZONE`;
 /**
  * 发送 ICS 响应
  */
-export function respondWithICS(res, content, uid) {
+function respondWithICS(res, content, uid) {
   res.set({
     'Content-Type': 'text/calendar; charset=utf-8',
     'Content-Disposition': `attachment; filename="bili_bangumi_${uid}.ics"`,
@@ -129,7 +129,7 @@ export function respondWithICS(res, content, uid) {
 /**
  * 发送空日历（错误/空数据）
  */
-export function respondWithEmptyCalendar(res, uid, reason) {
+function respondWithEmptyCalendar(res, uid, reason) {
   const now = new Date().toISOString().replace(/[-:.]/g, '').substring(0, 15) + 'Z';
   const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
 
@@ -156,3 +156,9 @@ export function respondWithEmptyCalendar(res, uid, reason) {
   });
   res.send(lines.join('\r\n'));
 }
+
+module.exports = {
+  generateICS,
+  respondWithICS,
+  respondWithEmptyCalendar
+};
