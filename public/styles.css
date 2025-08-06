@@ -131,11 +131,17 @@ body {
 }
 
 .input-group {
-  /* 参考重构前的简单样式 */
-  display: flex !important; /* 覆盖Bootstrap的display */
-  margin-top: 1.5rem !important; /* 使用重构前的margin-top */
-  width: 100% !important; /* 确保容器占满宽度，覆盖Bootstrap */
-  gap: 18px; /* 增大按钮与输入框间距 */
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  margin-top: 1.5rem !important;
+  width: 100% !important;
+  gap: 18px;
+}
+
+.form-control {
+  width: 100% !important;
+  max-width: 420px;
 }
 
 .form-control {
@@ -181,6 +187,9 @@ body {
   border-radius: 12px !important;
   padding: 1rem 2rem !important;
   font-size: 1.08rem !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-primary:hover {

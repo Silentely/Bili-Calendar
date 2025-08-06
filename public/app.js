@@ -161,4 +161,10 @@ document.addEventListener('DOMContentLoaded', function () {
       if (e.key === 'Enter') handleSubscribe();
     });
   }
+
+  // 强制隐藏结果区域，防止初始显示
+  const resultBox = document.getElementById('resultBox');
+  if (resultBox) {
+    resultBox.style.display = 'none';
+  }
 });
