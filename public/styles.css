@@ -89,30 +89,7 @@ body {
   color: transparent;
 }
 
-.help-btn {
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  border: none;
-  font-size: 14px;
-  color: white;
-  cursor: pointer;
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 20px;
-  transition: all 0.3s ease;
-  gap: 6px;
-  box-shadow: 0 4px 12px rgba(251, 114, 153, 0.3);
-  text-decoration: none;
-  font-weight: 500;
-}
 
-.help-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(251, 114, 153, 0.4);
-  color: white;
-  text-decoration: none;
-}
 
 /* 标题 */
 .page-title {
