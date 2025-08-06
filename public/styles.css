@@ -231,15 +231,16 @@ body {
 
 /* 结果区域 */
 .result-box {
-  display: none;
-  margin-top: 30px;
+  display: block;
+  margin: 48px auto 0 auto; /* 上方间距加大，左右自动居中 */
   padding: 24px;
   background: linear-gradient(135deg, rgba(82, 196, 26, 0.1), rgba(82, 196, 26, 0.05));
   border: 1px solid rgba(82, 196, 26, 0.3);
   border-radius: 16px;
-  text-align: left;
+  text-align: center; /* 内容居中 */
   box-shadow: 0 4px 20px rgba(82, 196, 26, 0.1);
   animation: slideIn 0.5s ease;
+  max-width: 520px; /* 限制最大宽度，防止过宽 */
 }
 
 .result-box h3 {
