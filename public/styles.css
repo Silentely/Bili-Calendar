@@ -13,9 +13,6 @@
   --bili-gradient: linear-gradient(135deg, #fb7299 0%, #00a1d6 100%);
   --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   --hover-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-  --bg-gradient: linear-gradient(135deg, #fafafa 0%, #f0f0f7 100%);
-  --glass-effect: rgba(255, 255, 255, 0.9);
-  --glass-border: rgba(251, 114, 153, 0.15);
 }
 
 /* 基础重置 */
@@ -28,9 +25,8 @@
 /* 页面布局与背景 - 优化性能 */
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  /* 渐变背景增强视觉体验 */
-  background: var(--bg-gradient);
-  background-attachment: fixed;
+  /* 使用固定背景色替代渐变，提升性能 */
+  background: #f5f5f7;
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -39,10 +35,6 @@ body {
   color: #212529;
   /* 优化滚动性能 */
   -webkit-overflow-scrolling: touch;
-  /* 添加一些背景图案提高视觉层次 */
-  background-image: 
-    radial-gradient(circle at 15% 50%, rgba(251, 114, 153, 0.03) 0%, transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(0, 161, 214, 0.03) 0%, transparent 25%);
 }
 
 /* 减少动画对性能的影响 */
@@ -77,19 +69,17 @@ html {
 
 /* 主容器 */
 .main-container {
-  background: var(--glass-effect);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: #ffffff;
   border-radius: 24px;
   padding: 40px;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1), 
-              inset 0 1px 1px rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
   max-width: 600px;
   width: 100%;
   text-align: center;
-  border: 1px solid var(--glass-border);
+  border: 1px solid rgba(251, 114, 153, 0.1);
   position: relative;
   overflow: hidden;
+  /* 移除backdrop-filter以提升性能 */
 }
 
 .main-container::before {
@@ -98,12 +88,10 @@ html {
   top: 0;
   left: 0;
   right: 0;
-  height: 5px;
+  height: 4px;
   background: var(--bili-gradient);
   /* 使用transform代替直接定位，优化重绘 */
   transform: translateZ(0);
-  opacity: 0.9;
-  box-shadow: 0 0 10px rgba(251, 114, 153, 0.3);
 }
 
 /* 头部 */
@@ -162,15 +150,12 @@ html {
 
 /* 输入区域 */
 .input-section {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: #ffffff;
   border-radius: 16px;
   padding: 30px;
   margin-bottom: 30px;
   border: 1px solid rgba(251, 114, 153, 0.2);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05), 
-              inset 0 1px 1px rgba(255, 255, 255, 0.7);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -187,6 +172,28 @@ html {
   margin-top: 1.5rem !important;
   width: 100% !important;
   gap: 18px;
+  position: relative;
+}
+
+/* 添加装饰图标 */
+.input-group::before {
+  content: "🔍";
+  position: absolute;
+  top: 12px;
+  left: 20px;
+  font-size: 16px;
+  color: #ccc;
+  z-index: 1;
+}
+
+.input-group::after {
+  content: "🎬";
+  position: absolute;
+  top: 100%;
+  right: 30px;
+  font-size: 18px;
+  color: rgba(0, 161, 214, 0.3);
+  transform: translateY(-50%);
 }
 
 .form-control {
@@ -197,7 +204,7 @@ html {
 .form-control {
   /* 参考重构前的简单样式，避免Bootstrap冲突 */
   flex-grow: 1 !important; /* 使用flex-grow: 1，参考重构前样式 */
-  padding: 0.8rem !important; /* 使用重构前的padding值 */
+  padding: 0.8rem 2.4rem !important; /* 修改padding以适应图标 */
   border: 1px solid #ddd !important; /* 使用重构前的border样式 */
   border-radius: 8px !important; /* 使用重构前的border-radius */
   font-size: 1rem !important; /* 使用重构前的font-size */
@@ -294,6 +301,29 @@ html {
   justify-content: center;
 }
 
+/* 添加按钮装饰元素 */
+.input-section {
+  position: relative;
+}
+
+.input-section::before {
+  content: "📅";
+  position: absolute;
+  bottom: 10px;
+  left: 20px;
+  font-size: 20px;
+  opacity: 0.5;
+}
+
+.input-section::after {
+  content: "✨";
+  position: absolute;
+  bottom: 10px;
+  right: 20px;
+  font-size: 20px;
+  opacity: 0.5;
+}
+
 .input-section .btn-primary,
 .input-section .btn-outline {
   flex: 0 0 auto;
@@ -324,6 +354,19 @@ html {
   border: 1.5px solid #fb7299;
   max-width: 420px;
   box-shadow: 0 2px 12px rgba(251, 114, 153, 0.08);
+  position: relative;
+}
+
+.help-text::before {
+  content: "ℹ️";
+  position: absolute;
+  top: -10px;
+  left: 20px;
+  background: white;
+  border-radius: 50%;
+  padding: 2px 8px;
+  font-size: 14px;
+  border: 1px solid rgba(251, 114, 153, 0.2);
 }
 
 .help-text strong {
