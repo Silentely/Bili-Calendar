@@ -202,36 +202,24 @@
 }
 
 .btn-retry {
-  background: #4caf50; /* 重试按钮背景颜色 */
-  color: white; /* 重试按钮文字颜色 */
-}
-
-.btn-close {
   background: #f9f9f9; /* 关闭按钮背景颜色 */
   color: #e74c3c; /* 关闭按钮文字颜色 */
 }
 
-.btn-retry:hover, .btn-close:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* 统一悬停阴影效果 */
-}
-
 .btn-retry:hover {
-  background: #45a049; /* 重试按钮悬停背景颜色 */
-}
-
-.btn-close:hover {
   background: #ececec; /* 关闭按钮悬停背景颜色 */
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* 悬停阴影效果 */
 }
 
-[data-theme="dark"] .btn-retry, [data-theme="dark"] .btn-close {
-  background: #3e2829; /* 暗色模式下的统一背景颜色 */
-  color: #ff6b6b; /* 暗色模式下的统一文字颜色 */
+[data-theme="dark"] .btn-retry {
+  background: #3e2829; /* 暗色模式下的背景颜色 */
+  color: #ff6b6b; /* 暗色模式下的文字颜色 */
 }
 
-[data-theme="dark"] .btn-retry:hover, [data-theme="dark"] .btn-close:hover {
-  background: #4e3435; /* 暗色模式下的统一悬停背景颜色 */
-  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.2); /* 暗色模式下的统一悬停阴影效果 */
+[data-theme="dark"] .btn-retry:hover {
+  background: #4e3435; /* 暗色模式下的悬停背景颜色 */
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.2); /* 暗色模式下的悬停阴影效果 */
 }
 
 /* 用户引导样式 */

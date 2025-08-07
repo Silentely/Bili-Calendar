@@ -94,10 +94,7 @@ class ErrorHandler {
           ` : ''}
         </div>
         <div class="error-modal-footer">
-          <button class="btn-retry" onclick="errorHandler.retry('${modalId}')">
-            <i class="fas fa-redo"></i> 重试
-          </button>
-          <button class="btn-close" onclick="errorHandler.closeModal('${modalId}')">
+          <button class="btn-retry" onclick="errorHandler.closeModal('${modalId}')">
             <i class="fas fa-times"></i> 关闭
           </button>
         </div>
@@ -126,14 +123,7 @@ class ErrorHandler {
     }
   }
 
-  // 重试操作
-  retry(modalId) {
-    this.closeModal(modalId);
-    // 触发重新提交
-    if (typeof handleSubscribe === 'function') {
-      handleSubscribe();
-    }
-  }
+  // 已删除重试操作，现在只保留关闭功能
 
   // 添加到错误历史
   addToHistory(errorCode, message) {
