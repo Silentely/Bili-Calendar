@@ -40,21 +40,46 @@ class AnimePreview {
     // 处理API返回的数据结构 - data.list
     const animeList = rawData.data.list || rawData.data || [];
     
-    return animeList.map(anime => ({
-      id: anime.media_id || anime.season_id,
-      title: anime.title || '未知番剧',
-      cover: anime.cover || '',
-      season: anime.season_title || anime.title || '未知',
-      episodes: anime.total_count || anime.new_ep?.index || '未知',
-      currentEpisode: anime.progress || anime.new_ep?.index_show || 0,
-      status: this.getAnimeStatus(anime),
-      updateTime: this.formatUpdateTime(anime),
-      rating: anime.rating || '暂无评分',
-      url: `https://www.bilibili.com/bangumi/media/md${anime.media_id}`,
-      isFinished: anime.is_finish === 1,
-      updateDay: this.getUpdateDay(anime),
-      nextEpisodeTime: this.getNextEpisodeTime(anime)
-    }));
+    return animeList.map(anime => {
+      // 处理评分数据
+      let rating = '暂无评分';
+      if (anime.rating) {
+        if (typeof anime.rating === 'object') {
+          rating = anime.rating.score || anime.rating.value || '暂无评分';
+        } else {
+          rating = anime.rating;
+        }
+      }
+      
+      // 处理图片防盗链 - 使用B站的referrer策略
+      let coverUrl = anime.cover || '';
+      if (coverUrl && !coverUrl.startsWith('http')) {
+        coverUrl = 'https:' + coverUrl;
+      }
+      // 添加webp格式和大小参数优化加载
+      if (coverUrl) {
+        coverUrl = coverUrl.replace('http://', 'https://');
+        if (!coverUrl.includes('@')) {
+          coverUrl += '@320w_200h.webp';
+        }
+      }
+      
+      return {
+        id: anime.media_id || anime.season_id,
+        title: anime.title || '未知番剧',
+        cover: coverUrl,
+        season: anime.season_title || anime.title || '未知',
+        episodes: anime.total_count || anime.new_ep?.index || '未知',
+        currentEpisode: anime.progress || anime.new_ep?.index_show || 0,
+        status: this.getAnimeStatus(anime),
+        updateTime: this.formatUpdateTime(anime),
+        rating: rating,
+        url: `https://www.bilibili.com/bangumi/media/md${anime.media_id}`,
+        isFinished: anime.is_finish === 1,
+        updateDay: this.getUpdateDay(anime),
+        nextEpisodeTime: this.getNextEpisodeTime(anime)
+      };
+    });
   }
 
   // 获取番剧状态
@@ -220,7 +245,11 @@ class AnimePreview {
     return filteredData.map(anime => `
       <div class="anime-item" data-id="${anime.id}">
         <div class="anime-cover">
-          <img src="${anime.cover}" alt="${anime.title}" loading="lazy">
+          <img src="${anime.cover}"
+               alt="${anime.title}"
+               loading="lazy"
+               onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 320 200%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22320%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22 font-size=%2214%22%3E暂无图片%3C/text%3E%3C/svg%3E'"
+               referrerpolicy="no-referrer">
           <div class="anime-status-badge" style="background: ${anime.status.color}">
             ${anime.status.text}
           </div>
