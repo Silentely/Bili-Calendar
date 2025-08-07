@@ -180,7 +180,7 @@
 
 .error-modal-footer {
   display: flex;
-  gap: 10px;
+  gap: 15px;
   padding: 0 20px 20px;
   justify-content: flex-end;
 }
@@ -210,29 +210,31 @@
 }
 
 .btn-close {
-  background: #e0e0e0;
-  color: #333;
+  background: #ffebee;
+  color: #e53935;
   padding: 10px 20px;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 100px;
+  gap: 6px;
 }
 
 [data-theme="dark"] .btn-close {
-  background: #333;
-  color: #e0e0e0;
+  background: #3e2829;
+  color: #ff6b6b;
 }
 
 .btn-close:hover {
-  background: #d0d0d0;
+  background: #ffdde0;
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(229, 57, 53, 0.2);
 }
 
 [data-theme="dark"] .btn-close:hover {
-  background: #444;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  background: #4e3435;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.2);
 }
 
 /* 用户引导样式 */
