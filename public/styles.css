@@ -35,7 +35,6 @@ body {
   color: #212529;
   /* 优化滚动性能 */
   -webkit-overflow-scrolling: touch;
-  overflow-scrolling: touch;
 }
 
 /* 减少动画对性能的影响 */
@@ -52,7 +51,6 @@ html {
 
 /* 只对需要动画的元素启用硬件加速 */
 .btn-primary,
-.btn-secondary,
 .btn-outline,
 .theme-switcher,
 .help-button,
@@ -242,8 +240,7 @@ html {
   box-shadow: none !important;
 }
 
-/* 次要操作按钮 - 改为轮廓样式，更协调 */
-.btn-secondary,
+/* 次要操作按钮 - 使用轮廓样式 */
 .btn-outline {
   background: transparent;
   color: #00a1d6;
@@ -259,9 +256,9 @@ html {
   justify-content: center;
   gap: 6px;
   white-space: nowrap;
+  margin-left: 10px;
 }
 
-.btn-secondary:hover,
 .btn-outline:hover {
   background: #00a1d6;
   color: white;
@@ -269,7 +266,6 @@ html {
   box-shadow: 0 4px 15px rgba(0, 161, 214, 0.3);
 }
 
-.btn-secondary:active,
 .btn-outline:active {
   transform: translateY(0);
 }
@@ -283,7 +279,6 @@ html {
 }
 
 .input-section .btn-primary,
-.input-section .btn-secondary,
 .input-section .btn-outline {
   flex: 0 0 auto;
 }
@@ -294,7 +289,6 @@ html {
   }
   
   .input-section .btn-primary,
-  .input-section .btn-secondary,
   .input-section .btn-outline {
     width: 100%;
     margin-left: 0 !important;
