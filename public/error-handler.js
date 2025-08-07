@@ -98,7 +98,7 @@ class ErrorHandler {
             <i class="fas fa-redo"></i> 重试
           </button>
           <button class="btn-close" onclick="errorHandler.closeModal('${modalId}')">
-            关闭
+            <i class="fas fa-times"></i> 关闭
           </button>
         </div>
       </div>

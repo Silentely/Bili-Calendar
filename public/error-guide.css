@@ -212,6 +212,11 @@
 .btn-close {
   background: #e0e0e0;
   color: #333;
+  padding: 10px 20px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 [data-theme="dark"] .btn-close {
@@ -221,10 +226,13 @@
 
 .btn-close:hover {
   background: #d0d0d0;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="dark"] .btn-close:hover {
   background: #444;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* 用户引导样式 */
