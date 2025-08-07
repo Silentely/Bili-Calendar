@@ -516,42 +516,43 @@ html {
   margin-top: 16px;
 }
 
-/* 项目信息 */
-.project-info {
-  background: linear-gradient(135deg, rgba(0, 161, 214, 0.1), rgba(0, 161, 214, 0.05));
-  border-left: 4px solid var(--secondary);
-  padding: 20px;
-  margin-top: 20px;
-  border-radius: 0 8px 8px 0;
-  text-align: left;
-}
-
-.project-info h3 {
-  color: var(--secondary);
-  margin-bottom: 12px;
+.github-btn {
+  background: #24292e;
+  border: 1px solid rgba(255,255,255,.18);
   font-size: 16px;
-  font-weight: 600;
-  display: flex;
+  color: #fff;
+  cursor: pointer;
+  padding: 10px 18px;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-}
-
-.project-info p {
-  margin: 8px 0;
-  color: var(--dark);
-  line-height: 1.5;
-}
-
-.project-link {
-  color: var(--secondary);
-  text-decoration: none;
-  font-weight: 500;
+  justify-content: center;
+  border-radius: 999px;
   transition: all 0.3s ease;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  text-decoration: none;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
 }
 
-.project-link:hover {
-  color: var(--primary);
-  text-decoration: underline;
+.github-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  text-decoration: none;
+  color: #fff;
+  background: #111;
+}
+
+@media (max-width: 768px) {
+  .github-btn {
+    position: relative;
+    top: auto;
+    right: auto;
+    margin-top: 20px;
+    margin-bottom: -10px;
+  }
 }
 
 /* 动画 - 优化性能 */
