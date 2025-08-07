@@ -143,9 +143,6 @@ function showResultAnimation(success = true) {
   }, 1500);
 }
 
-function showToast(message) {
-  showToast(message, 'success');
-}
 
 function copyToClipboard() {
   const url = document.getElementById('subscribeUrl').textContent;
@@ -181,10 +178,12 @@ function fallbackCopy(text) {
 
 async function precheckRate(uid) {
   // 先检查缓存
-  const cachedData = cacheManager.getFromCache('bangumi', uid);
-  if (cachedData) {
-    console.log('使用缓存数据');
-    return { ...cachedData, fromCache: true };
+  if (window.cacheManager) {
+    const cachedData = cacheManager.getFromCache('bangumi', uid);
+    if (cachedData) {
+      console.log('使用缓存数据');
+      return { ...cachedData, fromCache: true };
+    }
   }
   
   // 可选：向后端预检，读取频控响应头
@@ -193,44 +192,54 @@ async function precheckRate(uid) {
     const limit = resp.headers.get('X-RateLimit-Limit');
     const remaining = resp.headers.get('X-RateLimit-Remaining');
     const reset = resp.headers.get('X-RateLimit-Reset');
+    
+    // 先读取响应body
+    let body = {};
+    try {
+      body = await resp.json();
+    } catch (e) {
+      // 如果不是JSON响应，继续处理
+    }
+    
     if (!resp.ok) {
       // 透传一些常见错误
       if (resp.status === 400) {
-        errorHandler.showErrorModal('INVALID_UID');
+        if (window.errorHandler) errorHandler.showErrorModal('INVALID_UID');
         throw new Error('UID 非法：只能是数字');
       }
-      const body = await resp.json().catch(() => ({}));
       if (resp.status === 403 || body.code === 53013) {
-        errorHandler.showErrorModal('PRIVACY_PROTECTED');
+        if (window.errorHandler) errorHandler.showErrorModal('PRIVACY_PROTECTED');
         throw new Error('该用户将追番列表设为隐私，无法获取');
       }
       if (resp.status === 404) {
-        errorHandler.showErrorModal('USER_NOT_FOUND');
+        if (window.errorHandler) errorHandler.showErrorModal('USER_NOT_FOUND');
         throw new Error('用户不存在');
       }
       if (resp.status === 429) {
-        errorHandler.showErrorModal('RATE_LIMITED');
+        if (window.errorHandler) errorHandler.showErrorModal('RATE_LIMITED');
         throw new Error('请求过于频繁，请稍后再试');
       }
-      errorHandler.showErrorModal('SERVER_ERROR', body.message);
+      if (window.errorHandler) errorHandler.showErrorModal('SERVER_ERROR', body.message);
       throw new Error(body.message || `服务异常：HTTP ${resp.status}`);
     }
     
     // 检查是否有番剧数据
-    if (body && body.data && body.data.length === 0) {
-      errorHandler.showErrorModal('NO_ANIME_FOUND');
+    if (body && body.data && body.data.list && body.data.list.length === 0) {
+      if (window.errorHandler) errorHandler.showErrorModal('NO_ANIME_FOUND');
       return { ok: false, error: '该用户没有追番记录' };
     }
     
-    const result = { limit, remaining, reset, ok: true };
+    const result = { limit, remaining, reset, ok: true, data: body.data };
     
     // 保存到缓存
-    cacheManager.saveToCache('bangumi', uid, result);
+    if (window.cacheManager) {
+      cacheManager.saveToCache('bangumi', uid, result);
+    }
     
     return result;
   } catch (e) {
     if (!e.message.includes('用户') && !e.message.includes('请求')) {
-      errorHandler.showErrorModal('NETWORK_ERROR');
+      if (window.errorHandler) errorHandler.showErrorModal('NETWORK_ERROR');
     }
     return { ok: false, error: e && e.message ? e.message : '预检失败，请稍后重试' };
   }
@@ -238,40 +247,56 @@ async function precheckRate(uid) {
 
 // 处理番剧预览
 async function handlePreview() {
-  const input = document.getElementById('uidInput');
+  const input = document.getElementById('uidInput') || document.getElementById('uid');
+  if (!input) {
+    console.error('未找到输入框');
+    return;
+  }
+  
   let uid = input.value.trim();
   uid = toHalfWidth(uid);
   
   if (!uid || !/^[0-9]+$/.test(uid)) {
     showToast('请输入有效的 UID (纯数字)', 'warning');
-    errorHandler.showErrorModal('INVALID_UID');
+    if (window.errorHandler) errorHandler.showErrorModal('INVALID_UID');
     return;
   }
   
   const loadingOverlay = showLoadingOverlay('正在获取番剧列表...');
   
   try {
+    let animeData = null;
+    
     // 先检查缓存
-    let animeData = cacheManager.getFromCache('anime_list', uid);
+    if (window.cacheManager) {
+      animeData = cacheManager.getFromCache('anime_list', uid);
+      if (animeData) {
+        console.log('使用缓存的番剧列表');
+        showToast('从缓存加载番剧列表', 'info');
+      }
+    }
     
     if (!animeData) {
       // 获取番剧数据
-      animeData = await animePreview.fetchAnimeData(uid);
-      
-      // 保存到缓存
-      if (animeData && animeData.length > 0) {
-        cacheManager.saveToCache('anime_list', uid, animeData);
+      if (window.animePreview) {
+        animeData = await animePreview.fetchAnimeData(uid);
+        
+        // 保存到缓存
+        if (window.cacheManager && animeData && animeData.length > 0) {
+          cacheManager.saveToCache('anime_list', uid, animeData);
+        }
+      } else {
+        throw new Error('预览模块未加载');
       }
-    } else {
-      console.log('使用缓存的番剧列表');
-      showToast('从缓存加载番剧列表', 'info');
     }
     
     if (animeData && animeData.length > 0) {
       loadingOverlay.hide();
       
       // 显示预览
-      animePreview.showPreview(animeData);
+      if (window.animePreview) {
+        animePreview.showPreview(animeData);
+      }
       
       // 设置生成订阅的回调
       window.currentGenerateCallback = () => {
@@ -281,7 +306,7 @@ async function handlePreview() {
       showToast(`成功获取 ${animeData.length} 部番剧`, 'success');
     } else {
       loadingOverlay.hide();
-      errorHandler.showErrorModal('NO_ANIME_FOUND');
+      if (window.errorHandler) errorHandler.showErrorModal('NO_ANIME_FOUND');
     }
   } catch (error) {
     loadingOverlay.hide();
@@ -291,50 +316,45 @@ async function handlePreview() {
 }
 
 async function handleSubscribe() {
-  const input = document.getElementById('uidInput');
+  const input = document.getElementById('uidInput') || document.getElementById('uid');
   const loading = document.getElementById('loadingIndicator');
   const resultBox = document.getElementById('resultBox');
   const subscribeUrl = document.getElementById('subscribeUrl');
   const subscribeLink = document.getElementById('subscribeLink');
+
+  if (!input) {
+    console.error('未找到输入框');
+    return;
+  }
 
   let uid = input.value.trim();
   uid = toHalfWidth(uid);
 
   if (!uid || !/^[0-9]+$/.test(uid)) {
     showToast('请输入有效的 UID (纯数字)', 'warning');
-    errorHandler.showErrorModal('INVALID_UID');
+    if (window.errorHandler) errorHandler.showErrorModal('INVALID_UID');
     return;
   }
   
   // 保存到历史记录（使用缓存管理器）
-  cacheManager.saveUidHistory(uid);
+  if (window.cacheManager) {
+    cacheManager.saveUidHistory(uid);
+  }
 
   // 显示加载动画
   const progressBar = showProgressBar();
-  const loadingOverlay = showLoadingOverlay('正在获取番剧信息...');
+  const loadingOverlay = showLoadingOverlay('正在生成订阅链接...');
   loading.style.display = 'block';
   resultBox.style.display = 'none';
 
   try {
-    // 预检并读取频控信息
-    loadingOverlay.updateText('正在验证用户信息...');
-    const pre = await precheckRate(uid);
-    
-    if (!pre.ok) {
-      progressBar.error();
-      loadingOverlay.hide();
-      loading.style.display = 'none';
-      showToast(pre.error, 'error');
-      showResultAnimation(false);
-      return;
-    }
-
+    // 如果是直接生成订阅链接，不需要预检
+    // 直接生成链接
     const url = window.location.origin + '/' + uid + '.ics';
     
-    loadingOverlay.updateText('正在生成订阅链接...');
-    
-    // 模拟处理时间
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // 模拟短暂处理时间
+    await new Promise(resolve => setTimeout(resolve, 800));
+
     
     progressBar.complete();
     loadingOverlay.hide();
@@ -367,17 +387,8 @@ async function handleSubscribe() {
         showResultAnimation(true);
         showToast('订阅链接生成成功！', 'success');
         
-        // 保存到历史记录
-        cacheManager.saveUidHistory(uid);
-        
         // 清除预览回调
         window.currentGenerateCallback = null;
-
-        if (pre.limit) {
-          setTimeout(() => {
-            showToast(`频率限制：${pre.remaining}/${pre.limit}，重置：${pre.reset}`, 'info');
-          }, 1000);
-        }
       }, 300);
     }
   } catch (error) {

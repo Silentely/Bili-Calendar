@@ -37,13 +37,16 @@ class AnimePreview {
   formatAnimeData(rawData) {
     if (!rawData || !rawData.data) return [];
     
-    return rawData.data.map(anime => ({
-      id: anime.media_id,
-      title: anime.title,
-      cover: anime.cover,
-      season: anime.season_title || anime.title,
-      episodes: anime.total_count || '未知',
-      currentEpisode: anime.progress || 0,
+    // 处理API返回的数据结构 - data.list
+    const animeList = rawData.data.list || rawData.data || [];
+    
+    return animeList.map(anime => ({
+      id: anime.media_id || anime.season_id,
+      title: anime.title || '未知番剧',
+      cover: anime.cover || '',
+      season: anime.season_title || anime.title || '未知',
+      episodes: anime.total_count || anime.new_ep?.index || '未知',
+      currentEpisode: anime.progress || anime.new_ep?.index_show || 0,
       status: this.getAnimeStatus(anime),
       updateTime: this.formatUpdateTime(anime),
       rating: anime.rating || '暂无评分',
@@ -325,7 +328,9 @@ class AnimePreview {
     if (!anime) return;
     
     // 这里可以显示更详细的信息
-    showToast(`《${anime.title}》\n状态：${anime.status.text}\n进度：${anime.currentEpisode}/${anime.episodes}`, 'info', 5000);
+    if (window.showToast) {
+      window.showToast(`《${anime.title}》\n状态：${anime.status.text}\n进度：${anime.currentEpisode}/${anime.episodes}`, 'info', 5000);
+    }
   }
 
   // 关闭预览
