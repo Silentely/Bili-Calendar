@@ -240,11 +240,11 @@ html {
   box-shadow: none !important;
 }
 
-/* 次要操作按钮 - 使用轮廓样式 */
+/* 次要操作按钮 - 使用渐变背景 */
 .btn-outline {
-  background: transparent;
-  color: #00a1d6;
-  border: 2px solid #00a1d6;
+  background: var(--bili-gradient);
+  color: white;
+  border: none;
   padding: 1rem 2rem;
   border-radius: 12px;
   font-size: 1.08rem;
@@ -258,12 +258,13 @@ html {
   white-space: nowrap;
   margin-left: 10px;
   min-width: 140px;
+  box-shadow: 0 4px 15px rgba(251, 114, 153, 0.3);
 }
 
 .btn-outline:hover {
-  background: var(--bili-gradient);
+  background: linear-gradient(135deg, #fa5385 0%, #0bb6eb 100%);
   color: white;
-  box-shadow: 0 4px 15px rgba(251, 114, 153, 0.3);
+  box-shadow: 0 6px 18px rgba(251, 114, 153, 0.4);
 }
 
 .btn-outline:active {
@@ -531,10 +532,8 @@ html {
   gap: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   text-decoration: none;
-  position: absolute;
-  top: 20px;
-  right: 20px;
   z-index: 10;
+  margin-left: auto;
 }
 
 .github-btn:hover {
@@ -547,11 +546,8 @@ html {
 
 @media (max-width: 768px) {
   .github-btn {
-    position: relative;
-    top: auto;
-    right: auto;
-    margin-top: 20px;
-    margin-bottom: -10px;
+    font-size: 14px;
+    padding: 8px 14px;
   }
 }
 
