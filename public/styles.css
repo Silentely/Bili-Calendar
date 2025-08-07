@@ -219,7 +219,7 @@ html {
   min-width: 140px;
   flex-shrink: 0; /* 防止按钮被压缩 */
   /* 保持原有美观基础上，适当增大圆角和内边距 */
-  border-radius: 12px !important;
+  border-radius: 999px !important;
   padding: 1rem 2rem !important;
   font-size: 1.08rem !important;
   display: inline-flex !important;
@@ -246,7 +246,7 @@ html {
   color: white;
   border: none;
   padding: 1rem 2rem;
-  border-radius: 12px;
+  border-radius: 999px !important;
   font-size: 1.08rem;
   font-weight: 500;
   cursor: pointer;
@@ -772,15 +772,15 @@ html {
   .btn-primary {
     font-size: 1rem !important;
     padding: 0.8rem 1.5rem !important;
-    border-radius: 8px !important;
+    border-radius: 999px !important;
     min-width: 0 !important;
     box-shadow: none !important;
-    background: #00a1d6 !important;
+    background: var(--bili-gradient) !important;
   }
   .btn-outline {
     font-size: 1rem !important;
     padding: 0.8rem 1.5rem !important;
-    border-radius: 8px !important;
+    border-radius: 999px !important;
     min-width: 0 !important;
     box-shadow: none !important;
   }
