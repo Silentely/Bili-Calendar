@@ -1,3 +1,39 @@
+// 主题切换功能
+function toggleTheme() {
+  const body = document.body;
+  const themeIcon = document.getElementById('themeIcon');
+  const currentTheme = body.getAttribute('data-theme');
+  
+  if (currentTheme === 'dark') {
+    body.setAttribute('data-theme', 'light');
+    themeIcon.classList.remove('fa-sun');
+    themeIcon.classList.add('fa-moon');
+    localStorage.setItem('theme', 'light');
+  } else {
+    body.setAttribute('data-theme', 'dark');
+    themeIcon.classList.remove('fa-moon');
+    themeIcon.classList.add('fa-sun');
+    localStorage.setItem('theme', 'dark');
+  }
+}
+
+// 初始化主题
+function initTheme() {
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  const body = document.body;
+  const themeIcon = document.getElementById('themeIcon');
+  
+  body.setAttribute('data-theme', savedTheme);
+  
+  if (savedTheme === 'dark') {
+    themeIcon.classList.remove('fa-moon');
+    themeIcon.classList.add('fa-sun');
+  } else {
+    themeIcon.classList.remove('fa-sun');
+    themeIcon.classList.add('fa-moon');
+  }
+}
+
 function toHalfWidth(str) {
   return str.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
 }
@@ -6,28 +42,109 @@ function isMobile() {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
-function showToast(message) {
-  // 创建Toast通知
+// 增强版Toast通知
+function showToast(message, type = 'info', duration = 3000) {
   const toast = document.createElement('div');
-  toast.className = 'toast-notification';
+  toast.className = 'toast-notification-enhanced';
+  
+  const icons = {
+    success: 'fa-check-circle',
+    error: 'fa-times-circle',
+    warning: 'fa-exclamation-triangle',
+    info: 'fa-info-circle'
+  };
+  
   toast.innerHTML = `
-    <div class="toast-content">
-      <i class="fas fa-check-circle"></i>
-      ${message}
+    <div class="toast-content-enhanced ${type}">
+      <i class="fas ${icons[type]} toast-icon"></i>
+      <span class="toast-message">${message}</span>
+      <i class="fas fa-times toast-close" onclick="this.closest('.toast-notification-enhanced').remove()"></i>
     </div>
   `;
+  
   document.body.appendChild(toast);
-
+  
   setTimeout(() => {
     toast.classList.add('show');
   }, 10);
-
+  
   setTimeout(() => {
     toast.classList.remove('show');
     setTimeout(() => {
       if (toast.parentNode) document.body.removeChild(toast);
     }, 300);
-  }, 3000);
+  }, duration);
+}
+
+// 显示进度条
+function showProgressBar() {
+  const progressBar = document.getElementById('progressBar');
+  const progressFill = progressBar.querySelector('.progress-bar');
+  
+  progressBar.classList.add('active');
+  progressFill.style.width = '0%';
+  
+  // 模拟进度
+  let progress = 0;
+  const interval = setInterval(() => {
+    progress += Math.random() * 30;
+    if (progress > 90) {
+      progress = 90;
+      clearInterval(interval);
+    }
+    progressFill.style.width = `${progress}%`;
+  }, 300);
+  
+  return {
+    complete: () => {
+      clearInterval(interval);
+      progressFill.style.width = '100%';
+      setTimeout(() => {
+        progressBar.classList.remove('active');
+      }, 500);
+    },
+    error: () => {
+      clearInterval(interval);
+      progressBar.classList.remove('active');
+    }
+  };
+}
+
+// 显示加载遮罩
+function showLoadingOverlay(text = '正在处理请求...') {
+  const overlay = document.getElementById('loadingOverlay');
+  const loadingText = overlay.querySelector('.loading-text');
+  
+  loadingText.textContent = text;
+  overlay.classList.add('active');
+  
+  return {
+    hide: () => {
+      overlay.classList.remove('active');
+    },
+    updateText: (newText) => {
+      loadingText.textContent = newText;
+    }
+  };
+}
+
+// 显示成功/失败动画
+function showResultAnimation(success = true) {
+  const animation = document.createElement('div');
+  animation.className = 'result-animation';
+  animation.innerHTML = success
+    ? '<div class="success-checkmark"></div>'
+    : '<div class="error-cross"></div>';
+  
+  document.body.appendChild(animation);
+  
+  setTimeout(() => {
+    animation.remove();
+  }, 1500);
+}
+
+function showToast(message) {
+  showToast(message, 'success');
 }
 
 function copyToClipboard() {
@@ -36,7 +153,8 @@ function copyToClipboard() {
   // 先尝试异步剪贴板
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(url).then(() => {
-      showToast('链接已复制到剪贴板');
+      showToast('链接已复制到剪贴板', 'success');
+      showResultAnimation(true);
     }).catch(() => {
       fallbackCopy(url);
     });
@@ -52,14 +170,23 @@ function fallbackCopy(text) {
     document.body.appendChild(tmp);
     tmp.select();
     document.execCommand('copy');
-    showToast('链接已复制到剪贴板');
+    showToast('链接已复制到剪贴板', 'success');
+    showResultAnimation(true);
     document.body.removeChild(tmp);
   } catch {
-    showToast('复制失败，请手动选择并复制链接');
+    showToast('复制失败，请手动选择并复制链接', 'error');
+    showResultAnimation(false);
   }
 }
 
 async function precheckRate(uid) {
+  // 先检查缓存
+  const cachedData = cacheManager.getFromCache('bangumi', uid);
+  if (cachedData) {
+    console.log('使用缓存数据');
+    return { ...cachedData, fromCache: true };
+  }
+  
   // 可选：向后端预检，读取频控响应头
   try {
     const resp = await fetch(`/api/bangumi/${uid}`, { headers: { 'X-Bili-Calendar-Internal': '1' } });
@@ -68,15 +195,98 @@ async function precheckRate(uid) {
     const reset = resp.headers.get('X-RateLimit-Reset');
     if (!resp.ok) {
       // 透传一些常见错误
-      if (resp.status === 400) throw new Error('UID 非法：只能是数字');
+      if (resp.status === 400) {
+        errorHandler.showErrorModal('INVALID_UID');
+        throw new Error('UID 非法：只能是数字');
+      }
       const body = await resp.json().catch(() => ({}));
-      if (resp.status === 403 || body.code === 53013) throw new Error('该用户将追番列表设为隐私，无法获取');
-      if (resp.status === 429) throw new Error('请求过于频繁，请稍后再试');
+      if (resp.status === 403 || body.code === 53013) {
+        errorHandler.showErrorModal('PRIVACY_PROTECTED');
+        throw new Error('该用户将追番列表设为隐私，无法获取');
+      }
+      if (resp.status === 404) {
+        errorHandler.showErrorModal('USER_NOT_FOUND');
+        throw new Error('用户不存在');
+      }
+      if (resp.status === 429) {
+        errorHandler.showErrorModal('RATE_LIMITED');
+        throw new Error('请求过于频繁，请稍后再试');
+      }
+      errorHandler.showErrorModal('SERVER_ERROR', body.message);
       throw new Error(body.message || `服务异常：HTTP ${resp.status}`);
     }
-    return { limit, remaining, reset, ok: true };
+    
+    // 检查是否有番剧数据
+    if (body && body.data && body.data.length === 0) {
+      errorHandler.showErrorModal('NO_ANIME_FOUND');
+      return { ok: false, error: '该用户没有追番记录' };
+    }
+    
+    const result = { limit, remaining, reset, ok: true };
+    
+    // 保存到缓存
+    cacheManager.saveToCache('bangumi', uid, result);
+    
+    return result;
   } catch (e) {
+    if (!e.message.includes('用户') && !e.message.includes('请求')) {
+      errorHandler.showErrorModal('NETWORK_ERROR');
+    }
     return { ok: false, error: e && e.message ? e.message : '预检失败，请稍后重试' };
+  }
+}
+
+// 处理番剧预览
+async function handlePreview() {
+  const input = document.getElementById('uidInput');
+  let uid = input.value.trim();
+  uid = toHalfWidth(uid);
+  
+  if (!uid || !/^[0-9]+$/.test(uid)) {
+    showToast('请输入有效的 UID (纯数字)', 'warning');
+    errorHandler.showErrorModal('INVALID_UID');
+    return;
+  }
+  
+  const loadingOverlay = showLoadingOverlay('正在获取番剧列表...');
+  
+  try {
+    // 先检查缓存
+    let animeData = cacheManager.getFromCache('anime_list', uid);
+    
+    if (!animeData) {
+      // 获取番剧数据
+      animeData = await animePreview.fetchAnimeData(uid);
+      
+      // 保存到缓存
+      if (animeData && animeData.length > 0) {
+        cacheManager.saveToCache('anime_list', uid, animeData);
+      }
+    } else {
+      console.log('使用缓存的番剧列表');
+      showToast('从缓存加载番剧列表', 'info');
+    }
+    
+    if (animeData && animeData.length > 0) {
+      loadingOverlay.hide();
+      
+      // 显示预览
+      animePreview.showPreview(animeData);
+      
+      // 设置生成订阅的回调
+      window.currentGenerateCallback = () => {
+        handleSubscribe();
+      };
+      
+      showToast(`成功获取 ${animeData.length} 部番剧`, 'success');
+    } else {
+      loadingOverlay.hide();
+      errorHandler.showErrorModal('NO_ANIME_FOUND');
+    }
+  } catch (error) {
+    loadingOverlay.hide();
+    console.error('预览失败:', error);
+    showToast('获取番剧列表失败，请稍后重试', 'error');
   }
 }
 
@@ -91,57 +301,112 @@ async function handleSubscribe() {
   uid = toHalfWidth(uid);
 
   if (!uid || !/^[0-9]+$/.test(uid)) {
-    showToast('请输入有效的 UID (纯数字)');
+    showToast('请输入有效的 UID (纯数字)', 'warning');
+    errorHandler.showErrorModal('INVALID_UID');
     return;
   }
+  
+  // 保存到历史记录（使用缓存管理器）
+  cacheManager.saveUidHistory(uid);
 
-  // 显示加载
+  // 显示加载动画
+  const progressBar = showProgressBar();
+  const loadingOverlay = showLoadingOverlay('正在获取番剧信息...');
   loading.style.display = 'block';
   resultBox.style.display = 'none';
 
-  // 预检并读取频控信息
-  const pre = await precheckRate(uid);
-  if (!pre.ok) {
+  try {
+    // 预检并读取频控信息
+    loadingOverlay.updateText('正在验证用户信息...');
+    const pre = await precheckRate(uid);
+    
+    if (!pre.ok) {
+      progressBar.error();
+      loadingOverlay.hide();
+      loading.style.display = 'none';
+      showToast(pre.error, 'error');
+      showResultAnimation(false);
+      return;
+    }
+
+    const url = window.location.origin + '/' + uid + '.ics';
+    
+    loadingOverlay.updateText('正在生成订阅链接...');
+    
+    // 模拟处理时间
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    progressBar.complete();
+    loadingOverlay.hide();
+
+    if (isMobile()) {
+      setTimeout(() => {
+        loading.style.display = 'none';
+        showToast('正在跳转到订阅链接...', 'info');
+        // 移动端可尝试直接跳转
+        window.location.href = url;
+      }, 300);
+    } else {
+      setTimeout(() => {
+        loading.style.display = 'none';
+        subscribeUrl.textContent = url;
+        subscribeLink.href = url;
+
+        // macOS Safari等支持 webcal 协议
+        if (navigator.userAgent.includes('Mac')) {
+          subscribeLink.onclick = function (e) {
+            e.preventDefault();
+            const webcalUrl = url.replace('http://', 'webcal://').replace('https://', 'webcal://');
+            window.location.href = webcalUrl;
+          };
+        }
+
+        resultBox.style.display = 'block';
+        resultBox.scrollIntoView({ behavior: 'smooth' });
+        
+        showResultAnimation(true);
+        showToast('订阅链接生成成功！', 'success');
+        
+        // 保存到历史记录
+        cacheManager.saveUidHistory(uid);
+        
+        // 清除预览回调
+        window.currentGenerateCallback = null;
+
+        if (pre.limit) {
+          setTimeout(() => {
+            showToast(`频率限制：${pre.remaining}/${pre.limit}，重置：${pre.reset}`, 'info');
+          }, 1000);
+        }
+      }, 300);
+    }
+  } catch (error) {
+    progressBar.error();
+    loadingOverlay.hide();
     loading.style.display = 'none';
-    showToast(pre.error);
-    return;
-  }
-
-  const url = window.location.origin + '/' + uid + '.ics';
-
-  if (isMobile()) {
-    setTimeout(() => {
-      loading.style.display = 'none';
-      // 移动端可尝试直接跳转
-      window.location.href = url;
-    }, 300);
-  } else {
-    setTimeout(() => {
-      loading.style.display = 'none';
-      subscribeUrl.textContent = url;
-      subscribeLink.href = url;
-
-      // macOS Safari等支持 webcal 协议
-      if (navigator.userAgent.includes('Mac')) {
-        subscribeLink.onclick = function (e) {
-          e.preventDefault();
-          const webcalUrl = url.replace('http://', 'webcal://').replace('https://', 'webcal://');
-          window.location.href = webcalUrl;
-        };
-      }
-
-      resultBox.style.display = 'block';
-      resultBox.scrollIntoView({ behavior: 'smooth' });
-
-      if (pre.limit) {
-        showToast(`频率限制：${pre.remaining}/${pre.limit}，重置：${pre.reset}`);
-      }
-    }, 300);
+    showToast('发生错误：' + error.message, 'error');
+    showResultAnimation(false);
   }
 }
 
+
 // 页面加载动画
 document.addEventListener('DOMContentLoaded', function () {
+  // 初始化主题
+  initTheme();
+  
+  // 初始化缓存管理器的自动建议
+  if (window.cacheManager) {
+    cacheManager.initAutoSuggest();
+  }
+  
+  // 定期清理过期缓存
+  setInterval(() => {
+    if (window.cacheManager) {
+      cacheManager.cleanExpiredCache();
+    }
+  }, 600000); // 每10分钟清理一次
+  
   const container = document.querySelector('.main-container');
   if (container) {
     container.style.opacity = '0';
@@ -167,4 +432,23 @@ document.addEventListener('DOMContentLoaded', function () {
   if (resultBox) {
     resultBox.style.display = 'none';
   }
+  
+  // 添加键盘快捷键支持
+  document.addEventListener('keydown', function(e) {
+    // Alt + T 切换主题
+    if (e.altKey && e.key === 't') {
+      e.preventDefault();
+      toggleTheme();
+    }
+    // Alt + G 生成订阅链接
+    if (e.altKey && e.key === 'g') {
+      e.preventDefault();
+      handleSubscribe();
+    }
+    // Alt + P 预览番剧
+    if (e.altKey && e.key === 'p') {
+      e.preventDefault();
+      handlePreview();
+    }
+  });
 });
