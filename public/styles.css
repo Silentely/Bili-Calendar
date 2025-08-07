@@ -13,6 +13,9 @@
   --bili-gradient: linear-gradient(135deg, #fb7299 0%, #00a1d6 100%);
   --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   --hover-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  --bg-gradient: linear-gradient(135deg, #fafafa 0%, #f0f0f7 100%);
+  --glass-effect: rgba(255, 255, 255, 0.9);
+  --glass-border: rgba(251, 114, 153, 0.15);
 }
 
 /* 基础重置 */
@@ -25,8 +28,9 @@
 /* 页面布局与背景 - 优化性能 */
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  /* 使用固定背景色替代渐变，提升性能 */
-  background: #f5f5f7;
+  /* 渐变背景增强视觉体验 */
+  background: var(--bg-gradient);
+  background-attachment: fixed;
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -35,6 +39,10 @@ body {
   color: #212529;
   /* 优化滚动性能 */
   -webkit-overflow-scrolling: touch;
+  /* 添加一些背景图案提高视觉层次 */
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(251, 114, 153, 0.03) 0%, transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(0, 161, 214, 0.03) 0%, transparent 25%);
 }
 
 /* 减少动画对性能的影响 */
@@ -69,17 +77,19 @@ html {
 
 /* 主容器 */
 .main-container {
-  background: #ffffff;
+  background: var(--glass-effect);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: 24px;
   padding: 40px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1), 
+              inset 0 1px 1px rgba(255, 255, 255, 0.6);
   max-width: 600px;
   width: 100%;
   text-align: center;
-  border: 1px solid rgba(251, 114, 153, 0.1);
+  border: 1px solid var(--glass-border);
   position: relative;
   overflow: hidden;
-  /* 移除backdrop-filter以提升性能 */
 }
 
 .main-container::before {
@@ -88,10 +98,12 @@ html {
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
+  height: 5px;
   background: var(--bili-gradient);
   /* 使用transform代替直接定位，优化重绘 */
   transform: translateZ(0);
+  opacity: 0.9;
+  box-shadow: 0 0 10px rgba(251, 114, 153, 0.3);
 }
 
 /* 头部 */
@@ -150,12 +162,15 @@ html {
 
 /* 输入区域 */
 .input-section {
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-radius: 16px;
   padding: 30px;
   margin-bottom: 30px;
   border: 1px solid rgba(251, 114, 153, 0.2);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05), 
+              inset 0 1px 1px rgba(255, 255, 255, 0.7);
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 

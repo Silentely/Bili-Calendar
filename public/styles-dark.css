@@ -8,7 +8,7 @@
   --light: #1a1a1a;
   --dark: #f0f0f0;
   --gray: #9e9e9e;
-  --bili-gradient: linear-gradient(135deg, #ff6699 0%, #00d4ff 100%);
+  --bili-gradient: linear-gradient(135deg, rgba(255, 102, 153, 0.8) 0%, rgba(0, 212, 255, 0.8) 100%);
   --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   --hover-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
   
@@ -181,8 +181,8 @@
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: var(--bili-gradient);
-  border: none;
+  background: rgba(60, 60, 60, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -190,6 +190,11 @@
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
   z-index: 100;
+}
+
+[data-theme="dark"] .theme-switcher {
+  background: rgba(60, 60, 60, 0.7);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .theme-switcher:hover {
@@ -223,4 +228,28 @@
               color 0.3s ease, 
               border-color 0.3s ease,
               box-shadow 0.3s ease;
+}
+
+/* 深色模式下按钮样式调整 */
+[data-theme="dark"] .btn-primary,
+[data-theme="dark"] .btn-outline {
+  background: rgba(60, 60, 60, 0.8) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .btn-primary:hover,
+[data-theme="dark"] .btn-outline:hover {
+  background: var(--bili-gradient) !important;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .github-btn {
+  background: rgba(40, 40, 40, 0.9);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .github-btn:hover {
+  background: rgba(50, 50, 50, 0.95);
+  border-color: rgba(255, 255, 255, 0.25);
 }
