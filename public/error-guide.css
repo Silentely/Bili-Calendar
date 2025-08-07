@@ -189,27 +189,39 @@
   border: none;
   cursor: pointer;
   transition: all 0.2s;
-  min-width: 120px;
-  height: 44px;
+  min-width: 120px; /* 统一最小宽度 */
+  height: 44px; /* 统一高度 */
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 10px 20px;
+  padding: 10px 20px; /* 统一内边距 */
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
 }
 
-.btn-retry, .btn-close {
-  background: #4caf50; /* 统一背景颜色 */
-  color: white; /* 统一文字颜色 */
+.btn-retry {
+  background: #4caf50; /* 重试按钮背景颜色 */
+  color: white; /* 重试按钮文字颜色 */
+}
+
+.btn-close {
+  background: #f9f9f9; /* 关闭按钮背景颜色 */
+  color: #e74c3c; /* 关闭按钮文字颜色 */
 }
 
 .btn-retry:hover, .btn-close:hover {
-  background: #45a049; /* 统一悬停背景颜色 */
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3); /* 统一悬停阴影效果 */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* 统一悬停阴影效果 */
+}
+
+.btn-retry:hover {
+  background: #45a049; /* 重试按钮悬停背景颜色 */
+}
+
+.btn-close:hover {
+  background: #ececec; /* 关闭按钮悬停背景颜色 */
 }
 
 [data-theme="dark"] .btn-retry, [data-theme="dark"] .btn-close {
