@@ -202,24 +202,24 @@
 }
 
 .btn-retry {
-  background: #f9f9f9; /* 关闭按钮背景颜色 */
-  color: #e74c3c; /* 关闭按钮文字颜色 */
+  background: #fff5e6; /* 关闭按钮背景颜色 - 浅橙色 */
+  color: #ff8c00; /* 关闭按钮文字颜色 - 深橙色 */
 }
 
 .btn-retry:hover {
-  background: #ececec; /* 关闭按钮悬停背景颜色 */
+  background: #ffebcc; /* 关闭按钮悬停背景颜色 - 更深的橙色 */
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* 悬停阴影效果 */
+  box-shadow: 0 2px 8px rgba(255, 140, 0, 0.2); /* 悬停阴影效果 - 橙色阴影 */
 }
 
 [data-theme="dark"] .btn-retry {
-  background: #3e2829; /* 暗色模式下的背景颜色 */
-  color: #ff6b6b; /* 暗色模式下的文字颜色 */
+  background: #332200; /* 暗色模式下的背景颜色 - 深棕色 */
+  color: #ffa500; /* 暗色模式下的文字颜色 - 橙色 */
 }
 
 [data-theme="dark"] .btn-retry:hover {
-  background: #4e3435; /* 暗色模式下的悬停背景颜色 */
-  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.2); /* 暗色模式下的悬停阴影效果 */
+  background: #4d3300; /* 暗色模式下的悬停背景颜色 - 更深的棕色 */
+  box-shadow: 0 2px 8px rgba(255, 165, 0, 0.3); /* 暗色模式下的悬停阴影效果 - 橙色阴影 */
 }
 
 /* 用户引导样式 */
