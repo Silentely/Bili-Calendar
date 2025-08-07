@@ -196,6 +196,14 @@ html {
   transform: translateY(-50%);
 }
 
+/* 移动端隐藏可能遮挡内容的装饰图标 */
+@media (max-width: 768px) {
+  .input-group::before, 
+  .input-group::after {
+    display: none;
+  }
+}
+
 .form-control {
   width: 100% !important;
   max-width: 420px;
@@ -215,6 +223,13 @@ html {
   min-width: 180px !important; /* 参考重构前的最小宽度 */
   width: 100% !important;
   display: block !important;
+}
+
+/* 移动端恢复原始内边距，避免图标遮挡输入内容 */
+@media (max-width: 768px) {
+  .form-control {
+    padding: 0.8rem !important;
+  }
 }
 
 .form-control:focus {
@@ -324,6 +339,14 @@ html {
   opacity: 0.5;
 }
 
+/* 移动端隐藏装饰元素 */
+@media (max-width: 768px) {
+  .input-section::before,
+  .input-section::after {
+    display: none;
+  }
+}
+
 .input-section .btn-primary,
 .input-section .btn-outline {
   flex: 0 0 auto;
@@ -367,6 +390,16 @@ html {
   padding: 2px 8px;
   font-size: 14px;
   border: 1px solid rgba(251, 114, 153, 0.2);
+}
+
+/* 移动端调整帮助图标位置 */
+@media (max-width: 480px) {
+  .help-text::before {
+    top: -8px;
+    left: 10px;
+    padding: 1px 5px;
+    font-size: 12px;
+  }
 }
 
 .help-text strong {
