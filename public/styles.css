@@ -245,29 +245,29 @@ html {
   background: transparent;
   color: #00a1d6;
   border: 2px solid #00a1d6;
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 15px;
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  font-size: 1.08rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   white-space: nowrap;
   margin-left: 10px;
+  min-width: 140px;
 }
 
 .btn-outline:hover {
-  background: #00a1d6;
+  background: var(--bili-gradient);
   color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 161, 214, 0.3);
+  box-shadow: 0 4px 15px rgba(251, 114, 153, 0.3);
 }
 
 .btn-outline:active {
-  transform: translateY(0);
+  opacity: 0.9;
 }
 
 /* 输入区域按钮布局优化 */
@@ -779,5 +779,12 @@ html {
     min-width: 0 !important;
     box-shadow: none !important;
     background: #00a1d6 !important;
+  }
+  .btn-outline {
+    font-size: 1rem !important;
+    padding: 0.8rem 1.5rem !important;
+    border-radius: 8px !important;
+    min-width: 0 !important;
+    box-shadow: none !important;
   }
 }
