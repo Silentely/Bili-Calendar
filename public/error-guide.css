@@ -186,21 +186,27 @@
 }
 
 .error-modal-footer button {
-  padding: 10px 20px;
   border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-retry, .btn-close {
+  min-width: 120px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 20px;
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
 }
 
 .btn-retry {
   background: #4caf50;
   color: white;
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
 .btn-retry:hover {
@@ -212,13 +218,6 @@
 .btn-close {
   background: #ffebee;
   color: #e53935;
-  padding: 10px 20px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 100px;
-  gap: 6px;
 }
 
 [data-theme="dark"] .btn-close {
