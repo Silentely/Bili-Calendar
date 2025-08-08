@@ -8,10 +8,10 @@
 <img src="https://img.shields.io/github/license/Silentely/bili-calendar?color=ff69b4" alt="License">
 <img src="https://img.shields.io/github/languages/code-size/Silentely/bili-calendar?color=blueviolet" alt="Code size">
 <img src="https://img.shields.io/github/last-commit/Silentely/bili-calendar/main?label=%E4%B8%8A%E6%AC%A1%E6%9B%B4%E6%96%B0&color=success" alt="Last commit">
+<img src="https://api.netlify.com/api/v1/badges/efdead58-803f-40c4-bd24-f0f25a92922f/deploy-status" alt="Netlify Status">
 <br>
 </div>
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/efdead58-803f-40c4-bd24-f0f25a92922f/deploy-status)](https://app.netlify.com/projects/bili-calendar/deploys)
 [![Docker Image](https://img.shields.io/badge/Docker-ghcr.io%2Fsilentely%2Fbili--calendar-blue?logo=docker)](https://github.com/Silentely/bili-calendar/pkgs/container/bili-calendar)
 
 
