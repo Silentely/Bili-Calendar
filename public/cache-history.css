@@ -10,7 +10,9 @@
   z-index: 10000;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.3s, visibility 0.3s;
+  transition:
+    opacity 0.3s,
+    visibility 0.3s;
 }
 
 .history-panel.show {
@@ -44,7 +46,7 @@
   animation: panelSlideIn 0.3s ease;
 }
 
-[data-theme="dark"] .history-panel-content {
+[data-theme='dark'] .history-panel-content {
   background: #1a1a1a;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
@@ -69,7 +71,7 @@
   border-bottom: 1px solid #e0e0e0;
 }
 
-[data-theme="dark"] .history-panel-header {
+[data-theme='dark'] .history-panel-header {
   border-bottom-color: #333;
 }
 
@@ -82,7 +84,7 @@
   color: #333;
 }
 
-[data-theme="dark"] .history-panel-header h3 {
+[data-theme='dark'] .history-panel-header h3 {
   color: #e0e0e0;
 }
 
@@ -124,7 +126,7 @@
   justify-content: center;
 }
 
-[data-theme="dark"] .btn-close-panel {
+[data-theme='dark'] .btn-close-panel {
   background: #333;
   color: #999;
 }
@@ -133,7 +135,7 @@
   background: #e0e0e0;
 }
 
-[data-theme="dark"] .btn-close-panel:hover {
+[data-theme='dark'] .btn-close-panel:hover {
   background: #444;
 }
 
@@ -161,7 +163,7 @@
   transition: all 0.2s;
 }
 
-[data-theme="dark"] .history-item {
+[data-theme='dark'] .history-item {
   background: #2a2a2a;
 }
 
@@ -170,7 +172,7 @@
   transform: translateX(4px);
 }
 
-[data-theme="dark"] .history-item:hover {
+[data-theme='dark'] .history-item:hover {
   background: #333;
 }
 
@@ -191,7 +193,7 @@
   margin-bottom: 4px;
 }
 
-[data-theme="dark"] .history-username {
+[data-theme='dark'] .history-username {
   color: #999;
 }
 
@@ -250,7 +252,7 @@
   justify-content: center;
 }
 
-[data-theme="dark"] .btn-delete-history {
+[data-theme='dark'] .btn-delete-history {
   background: #333;
   color: #666;
 }
@@ -290,7 +292,7 @@
   border-top: 1px solid #e0e0e0;
 }
 
-[data-theme="dark"] .history-panel-footer {
+[data-theme='dark'] .history-panel-footer {
   border-top-color: #333;
 }
 
@@ -301,7 +303,7 @@
   color: #666;
 }
 
-[data-theme="dark"] .cache-stats {
+[data-theme='dark'] .cache-stats {
   color: #999;
 }
 
@@ -350,7 +352,7 @@
   overflow: hidden;
 }
 
-[data-theme="dark"] .auto-suggest-container {
+[data-theme='dark'] .auto-suggest-container {
   background: #2a2a2a;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
@@ -367,7 +369,7 @@
   border-bottom: 1px solid #f0f0f0;
 }
 
-[data-theme="dark"] .suggest-item {
+[data-theme='dark'] .suggest-item {
   border-bottom-color: #333;
 }
 
@@ -379,7 +381,7 @@
   background: #f8f8f8;
 }
 
-[data-theme="dark"] .suggest-item:hover {
+[data-theme='dark'] .suggest-item:hover {
   background: #333;
 }
 
@@ -395,7 +397,7 @@
   margin-top: 2px;
 }
 
-[data-theme="dark"] .suggest-username {
+[data-theme='dark'] .suggest-username {
   color: #999;
 }
 
@@ -438,28 +440,28 @@
     width: 95%;
     max-height: 90vh;
   }
-  
+
   .history-panel-footer {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .cache-stats {
     width: 100%;
     justify-content: center;
   }
-  
+
   .btn-clear-cache {
     width: 100%;
     justify-content: center;
   }
-  
+
   .history-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
   }
-  
+
   .history-item-actions {
     width: 100%;
     justify-content: flex-end;

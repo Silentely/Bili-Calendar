@@ -1,4 +1,5 @@
-# Bili-Calendar (B站追番日历)  
+# Bili-Calendar (B站追番日历)
+
 [![Netlify Status](https://api.netlify.com/api/v1/badges/efdead58-803f-40c4-bd24-f0f25a92922f/deploy-status)](https://app.netlify.com/projects/bili-calendar/deploys)
 [![Docker Image](https://img.shields.io/badge/Docker-ghcr.io%2Fsilentely%2Fbili--calendar-blue?logo=docker)](https://github.com/Silentely/bili-calendar/pkgs/container/bili-calendar)
 
@@ -9,6 +10,7 @@
 ## ✨ 功能特点
 
 ### 核心功能
+
 - 📅 **自动同步**：B站追番列表一键生成日历订阅
 - 🕒 **准确时间**：精确解析番剧更新时间，支持时区自动转换
 - 🔁 **智能重复**：连载中番剧自动每周重复，完结番剧仅保留首播
@@ -17,6 +19,7 @@
 - 🔒 **隐私保护**：服务端不存储任何用户数据，支持自部署
 
 ### 🆕 新增功能（v2.0）
+
 - 🌙 **暗黑模式**：自动跟随系统主题，支持手动切换，保护眼睛
 - 👁️ **番剧预览**：订阅前预览所有追番内容，了解更新时间和状态
 - 💾 **本地缓存**：智能缓存数据，减少API调用，提升响应速度
@@ -26,21 +29,28 @@
 - ⌨️ **键盘快捷键**：支持快捷操作，提升使用效率
 - 📱 **移动优化**：完美适配移动设备，触摸优化
 
+### 🔐 安全与合规（新增）
+
+- 启用安全响应头（X-Content-Type-Options、Referrer-Policy、X-Frame-Options、HSTS）
+- 基线 CSP：同源为主，样式与字体放行必要 CDN；脚本保留 inline 兼容（可逐步迁移 nonce/hash）
+- Service Worker 仅拦截同源请求，避免外链预取触发 CSP（离线仅覆盖本地资产）
+
 ---
 
 ## 📸 效果预览
 
 > 下图展示了全新的前端界面、暗黑模式、番剧预览和日历订阅效果：
 
-| 浅色模式 | 暗黑模式 | 番剧预览 |
-|:---:|:---:|:---:|
+|           浅色模式           |          暗黑模式           |         番剧预览          |
+| :--------------------------: | :-------------------------: | :-----------------------: |
 | ![](./assets/light-mode.jpg) | ![](./assets/dark-mode.jpg) | ![](./assets/preview.jpg) |
 
-| 移动端界面 | 日历视图 | 事件详情 |
-|:---:|:---:|:---:|
+|          移动端界面           |            日历视图             |            事件详情            |
+| :---------------------------: | :-----------------------------: | :----------------------------: |
 | ![](./assets/mobile-view.jpg) | ![](./assets/calendar-view.jpg) | ![](./assets/event-detail.jpg) |
 
 ### 界面特点
+
 - **响应式设计**：自动适配桌面和移动设备
 - **流畅动画**：优雅的过渡效果和加载动画
 - **智能提示**：详细的错误信息和解决方案
@@ -57,22 +67,25 @@
 3. 点击"生成订阅"按钮（或按 Enter 键）
 4. （可选）点击"预览番剧"查看追番列表
 5. 将生成的订阅链接添加到您的日历应用中  
-PS: 也可直接通过 `https://calendar.cosr.eu.org/uid` 形式复制到日历新增订阅里填入链接
+   PS: 也可直接通过 `https://calendar.cosr.eu.org/uid` 形式复制到日历新增订阅里填入链接
 
 ### 📲 PWA 安装指南
 
 #### 桌面端（Chrome/Edge）
+
 1. 访问网站后，地址栏右侧会出现安装图标
 2. 点击安装图标，确认安装
 3. 应用将作为独立窗口运行
 
 #### 移动端（iOS）
+
 1. 在 Safari 中打开网站
 2. 点击分享按钮
 3. 选择"添加到主屏幕"
 4. 点击"添加"确认
 
 #### 移动端（Android）
+
 1. 在 Chrome 中打开网站
 2. 点击右上角菜单
 3. 选择"添加到主屏幕"
@@ -80,15 +93,15 @@ PS: 也可直接通过 `https://calendar.cosr.eu.org/uid` 形式复制到日历�
 
 ### ⌨️ 键盘快捷键
 
-| 快捷键 | 功能 |
-|--------|------|
-| `Enter` | 生成订阅/执行操作 |
-| `Ctrl/Cmd + K` | 聚焦搜索框 |
-| `Ctrl/Cmd + P` | 预览番剧列表 |
-| `Ctrl/Cmd + D` | 切换暗黑模式 |
+| 快捷键         | 功能              |
+| -------------- | ----------------- |
+| `Enter`        | 生成订阅/执行操作 |
+| `Ctrl/Cmd + K` | 聚焦搜索框        |
+| `Ctrl/Cmd + P` | 预览番剧列表      |
+| `Ctrl/Cmd + D` | 切换暗黑模式      |
 | `Ctrl/Cmd + H` | 显示/隐藏历史记录 |
-| `Ctrl/Cmd + C` | 复制订阅链接 |
-| `Esc` | 关闭弹窗/清除输入 |
+| `Ctrl/Cmd + C` | 复制订阅链接      |
+| `Esc`          | 关闭弹窗/清除输入 |
 
 ---
 
@@ -144,6 +157,7 @@ GET /:uid
 ```
 
 参数：
+
 - `uid`: B站用户 UID
 
 返回：ICS 格式的日历文件
@@ -155,6 +169,7 @@ GET /api/bangumi/:uid
 ```
 
 参数：
+
 - `uid`: B站用户 UID
 
 返回：B站追番列表的 JSON 数据
@@ -183,18 +198,18 @@ GET /status
 
 ### 环境变量
 
-| 变量名 | 默认值 | 说明 |
-|--------|--------|------|
-| `PORT` | 3000 | 服务监听端口 |
-| `BILIBILI_COOKIE` | 空 | B站 Cookie，用于提高API访问成功率 |
-| `NODE_ENV` | development | 运行环境（development/production） |
-| `TZ` | Asia/Shanghai | 时区设置 |
-| `API_RATE_LIMIT` | 3 | API调用速率限制（次数/时间窗口） |
-| `API_RATE_WINDOW` | 3600000 | 速率限制时间窗口（毫秒，默认1小时） |
-| `ENABLE_RATE_LIMIT` | true | 是否启用速率限制（true/false） |
-| `HTTP_TIMEOUT_MS` | 10000 | HTTP请求超时时间（毫秒） |
-| `HTTP_RETRY_MAX` | 2 | HTTP请求最大重试次数 |
-| `HTTP_RETRY_BASE_DELAY_MS` | 300 | HTTP重试基础延迟时间（毫秒） |
+| 变量名                     | 默认值        | 说明                                |
+| -------------------------- | ------------- | ----------------------------------- |
+| `PORT`                     | 3000          | 服务监听端口                        |
+| `BILIBILI_COOKIE`          | 空            | B站 Cookie，用于提高API访问成功率   |
+| `NODE_ENV`                 | development   | 运行环境（development/production）  |
+| `TZ`                       | Asia/Shanghai | 时区设置                            |
+| `API_RATE_LIMIT`           | 3             | API调用速率限制（次数/时间窗口）    |
+| `API_RATE_WINDOW`          | 3600000       | 速率限制时间窗口（毫秒，默认1小时） |
+| `ENABLE_RATE_LIMIT`        | true          | 是否启用速率限制（true/false）      |
+| `HTTP_TIMEOUT_MS`          | 10000         | HTTP请求超时时间（毫秒）            |
+| `HTTP_RETRY_MAX`           | 2             | HTTP请求最大重试次数                |
+| `HTTP_RETRY_BASE_DELAY_MS` | 300           | HTTP重试基础延迟时间（毫秒）        |
 
 ### 注意事项
 
@@ -223,15 +238,15 @@ GET /status
 
 ```
 bili-calendar/
-├── server.js              # Docker部署的主服务文件
-├── main.js                # Docker部署的主应用逻辑
+├── server.js              # 主服务（容器/本地）
+├── main.js                # 主应用逻辑（容器/本地）
 ├── netlify.toml           # Netlify配置
 ├── .github/               # GitHub配置目录
 │   └── workflows/         # GitHub Actions工作流配置
 │       └── docker-build.yml # Docker镜像自动构建配置
-├── netlify/               # Netlify函数目录
-│   └── functions/         # 函数源代码
-│       └── server.js      # Serverless版本的服务器
+├── netlify/
+│   └── functions/
+│       └── server.js      # Netlify Functions 入口（CJS）
 ├── public/                # 静态文件目录
 │   ├── index.html         # 前端页面
 │   ├── styles.css         # 基础样式
@@ -248,9 +263,13 @@ bili-calendar/
 │   ├── sw.js              # Service Worker
 │   └── manifest.webmanifest # PWA清单文件
 ├── utils/                 # 工具函数目录
-│   ├── time.js            # 时间处理工具
-│   ├── ics.js             # ICS生成工具
-│   └── http.js            # HTTP客户端工具
+│   ├── time.cjs           # 时间处理（后端/函数使用）
+│   ├── ics.cjs            # ICS生成（后端/函数使用）
+│   ├── http.cjs           # HTTP客户端（后端/函数使用）
+│   ├── bangumi.cjs        # B站数据抓取（后端/函数使用）
+│   ├── time.js            # 历史兼容/备用实现（不建议直接引入）
+│   ├── ics.js             # 历史兼容/备用实现（不建议直接引入）
+│   └── bangumi.js         # 误用保护（被误加载将抛出说明性错误）
 ├── assets/                # 资源文件目录
 │   └── icons/             # PWA图标
 ├── Dockerfile             # Docker 镜像配置
@@ -274,17 +293,21 @@ npm run start:prod
 
 # 运行测试
 npm test
+
+# 代码规范与格式化
+npm run lint
+npm run format
 ```
 
 ### 前端模块说明
 
-| 模块 | 功能 | 文件 |
-|------|------|------|
-| 主应用 | 核心业务逻辑、主题切换 | `app.js` |
-| 错误处理 | 智能错误提示和解决方案 | `error-handler.js` |
-| 番剧预览 | 追番列表展示和筛选 | `anime-preview.js` |
-| 缓存管理 | 数据缓存和历史记录 | `cache-manager.js` |
-| PWA | 离线支持和应用安装 | `sw.js`, `manifest.webmanifest` |
+| 模块     | 功能                   | 文件                            |
+| -------- | ---------------------- | ------------------------------- |
+| 主应用   | 核心业务逻辑、主题切换 | `app.js`                        |
+| 错误处理 | 智能错误提示和解决方案 | `error-handler.js`              |
+| 番剧预览 | 追番列表展示和筛选     | `anime-preview.js`              |
+| 缓存管理 | 数据缓存和历史记录     | `cache-manager.js`              |
+| PWA      | 离线支持和应用安装     | `sw.js`, `manifest.webmanifest` |
 
 ---
 
@@ -307,6 +330,7 @@ npm test
    - 发布目录: `public`
    - 环境变量: 根据需要设置 `BILIBILI_COOKIE` 等
 3. Netlify.toml 文件已包含必要配置:
+
    ```toml
    [build]
      command = "npm run build"
@@ -318,7 +342,8 @@ npm test
      to = "/.netlify/functions/server"
      status = 200
    ```
-4. 本项目已包含所有必要的Netlify Functions配置，无需额外设置
+
+4. 本项目已包含所有必要的 Netlify Functions 配置，无需额外设置。`npm run build` 会将 `utils/` 和 `netlify/functions/server.js` 复制到 `netlify/functions-build/`。
 
 > **注意**: 项目已通过 `serverless-http` 将Express应用包装为Netlify函数，并使用CommonJS模块格式，所有必要的依赖已添加到package.json中。
 
@@ -329,19 +354,22 @@ npm test
 本项目支持多种部署方式，每种方式使用不同的代码实现以适应特定平台的要求：
 
 ### Docker部署
+
 - 使用 `server.js` 和 `main.js` 作为主应用文件
 - 包含完整的 Express 应用实现
 - 适用于传统服务器部署或容器化部署
 
 ### Netlify Functions部署
+
 - 使用 `netlify/functions/server.js` 作为函数入口
 - 通过 `serverless-http` 将 Express 应用包装为无服务器函数
 - 使用 CommonJS 模块系统以适应 Netlify 环境
 
 ### 各平台实现差异
+
 1. **限流机制**：
-   - Docker版本使用定时清理的限流机制
-   - Netlify版本使用机会性清理的限流机制
+   - Docker 版本使用定时清理的限流机制
+   - Netlify 版本使用机会性清理的限流机制
 
 2. **日志处理**：
    - 不同平台使用不同的日志格式以适应各自环境
@@ -350,7 +378,7 @@ npm test
    - 各平台针对特定错误场景进行了优化处理
 
 4. **IP地址处理**：
-   - Netlify版本包含更完善的IP地址处理逻辑
+   - Netlify 版本包含更完善的 IP 地址处理逻辑
 
 ---
 
@@ -359,6 +387,7 @@ npm test
 ### 为什么显示"[时间未知]"？
 
 可能原因：
+
 1. 番剧尚未公布具体更新时间
 2. B站API返回的数据格式有变化
 3. 网络问题导致API访问失败
@@ -386,6 +415,7 @@ npm test
 ### PWA无法安装？
 
 确保：
+
 1. 使用支持PWA的浏览器（Chrome、Edge、Safari等）
 2. 网站使用HTTPS协议（本地开发除外）
 3. 浏览器设置允许安装Web应用
@@ -399,6 +429,7 @@ npm test
 **症状**：显示"网络错误"或"API访问受限"
 
 **解决方案**：
+
 1. 检查网络连接
 2. 确认UID是否正确
 3. 确认追番列表是否公开
@@ -410,6 +441,7 @@ npm test
 **症状**：日历应用提示错误或无法添加
 
 **解决方案**：
+
 1. 确认订阅链接格式正确
 2. 检查日历应用是否支持ICS格式
 3. 尝试使用网页版日历应用
@@ -420,6 +452,7 @@ npm test
 **症状**：更新时间与实际不符
 
 **解决方案**：
+
 1. 检查系统时区设置
 2. 确认日历应用时区配置
 3. 刷新订阅获取最新数据
@@ -429,6 +462,7 @@ npm test
 **症状**：按钮太小、布局错乱
 
 **解决方案**：
+
 1. 更新到最新版本
 2. 使用现代浏览器
 3. 尝试安装PWA应用
@@ -484,6 +518,7 @@ API响应包含以下速率限制相关头部信息：
 ## 📝 更新日志
 
 ### v2.0.0 (2025-08)
+
 - ✨ 新增暗黑模式支持
 - ✨ 新增番剧预览功能
 - ✨ 新增本地缓存和历史记录
@@ -495,6 +530,7 @@ API响应包含以下速率限制相关头部信息：
 - ⚡ 性能优化
 
 ### v1.0.0 (2025-07)
+
 - 🎉 初始版本发布
 - 📅 基础日历订阅功能
 - 🔁 智能重复规则
@@ -520,7 +556,7 @@ API响应包含以下速率限制相关头部信息：
   <img src="https://github.com/docker/dockercraft/raw/master/docs/img/contribute.png?raw=true" alt="贡献图示">
 </p>
 
-[github-hosts]: https://raw.githubusercontent.com/racaljk/hosts/master/hosts "hosts on Github"
+[github-hosts]: https://raw.githubusercontent.com/racaljk/hosts/master/hosts 'hosts on Github'
 [CC-NC-SA-4.0]: https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh
 
 <div align="center">

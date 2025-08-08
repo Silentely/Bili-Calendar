@@ -9,7 +9,9 @@
   z-index: 10000;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.3s, visibility 0.3s;
+  transition:
+    opacity 0.3s,
+    visibility 0.3s;
 }
 
 .anime-preview-modal.show {
@@ -43,7 +45,7 @@
   animation: modalSlideUp 0.3s ease;
 }
 
-[data-theme="dark"] .anime-preview-content {
+[data-theme='dark'] .anime-preview-content {
   background: #1a1a1a;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
@@ -68,7 +70,7 @@
   border-bottom: 1px solid #e0e0e0;
 }
 
-[data-theme="dark"] .anime-preview-header {
+[data-theme='dark'] .anime-preview-header {
   border-bottom-color: #333;
 }
 
@@ -81,7 +83,7 @@
   color: #333;
 }
 
-[data-theme="dark"] .anime-preview-header h2 {
+[data-theme='dark'] .anime-preview-header h2 {
   color: #e0e0e0;
 }
 
@@ -113,7 +115,7 @@
   gap: 6px;
 }
 
-[data-theme="dark"] .anime-preview-actions button {
+[data-theme='dark'] .anime-preview-actions button {
   background: #2a2a2a;
   color: #e0e0e0;
 }
@@ -123,7 +125,7 @@
   transform: translateY(-1px);
 }
 
-[data-theme="dark"] .anime-preview-actions button:hover {
+[data-theme='dark'] .anime-preview-actions button:hover {
   background: #333;
 }
 
@@ -146,7 +148,7 @@
   border-bottom: 1px solid #e0e0e0;
 }
 
-[data-theme="dark"] .anime-preview-filters {
+[data-theme='dark'] .anime-preview-filters {
   background: #222;
   border-bottom-color: #333;
 }
@@ -162,7 +164,7 @@
   transition: all 0.2s;
 }
 
-[data-theme="dark"] .filter-btn {
+[data-theme='dark'] .filter-btn {
   background: #2a2a2a;
   border-color: #444;
   color: #999;
@@ -202,7 +204,7 @@
   transition: all 0.2s;
 }
 
-[data-theme="dark"] .anime-item {
+[data-theme='dark'] .anime-item {
   background: #2a2a2a;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
@@ -212,7 +214,7 @@
   transform: translateY(-2px);
 }
 
-[data-theme="dark"] .anime-item:hover {
+[data-theme='dark'] .anime-item:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
@@ -261,7 +263,7 @@
   transition: color 0.2s;
 }
 
-[data-theme="dark"] .anime-title a {
+[data-theme='dark'] .anime-title a {
   color: #e0e0e0;
 }
 
@@ -277,7 +279,7 @@
   color: #666;
 }
 
-[data-theme="dark"] .anime-meta {
+[data-theme='dark'] .anime-meta {
   color: #999;
 }
 
@@ -340,7 +342,7 @@
   justify-content: center;
 }
 
-[data-theme="dark"] .btn-anime-detail {
+[data-theme='dark'] .btn-anime-detail {
   background: #333;
   color: #999;
 }
@@ -381,7 +383,7 @@
   border-top: 1px solid #e0e0e0;
 }
 
-[data-theme="dark"] .anime-preview-footer {
+[data-theme='dark'] .anime-preview-footer {
   border-top-color: #333;
 }
 
@@ -398,7 +400,7 @@
   color: #666;
 }
 
-[data-theme="dark"] .stat-item {
+[data-theme='dark'] .stat-item {
   color: #999;
 }
 
@@ -436,26 +438,26 @@
     width: 95%;
     height: 90vh;
   }
-  
+
   .anime-item {
     flex-direction: column;
   }
-  
+
   .anime-cover {
     width: 100%;
     height: 200px;
   }
-  
+
   .anime-preview-footer {
     flex-direction: column;
     gap: 15px;
   }
-  
+
   .anime-stats {
     width: 100%;
     justify-content: space-around;
   }
-  
+
   .btn-confirm {
     width: 100%;
     justify-content: center;
@@ -480,7 +482,7 @@
   animation: spin 1s linear infinite;
 }
 
-[data-theme="dark"] .anime-loading-spinner {
+[data-theme='dark'] .anime-loading-spinner {
   border-color: #333;
   border-top-color: #00a1d6;
 }
@@ -497,6 +499,6 @@
   font-size: 14px;
 }
 
-[data-theme="dark"] .anime-loading-text {
+[data-theme='dark'] .anime-loading-text {
   color: #999;
 }

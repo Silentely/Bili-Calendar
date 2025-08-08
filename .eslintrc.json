@@ -1,0 +1,19 @@
+{
+  "root": true,
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2022": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module"
+  },
+  "ignorePatterns": ["node_modules/", "netlify/functions-build/"],
+  "rules": {
+    "no-var": "warn",
+    "prefer-const": "warn",
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "no-console": "off"
+  }
+}

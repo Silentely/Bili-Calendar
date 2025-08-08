@@ -15,14 +15,15 @@ const CORE_ASSETS = [
   '/cache-manager.js',
   '/manifest.webmanifest',
   '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/icons/icon-512.png',
 ];
 
 // 安装：预缓存核心资源
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(CORE_ASSETS))
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(CORE_ASSETS))
       .then(() => self.skipWaiting())
   );
 });
@@ -30,9 +31,12 @@ self.addEventListener('install', (event) => {
 // 激活：清理旧缓存
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.map(k => (k !== CACHE_NAME ? caches.delete(k) : Promise.resolve())))
-    ).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : Promise.resolve())))
+      )
+      .then(() => self.clients.claim())
   );
 });
 
@@ -44,13 +48,18 @@ function isApiRequest(url) {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
+  // 仅处理同源请求，避免对外链请求使用 fetch() 触发 connect-src 限制
+  if (url.origin !== location.origin) {
+    return; // 不拦截，交由浏览器默认处理（受 style-src / img-src 等策略控制）
+  }
+
   if (isApiRequest(url)) {
     // API：网络优先，失败回退缓存（若有）
     event.respondWith(
       fetch(event.request)
         .then((resp) => {
           const clone = resp.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           return resp;
         })
         .catch(() => caches.match(event.request))

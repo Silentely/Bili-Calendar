@@ -1,157 +1,206 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>B站追番日历订阅</title>
-  <link rel="icon" href="/favicon.ico" type="image/x-icon">
-  <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#00a1d6">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="追番日历">
-  <link rel="apple-touch-icon" href="/icons/icon-192.png">
-  <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="./styles.css">
-  <link rel="stylesheet" href="./styles-dark.css">
-  <link rel="stylesheet" href="./loading-animations.css">
-  <link rel="stylesheet" href="./error-guide.css">
-  <link rel="stylesheet" href="./anime-preview.css">
-  <link rel="stylesheet" href="./cache-history.css">
-  <!-- moved inline styles to styles.css -->
-  <script src="./error-handler.js"></script>
-  <script src="./anime-preview.js"></script>
-  <script src="./cache-manager.js"></script>
-  <script src="./app.js"></script>
-  <script>
-    // 注册 Service Worker（PWA）
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(err => {
-          console.warn('Service Worker 注册失败:', err);
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>B站追番日历订阅</title>
+    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#00a1d6" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="追番日历" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles-dark.css" />
+    <link rel="stylesheet" href="./loading-animations.css" />
+    <link rel="stylesheet" href="./error-guide.css" />
+    <link rel="stylesheet" href="./anime-preview.css" />
+    <link rel="stylesheet" href="./cache-history.css" />
+    <!-- moved inline styles to styles.css -->
+    <script src="./error-handler.js"></script>
+    <script src="./anime-preview.js"></script>
+    <script src="./cache-manager.js"></script>
+    <script src="./app.js"></script>
+    <script>
+      // 注册 Service Worker（PWA）
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch((err) => {
+            console.warn('Service Worker 注册失败:', err);
+          });
         });
-      });
-    }
-  </script>
-</head>
-<body>
-  <!-- 主题切换按钮 -->
-  <button class="theme-switcher" onclick="toggleTheme()" aria-label="切换主题">
-    <i class="fas fa-moon" id="themeIcon"></i>
-  </button>
+      }
+    </script>
+  </head>
+  <body>
+    <!-- 主题切换按钮 -->
+    <button class="theme-switcher" onclick="toggleTheme()" aria-label="切换主题" title="切换主题">
+      <i class="fas fa-moon" id="themeIcon"></i>
+    </button>
 
-
-  <div class="main-container">
-    <!-- 应用头部 -->
-    <div class="app-header">
-      <div class="logo-container">
-        <i class="fas fa-calendar-alt app-icon"></i>
-        <div class="app-title">B站追番日历</div>
-      </div>
-      <a href="https://github.com/Silentely/bili-calendar" target="_blank" rel="noopener noreferrer" class="github-btn" aria-label="在新窗口打开 GitHub 仓库">
-        <i class="fab fa-github" aria-hidden="true"></i> GitHub
-      </a>
-    </div>
-    
-    <!-- 页面标题 -->
-    <div class="page-title">
-      <h1>B站追番日历订阅</h1>
-      <p>输入您的B站用户ID(UID)，获取追番日历订阅链接</p>
-    </div>
-    
-    <!-- 输入区域 -->
-    <div class="input-section">
-      <div class="input-group">
-        <input type="text" id="uidInput" class="form-control" placeholder="例如: 614500" onkeydown="if(event.key==='Enter') handleSubscribe()">
-        <button class="btn-primary" onclick="handleSubscribe()">
-          <i class="fas fa-magic"></i> 生成订阅
-        </button>
-        <button class="btn-outline" onclick="handlePreview()">
-          <i class="fas fa-eye"></i> 预览番剧
-        </button>
-      </div>
-      <div class="help-text">
-        <i class="fas fa-info-circle"></i>UID可在B站个人空间网址中找到，例如：https://space.bilibili.com/<strong>614500</strong>
-      </div>
-    </div>
-    
-    <!-- 加载指示器 -->
-    <div class="loading" id="loadingIndicator">
-      <span class="spinner"></span> 正在获取数据，请稍候...
-    </div>
-    
-    <!-- 结果显示 -->
-    <div class="result-box" id="resultBox">
-      <h3>
-        <i class="fas fa-check-circle"></i> 订阅链接生成成功
-      </h3>
-      <p>请复制以下链接并添加到您的日历应用中：</p>
-      <div class="subscribe-url" id="subscribeUrl"></div>
-      <div class="btn-group">
-        <button class="btn btn-outline-primary" onclick="copyToClipboard()">
-          <i class="fas fa-copy"></i> 复制链接
-        </button>
-        <a href="#" id="subscribeLink" class="btn btn-success" target="_blank">
-          <i class="fas fa-calendar-plus"></i> 添加到日历
+    <div class="main-container">
+      <!-- 应用头部 -->
+      <div class="app-header">
+        <div class="logo-container">
+          <i class="fas fa-calendar-alt app-icon"></i>
+          <div class="app-title">B站追番日历</div>
+        </div>
+        <a
+          href="https://github.com/Silentely/bili-calendar"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="github-btn"
+          aria-label="在新窗口打开 GitHub 仓库"
+        >
+          <i class="fab fa-github" aria-hidden="true"></i> GitHub
         </a>
       </div>
-      <div class="instructions">
-        <h4>
-          <i class="fas fa-lightbulb"></i> 使用说明
-        </h4>
+
+      <!-- 页面标题 -->
+      <div class="page-title">
+        <h1>B站追番日历订阅</h1>
+        <p>输入您的B站用户ID(UID)，获取追番日历订阅链接</p>
+      </div>
+
+      <!-- 输入区域 -->
+      <div class="input-section">
+        <div class="input-group">
+          <input
+            type="text"
+            id="uidInput"
+            class="form-control"
+            placeholder="例如: 614500"
+            onkeydown="if(event.key==='Enter') handleSubscribe()"
+          />
+          <button
+            class="btn-primary"
+            onclick="handleSubscribe()"
+            aria-label="生成订阅链接"
+            title="生成订阅链接"
+          >
+            <i class="fas fa-magic"></i> 生成订阅
+          </button>
+          <button
+            class="btn-outline"
+            onclick="handlePreview()"
+            aria-label="预览番剧"
+            title="预览番剧"
+          >
+            <i class="fas fa-eye"></i> 预览番剧
+          </button>
+        </div>
+        <div class="help-text">
+          <i class="fas fa-info-circle"></i
+          >UID可在B站个人空间网址中找到，例如：https://space.bilibili.com/<strong>614500</strong>
+        </div>
+      </div>
+
+      <!-- 加载指示器 -->
+      <div class="loading" id="loadingIndicator">
+        <span class="spinner"></span> 正在获取数据，请稍候...
+      </div>
+
+      <!-- 结果显示 -->
+      <div class="result-box" id="resultBox">
+        <h3><i class="fas fa-check-circle"></i> 订阅链接生成成功</h3>
+        <p>请复制以下链接并添加到您的日历应用中：</p>
+        <div class="subscribe-url" id="subscribeUrl"></div>
+        <div class="btn-group">
+          <button
+            class="btn btn-outline-primary"
+            onclick="copyToClipboard()"
+            aria-label="复制订阅链接"
+            title="复制订阅链接"
+          >
+            <i class="fas fa-copy"></i> 复制链接
+          </button>
+          <a
+            href="#"
+            id="subscribeLink"
+            class="btn btn-success"
+            target="_blank"
+            aria-label="添加到日历"
+            title="添加到日历"
+          >
+            <i class="fas fa-calendar-plus"></i> 添加到日历
+          </a>
+        </div>
+        <div class="instructions">
+          <h4><i class="fas fa-lightbulb"></i> 使用说明</h4>
+          <ul>
+            <li>
+              <strong>Apple 日历</strong>：打开设置 > 密码与账户 > 添加账户 > 其他 > 添加已订阅日历
+            </li>
+            <li>
+              <strong>Google 日历</strong>：在左侧"我的日历"下点击"添加其他日历" > "从URL添加"
+            </li>
+            <li><strong>Outlook</strong>：在日历视图中点击"添加日历" > "从Internet"</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 功能说明 -->
+      <div class="info-section">
+        <h3><i class="fas fa-star"></i> 功能特色</h3>
         <ul>
-          <li><strong>Apple 日历</strong>：打开设置 > 密码与账户 > 添加账户 > 其他 > 添加已订阅日历</li>
-          <li><strong>Google 日历</strong>：在左侧"我的日历"下点击"添加其他日历" > "从URL添加"</li>
-          <li><strong>Outlook</strong>：在日历视图中点击"添加日历" > "从Internet"</li>
+          <li>
+            <strong>智能识别连载状态</strong>：连载中番剧自动设置每周重复，完结番剧仅保留首播时间
+          </li>
+          <li>生成的日历可添加到 Apple 日历、Google 日历、Outlook 等</li>
+          <li>每集更新时间会自动添加到您的日历中</li>
+          <li>日历链接长期有效，无需重复订阅</li>
         </ul>
+        <div class="privacy-warning">
+          <i class="fas fa-exclamation-triangle"></i>
+          重要提醒：您的追番数据必须设置为公开，否则无法获取
+        </div>
       </div>
     </div>
-    
-    <!-- 功能说明 -->
-    <div class="info-section">
-      <h3>
-        <i class="fas fa-star"></i> 功能特色
-      </h3>
-      <ul>
-        <li><strong>智能识别连载状态</strong>：连载中番剧自动设置每周重复，完结番剧仅保留首播时间</li>
-        <li>生成的日历可添加到 Apple 日历、Google 日历、Outlook 等</li>
-        <li>每集更新时间会自动添加到您的日历中</li>
-        <li>日历链接长期有效，无需重复订阅</li>
-      </ul>
-      <div class="privacy-warning">
-        <i class="fas fa-exclamation-triangle"></i> 重要提醒：您的追番数据必须设置为公开，否则无法获取
+
+    <!-- 帮助按钮 -->
+    <button
+      class="help-button"
+      onclick="userGuide.startTour()"
+      aria-label="显示使用指南"
+      title="显示使用指南"
+    >
+      <i class="fas fa-question"></i>
+    </button>
+
+    <!-- 历史记录按钮 -->
+    <button
+      class="history-button"
+      onclick="cacheManager.showHistoryPanel()"
+      aria-label="查看历史记录"
+      title="查看历史记录"
+    >
+      <i class="fas fa-history"></i>
+    </button>
+
+    <!-- 进度条 -->
+    <div class="progress-bar-container" id="progressBar">
+      <div class="progress-bar"></div>
+    </div>
+
+    <!-- 加载遮罩 -->
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="circular-loader">
+        <svg width="60" height="60">
+          <circle class="circular-loader-bg" cx="30" cy="30" r="25"></circle>
+          <circle class="circular-loader-progress" cx="30" cy="30" r="25"></circle>
+        </svg>
       </div>
+      <p class="loading-text">正在处理请求...</p>
     </div>
-    
-
-  </div>
-  
-  <!-- 帮助按钮 -->
-  <button class="help-button" onclick="userGuide.startTour()" aria-label="显示使用指南">
-    <i class="fas fa-question"></i>
-  </button>
-  
-  <!-- 历史记录按钮 -->
-  <button class="history-button" onclick="cacheManager.showHistoryPanel()" aria-label="查看历史记录">
-    <i class="fas fa-history"></i>
-  </button>
-
-  <!-- 进度条 -->
-  <div class="progress-bar-container" id="progressBar">
-    <div class="progress-bar"></div>
-  </div>
-  
-  <!-- 加载遮罩 -->
-  <div class="loading-overlay" id="loadingOverlay">
-    <div class="circular-loader">
-      <svg width="60" height="60">
-        <circle class="circular-loader-bg" cx="30" cy="30" r="25"></circle>
-        <circle class="circular-loader-progress" cx="30" cy="30" r="25"></circle>
-      </svg>
-    </div>
-    <p class="loading-text">正在处理请求...</p>
-  </div>
-
-</body>
+  </body>
 </html>

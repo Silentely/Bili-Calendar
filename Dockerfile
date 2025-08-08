@@ -5,7 +5,7 @@ FROM node:18-alpine
 WORKDIR /app
 
 # 设置时区
-RUN apk add --no-cache tzdata && \
+RUN apk add --no-cache tzdata tini && \
     cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
     echo "Asia/Shanghai" > /etc/timezone && \
     apk del tzdata
@@ -32,5 +32,9 @@ HEALTHCHECK --interval=60s --timeout=5s --start-period=15s --retries=3 \
 # 设置环境变量
 ENV NODE_ENV=production
 
-# 启动命令
+# 以非 root 运行
+USER node
+
+# 启动命令（使用 tini 作为 init 进程）
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "server.js"]

@@ -3,7 +3,7 @@ function toggleTheme() {
   const body = document.body;
   const themeIcon = document.getElementById('themeIcon');
   const currentTheme = body.getAttribute('data-theme');
-  
+
   if (currentTheme === 'dark') {
     body.setAttribute('data-theme', 'light');
     themeIcon.classList.remove('fa-sun');
@@ -22,9 +22,9 @@ function initTheme() {
   const savedTheme = localStorage.getItem('theme') || 'light';
   const body = document.body;
   const themeIcon = document.getElementById('themeIcon');
-  
+
   body.setAttribute('data-theme', savedTheme);
-  
+
   if (savedTheme === 'dark') {
     themeIcon.classList.remove('fa-moon');
     themeIcon.classList.add('fa-sun');
@@ -35,7 +35,7 @@ function initTheme() {
 }
 
 function toHalfWidth(str) {
-  return str.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
+  return str.replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
 }
 
 function isMobile() {
@@ -46,14 +46,14 @@ function isMobile() {
 function showToast(message, type = 'info', duration = 3000) {
   const toast = document.createElement('div');
   toast.className = 'toast-notification-enhanced';
-  
+
   const icons = {
     success: 'fa-check-circle',
     error: 'fa-times-circle',
     warning: 'fa-exclamation-triangle',
-    info: 'fa-info-circle'
+    info: 'fa-info-circle',
   };
-  
+
   toast.innerHTML = `
     <div class="toast-content-enhanced ${type}">
       <i class="fas ${icons[type]} toast-icon"></i>
@@ -61,13 +61,13 @@ function showToast(message, type = 'info', duration = 3000) {
       <i class="fas fa-times toast-close" onclick="this.closest('.toast-notification-enhanced').remove()"></i>
     </div>
   `;
-  
+
   document.body.appendChild(toast);
-  
+
   setTimeout(() => {
     toast.classList.add('show');
   }, 10);
-  
+
   setTimeout(() => {
     toast.classList.remove('show');
     setTimeout(() => {
@@ -80,10 +80,10 @@ function showToast(message, type = 'info', duration = 3000) {
 function showProgressBar() {
   const progressBar = document.getElementById('progressBar');
   const progressFill = progressBar.querySelector('.progress-bar');
-  
+
   progressBar.classList.add('active');
   progressFill.style.width = '0%';
-  
+
   // 模拟进度
   let progress = 0;
   const interval = setInterval(() => {
@@ -94,7 +94,7 @@ function showProgressBar() {
     }
     progressFill.style.width = `${progress}%`;
   }, 300);
-  
+
   return {
     complete: () => {
       clearInterval(interval);
@@ -106,7 +106,7 @@ function showProgressBar() {
     error: () => {
       clearInterval(interval);
       progressBar.classList.remove('active');
-    }
+    },
   };
 }
 
@@ -114,17 +114,17 @@ function showProgressBar() {
 function showLoadingOverlay(text = '正在处理请求...') {
   const overlay = document.getElementById('loadingOverlay');
   const loadingText = overlay.querySelector('.loading-text');
-  
+
   loadingText.textContent = text;
   overlay.classList.add('active');
-  
+
   return {
     hide: () => {
       overlay.classList.remove('active');
     },
     updateText: (newText) => {
       loadingText.textContent = newText;
-    }
+    },
   };
 }
 
@@ -135,26 +135,28 @@ function showResultAnimation(success = true) {
   animation.innerHTML = success
     ? '<div class="success-checkmark"></div>'
     : '<div class="error-cross"></div>';
-  
+
   document.body.appendChild(animation);
-  
+
   setTimeout(() => {
     animation.remove();
   }, 1500);
 }
-
 
 function copyToClipboard() {
   const url = document.getElementById('subscribeUrl').textContent;
   if (!url) return;
   // 先尝试异步剪贴板
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(url).then(() => {
-      showToast('链接已复制到剪贴板', 'success');
-      showResultAnimation(true);
-    }).catch(() => {
-      fallbackCopy(url);
-    });
+    navigator.clipboard
+      .writeText(url)
+      .then(() => {
+        showToast('链接已复制到剪贴板', 'success');
+        showResultAnimation(true);
+      })
+      .catch(() => {
+        fallbackCopy(url);
+      });
   } else {
     fallbackCopy(url);
   }
@@ -185,22 +187,22 @@ async function precheckRate(uid) {
       return { ...cachedData, fromCache: true };
     }
   }
-  
+
   // 可选：向后端预检，读取频控响应头
   try {
-    const resp = await fetch(`/api/bangumi/${uid}`, { headers: { 'X-Bili-Calendar-Internal': '1' } });
+    const resp = await fetch(`/api/bangumi/${uid}`);
     const limit = resp.headers.get('X-RateLimit-Limit');
     const remaining = resp.headers.get('X-RateLimit-Remaining');
     const reset = resp.headers.get('X-RateLimit-Reset');
-    
+
     // 先读取响应body
     let body = {};
     try {
       body = await resp.json();
-    } catch (e) {
+    } catch {
       // 如果不是JSON响应，继续处理
     }
-    
+
     if (!resp.ok) {
       // 透传一些常见错误
       if (resp.status === 400) {
@@ -222,20 +224,20 @@ async function precheckRate(uid) {
       if (window.errorHandler) errorHandler.showErrorModal('SERVER_ERROR', body.message);
       throw new Error(body.message || `服务异常：HTTP ${resp.status}`);
     }
-    
+
     // 检查是否有番剧数据
     if (body && body.data && body.data.list && body.data.list.length === 0) {
       if (window.errorHandler) errorHandler.showErrorModal('NO_ANIME_FOUND');
       return { ok: false, error: '该用户没有追番记录' };
     }
-    
+
     const result = { limit, remaining, reset, ok: true, data: body.data };
-    
+
     // 保存到缓存
     if (window.cacheManager) {
       cacheManager.saveToCache('bangumi', uid, result);
     }
-    
+
     return result;
   } catch (e) {
     if (!e.message.includes('用户') && !e.message.includes('请求')) {
@@ -252,21 +254,21 @@ async function handlePreview() {
     console.error('未找到输入框');
     return;
   }
-  
+
   let uid = input.value.trim();
   uid = toHalfWidth(uid);
-  
+
   if (!uid || !/^[0-9]+$/.test(uid)) {
     showToast('请输入有效的 UID (纯数字)', 'warning');
     if (window.errorHandler) errorHandler.showErrorModal('INVALID_UID');
     return;
   }
-  
+
   const loadingOverlay = showLoadingOverlay('正在获取番剧列表...');
-  
+
   try {
     let animeData = null;
-    
+
     // 先检查缓存
     if (window.cacheManager) {
       animeData = cacheManager.getFromCache('anime_list', uid);
@@ -275,12 +277,12 @@ async function handlePreview() {
         showToast('从缓存加载番剧列表', 'info');
       }
     }
-    
+
     if (!animeData) {
       // 获取番剧数据
       if (window.animePreview) {
         animeData = await animePreview.fetchAnimeData(uid);
-        
+
         // 保存到缓存
         if (window.cacheManager && animeData && animeData.length > 0) {
           cacheManager.saveToCache('anime_list', uid, animeData);
@@ -289,20 +291,20 @@ async function handlePreview() {
         throw new Error('预览模块未加载');
       }
     }
-    
+
     if (animeData && animeData.length > 0) {
       loadingOverlay.hide();
-      
+
       // 显示预览
       if (window.animePreview) {
         animePreview.showPreview(animeData);
       }
-      
+
       // 设置生成订阅的回调
       window.currentGenerateCallback = () => {
         handleSubscribe();
       };
-      
+
       showToast(`成功获取 ${animeData.length} 部番剧`, 'success');
     } else {
       loadingOverlay.hide();
@@ -335,7 +337,7 @@ async function handleSubscribe() {
     if (window.errorHandler) errorHandler.showErrorModal('INVALID_UID');
     return;
   }
-  
+
   // 保存到历史记录（使用缓存管理器）
   if (window.cacheManager) {
     cacheManager.saveUidHistory(uid);
@@ -351,11 +353,10 @@ async function handleSubscribe() {
     // 如果是直接生成订阅链接，不需要预检
     // 直接生成链接
     const url = window.location.origin + '/' + uid + '.ics';
-    
-    // 模拟短暂处理时间
-    await new Promise(resolve => setTimeout(resolve, 800));
 
-    
+    // 模拟短暂处理时间
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
     progressBar.complete();
     loadingOverlay.hide();
 
@@ -383,10 +384,10 @@ async function handleSubscribe() {
 
         resultBox.style.display = 'block';
         resultBox.scrollIntoView({ behavior: 'smooth' });
-        
+
         showResultAnimation(true);
         showToast('订阅链接生成成功！', 'success');
-        
+
         // 清除预览回调
         window.currentGenerateCallback = null;
       }, 300);
@@ -400,24 +401,23 @@ async function handleSubscribe() {
   }
 }
 
-
 // 页面加载动画
 document.addEventListener('DOMContentLoaded', function () {
   // 初始化主题
   initTheme();
-  
+
   // 初始化缓存管理器的自动建议
   if (window.cacheManager) {
     cacheManager.initAutoSuggest();
   }
-  
+
   // 定期清理过期缓存
   setInterval(() => {
     if (window.cacheManager) {
       cacheManager.cleanExpiredCache();
     }
   }, 600000); // 每10分钟清理一次
-  
+
   const container = document.querySelector('.main-container');
   if (container) {
     container.style.opacity = '0';
@@ -443,9 +443,9 @@ document.addEventListener('DOMContentLoaded', function () {
   if (resultBox) {
     resultBox.style.display = 'none';
   }
-  
+
   // 添加键盘快捷键支持
-  document.addEventListener('keydown', function(e) {
+  document.addEventListener('keydown', function (e) {
     // Alt + T 切换主题
     if (e.altKey && e.key === 't') {
       e.preventDefault();
@@ -463,3 +463,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 });
+
+// 供 HTML 与外部脚本调用，避免构建时被当作未使用
+window.copyToClipboard = copyToClipboard;
+window.precheckRate = precheckRate;

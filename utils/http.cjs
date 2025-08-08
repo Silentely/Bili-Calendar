@@ -1,4 +1,4 @@
-// utils/http.js
+// utils/http.cjs
 // 统一的 Axios 客户端：默认超时、有限重试（429/5xx）、统一Headers注入、环境变量健壮解析
 const axios = require('axios');
 

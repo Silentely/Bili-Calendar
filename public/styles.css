@@ -2,14 +2,14 @@
 
 /* 主题与变量 */
 :root {
-  --primary: #fb7299;        /* B站粉色 */
-  --secondary: #00a1d6;      /* B站蓝色 */
-  --success: #52c41a;        /* 成功绿色 */
-  --warning: #faad14;        /* 警告橙色 */
-  --error: #ff4d4f;          /* 错误红色 */
-  --light: #f8f9fa;          /* 浅灰色 */
-  --dark: #212529;           /* 深色 */
-  --gray: #6c757d;           /* 中等灰色 */
+  --primary: #fb7299; /* B站粉色 */
+  --secondary: #00a1d6; /* B站蓝色 */
+  --success: #52c41a; /* 成功绿色 */
+  --warning: #faad14; /* 警告橙色 */
+  --error: #ff4d4f; /* 错误红色 */
+  --light: #f8f9fa; /* 浅灰色 */
+  --dark: #212529; /* 深色 */
+  --gray: #6c757d; /* 中等灰色 */
   --bili-gradient: linear-gradient(135deg, #fb7299 0%, #00a1d6 100%);
   --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   --hover-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
@@ -24,7 +24,8 @@
 
 /* 页面布局与背景 - 优化性能 */
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   /* 使用固定背景色替代渐变，提升性能 */
   background: #f5f5f7;
   min-height: 100vh;
@@ -124,8 +125,6 @@ html {
   color: transparent;
 }
 
-
-
 /* 标题 */
 .page-title {
   text-align: center;
@@ -156,7 +155,9 @@ html {
   margin-bottom: 30px;
   border: 1px solid rgba(251, 114, 153, 0.2);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .input-section:hover {
@@ -177,7 +178,7 @@ html {
 
 /* 添加装饰图标 */
 .input-group::before {
-  content: "🔍";
+  content: '🔍';
   position: absolute;
   top: 12px;
   left: 20px;
@@ -187,7 +188,7 @@ html {
 }
 
 .input-group::after {
-  content: "🎬";
+  content: '🎬';
   position: absolute;
   top: 100%;
   right: 30px;
@@ -198,7 +199,7 @@ html {
 
 /* 移动端隐藏可能遮挡内容的装饰图标 */
 @media (max-width: 768px) {
-  .input-group::before, 
+  .input-group::before,
   .input-group::after {
     display: none;
   }
@@ -322,7 +323,7 @@ html {
 }
 
 .input-section::before {
-  content: "📅";
+  content: '📅';
   position: absolute;
   bottom: 10px;
   left: 20px;
@@ -331,7 +332,7 @@ html {
 }
 
 .input-section::after {
-  content: "✨";
+  content: '✨';
   position: absolute;
   bottom: 10px;
   right: 20px;
@@ -356,7 +357,7 @@ html {
   .input-section .input-group {
     flex-direction: column;
   }
-  
+
   .input-section .btn-primary,
   .input-section .btn-outline {
     width: 100%;
@@ -381,7 +382,7 @@ html {
 }
 
 .help-text::before {
-  content: "ℹ️";
+  content: 'ℹ️';
   position: absolute;
   top: -10px;
   left: 20px;
@@ -610,7 +611,7 @@ html {
 
 .github-btn {
   background: #24292e;
-  border: 1px solid rgba(255,255,255,.18);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   font-size: 16px;
   color: #fff;
   cursor: pointer;
@@ -644,12 +645,19 @@ html {
 
 /* 动画 - 优化性能 */
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
 }
 
 @keyframes slideIn {
@@ -677,20 +685,28 @@ html {
   body {
     padding: 10px; /* 减少移动端body内边距 */
   }
-  
+
   .main-container {
     padding: 30px 20px;
     margin: 10px;
   }
-  .app-title { font-size: 20px; }
-  .page-title h1 { font-size: 26px; }
-  .input-group { 
-    flex-direction: column; 
+  .app-title {
+    font-size: 20px;
+  }
+  .page-title h1 {
+    font-size: 26px;
+  }
+  .input-group {
+    flex-direction: column;
     gap: 8px; /* 使用更小的间距 */
   }
-  .btn-group { flex-direction: column; }
-  .btn { width: 100%; }
-  
+  .btn-group {
+    flex-direction: column;
+  }
+  .btn {
+    width: 100%;
+  }
+
   /* 修复移动端输入框显示不全的问题 */
   .form-control {
     min-height: 50px;
@@ -702,11 +718,11 @@ html {
     display: block !important; /* 强制显示为块级元素 */
     max-width: none; /* 移除最大宽度限制 */
   }
-  
+
   .input-section {
     padding: 20px; /* 减少移动端内边距 */
   }
-  
+
   .btn-primary {
     min-height: 50px;
     font-size: 1rem !important; /* 使用重构前的字体大小 */
@@ -715,10 +731,17 @@ html {
 }
 
 @media (max-width: 480px) {
-  .main-container { padding: 20px 15px; }
-  .app-header { flex-direction: column; gap: 15px; }
-  .page-title h1 { font-size: 22px; }
-  
+  .main-container {
+    padding: 20px 15px;
+  }
+  .app-header {
+    flex-direction: column;
+    gap: 15px;
+  }
+  .page-title h1 {
+    font-size: 22px;
+  }
+
   /* 进一步优化小屏幕输入框 */
   .form-control {
     padding: 0.8rem !important; /* 使用重构前的padding */
@@ -729,11 +752,11 @@ html {
     display: block !important; /* 强制显示为块级元素 */
     max-width: none; /* 移除最大宽度限制 */
   }
-  
+
   .input-section {
     padding: 15px; /* 进一步减少小屏幕内边距 */
   }
-  
+
   .btn-primary {
     min-height: 48px;
     font-size: 1rem !important; /* 使用重构前的字体大小 */
@@ -746,12 +769,12 @@ html {
   body {
     padding: 5px; /* 进一步减少超小屏幕的内边距 */
   }
-  
-  .main-container { 
-    padding: 15px 10px; 
+
+  .main-container {
+    padding: 15px 10px;
     margin: 5px;
   }
-  
+
   .form-control {
     padding: 0.8rem !important; /* 使用重构前的padding */
     font-size: 16px;
@@ -761,21 +784,21 @@ html {
     display: block !important; /* 强制显示为块级元素 */
     max-width: none; /* 移除最大宽度限制 */
   }
-  
+
   .btn-primary {
     min-height: 44px;
     font-size: 1rem !important; /* 使用重构前的字体大小 */
     padding: 0.8rem 1.5rem !important; /* 使用重构前的padding */
   }
-  
-  .page-title h1 { 
-    font-size: 20px; 
+
+  .page-title h1 {
+    font-size: 20px;
   }
-  
+
   .input-section {
     padding: 10px; /* 超小屏幕设备的最小内边距 */
   }
-  
+
   .page-title p {
     font-size: 14px;
   }
@@ -799,9 +822,18 @@ html {
   z-index: 1000;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
-.toast-notification.show { opacity: 1; }
-.toast-content { display: flex; align-items: center; gap: 8px; }
-.toast-content i { color: var(--success); font-size: 18px; }
+.toast-notification.show {
+  opacity: 1;
+}
+.toast-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.toast-content i {
+  color: var(--success);
+  font-size: 18px;
+}
 
 /* PC端美观样式 */
 @media (min-width: 769px) {

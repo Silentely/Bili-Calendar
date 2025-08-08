@@ -3,20 +3,26 @@
 /* 触摸优化 */
 @media (hover: none) and (pointer: coarse) {
   /* 增大可点击区域 */
-  button, .btn, .btn-primary, .btn-secondary, a {
+  button,
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  a {
     min-height: 44px;
     min-width: 44px;
     padding: 12px 16px;
   }
 
   /* 移除悬停效果，改用触摸反馈 */
-  button:active, .btn:active {
+  button:active,
+  .btn:active {
     transform: scale(0.95);
     transition: transform 0.1s;
   }
 
   /* 禁用悬停样式 */
-  button:hover, .btn:hover {
+  button:hover,
+  .btn:hover {
     transform: none;
   }
 }
@@ -31,7 +37,8 @@
   }
 
   /* 输入框优化 */
-  #uidInput, #uid {
+  #uidInput,
+  #uid {
     font-size: 16px !important; /* 防止iOS自动缩放 */
     padding: 14px;
     border-radius: 8px;
@@ -237,7 +244,8 @@ input:focus {
 }
 
 @keyframes fadeInOut {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0;
   }
   50% {
@@ -251,7 +259,7 @@ input:focus {
     background: rgba(255, 255, 255, 0.95);
   }
 
-  [data-theme="dark"] .loading-overlay {
+  [data-theme='dark'] .loading-overlay {
     background: rgba(0, 0, 0, 0.95);
   }
 
@@ -275,7 +283,10 @@ input:focus {
 }
 
 /* 快速点击优化 */
-button, a, input[type="button"], input[type="submit"] {
+button,
+a,
+input[type='button'],
+input[type='submit'] {
   touch-action: manipulation;
 }
 

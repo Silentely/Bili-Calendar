@@ -1,20 +1,13 @@
-// utils/ics.js
-// 生成与响应 ICS 的通用工具
-let timeLib;
-try {
-  timeLib = require('./time.cjs');
-} catch {
-  timeLib = require('./time.js');
-}
-const { parseBroadcastTime, parseNewEpTime, getNextBroadcastDate, formatDate, escapeICSText } =
-  timeLib;
+// utils/ics.cjs
+// 生成与响应 ICS 的通用工具（CommonJS 版本）
+const {
+  parseBroadcastTime,
+  parseNewEpTime,
+  getNextBroadcastDate,
+  formatDate,
+  escapeICSText,
+} = require('./time.cjs');
 
-/**
- * 生成 ICS 内容
- * @param {Array<Object>} bangumis
- * @param {string|number} uid
- * @returns {string}
- */
 function generateICS(bangumis, uid) {
   const VTIMEZONE_DEFINITION = `BEGIN:VTIMEZONE
 TZID:Asia/Shanghai
@@ -121,9 +114,6 @@ END:VTIMEZONE`;
   return lines.join('\r\n');
 }
 
-/**
- * 发送 ICS 响应
- */
 function respondWithICS(res, content, uid) {
   res.set({
     'Content-Type': 'text/calendar; charset=utf-8',
@@ -133,9 +123,6 @@ function respondWithICS(res, content, uid) {
   res.send(content);
 }
 
-/**
- * 发送空日历（错误/空数据）
- */
 function respondWithEmptyCalendar(res, uid, reason) {
   const now = new Date().toISOString().replace(/[-:.]/g, '').substring(0, 15) + 'Z';
   const date = new Date().toISOString().split('T')[0].replace(/-/g, '');

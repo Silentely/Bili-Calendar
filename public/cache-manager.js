@@ -22,19 +22,19 @@ class CacheManager {
       const cacheData = {
         data: data,
         timestamp: Date.now(),
-        version: '1.0.0'
+        version: '1.0.0',
       };
-      
+
       // 检查缓存大小
       const dataSize = JSON.stringify(cacheData).length;
       if (dataSize > this.maxCacheSize) {
         console.warn('数据过大，无法缓存');
         return false;
       }
-      
+
       // 清理过期缓存
       this.cleanExpiredCache();
-      
+
       localStorage.setItem(cacheKey, JSON.stringify(cacheData));
       return true;
     } catch (e) {
@@ -52,18 +52,18 @@ class CacheManager {
     try {
       const cacheKey = this.getCacheKey(type, identifier);
       const cached = localStorage.getItem(cacheKey);
-      
+
       if (!cached) return null;
-      
+
       const cacheData = JSON.parse(cached);
       const age = Date.now() - cacheData.timestamp;
-      
+
       // 检查缓存是否过期
       if (age > maxAge) {
         localStorage.removeItem(cacheKey);
         return null;
       }
-      
+
       return cacheData.data;
     } catch (e) {
       console.error('读取缓存失败:', e);
@@ -76,15 +76,15 @@ class CacheManager {
     try {
       const keys = Object.keys(localStorage);
       const now = Date.now();
-      
-      keys.forEach(key => {
+
+      keys.forEach((key) => {
         if (key.startsWith(this.cachePrefix)) {
           try {
             const data = JSON.parse(localStorage.getItem(key));
-            if (data.timestamp && (now - data.timestamp) > this.maxCacheAge) {
+            if (data.timestamp && now - data.timestamp > this.maxCacheAge) {
               localStorage.removeItem(key);
             }
-          } catch (e) {
+          } catch {
             // 如果解析失败，删除这个项目
             localStorage.removeItem(key);
           }
@@ -99,7 +99,7 @@ class CacheManager {
   clearAllCache() {
     try {
       const keys = Object.keys(localStorage);
-      keys.forEach(key => {
+      keys.forEach((key) => {
         if (key.startsWith(this.cachePrefix)) {
           localStorage.removeItem(key);
         }
@@ -115,32 +115,32 @@ class CacheManager {
     let totalSize = 0;
     let itemCount = 0;
     let oldestTimestamp = Date.now();
-    
+
     try {
       const keys = Object.keys(localStorage);
-      
-      keys.forEach(key => {
+
+      keys.forEach((key) => {
         if (key.startsWith(this.cachePrefix)) {
           const item = localStorage.getItem(key);
           totalSize += item.length;
           itemCount++;
-          
+
           try {
             const data = JSON.parse(item);
             if (data.timestamp && data.timestamp < oldestTimestamp) {
               oldestTimestamp = data.timestamp;
             }
-          } catch (e) {}
+          } catch {}
         }
       });
     } catch (e) {
       console.error('获取缓存统计失败:', e);
     }
-    
+
     return {
       totalSize: this.formatSize(totalSize),
       itemCount: itemCount,
-      oldestItem: new Date(oldestTimestamp).toLocaleString('zh-CN')
+      oldestItem: new Date(oldestTimestamp).toLocaleString('zh-CN'),
     };
   }
 
@@ -157,32 +157,32 @@ class CacheManager {
   saveUidHistory(uid, username = null) {
     try {
       let history = this.getUidHistory();
-      
+
       // 查找是否已存在
-      const existingIndex = history.findIndex(item => item.uid === uid);
-      
+      const existingIndex = history.findIndex((item) => item.uid === uid);
+
       const historyItem = {
         uid: uid,
         username: username,
         timestamp: Date.now(),
-        visitCount: 1
+        visitCount: 1,
       };
-      
+
       if (existingIndex >= 0) {
         // 更新访问次数和时间
         historyItem.visitCount = history[existingIndex].visitCount + 1;
         historyItem.username = username || history[existingIndex].username;
         history.splice(existingIndex, 1);
       }
-      
+
       // 添加到开头
       history.unshift(historyItem);
-      
+
       // 限制数量
       if (history.length > this.maxHistoryItems) {
         history = history.slice(0, this.maxHistoryItems);
       }
-      
+
       localStorage.setItem('uid_history', JSON.stringify(history));
       return true;
     } catch (e) {
@@ -206,7 +206,7 @@ class CacheManager {
   removeHistoryItem(uid) {
     try {
       let history = this.getUidHistory();
-      history = history.filter(item => item.uid !== uid);
+      history = history.filter((item) => item.uid !== uid);
       localStorage.setItem('uid_history', JSON.stringify(history));
       return true;
     } catch (e) {
@@ -232,14 +232,14 @@ class CacheManager {
   // 显示历史记录面板
   showHistoryPanel() {
     const history = this.getUidHistory();
-    
+
     // 移除已存在的面板
     this.closeHistoryPanel();
-    
+
     const panel = document.createElement('div');
     panel.id = 'historyPanel';
     panel.className = 'history-panel';
-    
+
     panel.innerHTML = `
       <div class="history-panel-overlay" onclick="cacheManager.closeHistoryPanel()"></div>
       <div class="history-panel-content">
@@ -259,14 +259,19 @@ class CacheManager {
         </div>
         
         <div class="history-panel-body">
-          ${history.length === 0 ? `
+          ${
+            history.length === 0
+              ? `
             <div class="history-empty">
               <i class="fas fa-inbox"></i>
               <p>暂无历史记录</p>
             </div>
-          ` : `
+          `
+              : `
             <div class="history-list">
-              ${history.map(item => `
+              ${history
+                .map(
+                  (item) => `
                 <div class="history-item" data-uid="${item.uid}">
                   <div class="history-item-info">
                     <div class="history-uid">${item.uid}</div>
@@ -291,9 +296,12 @@ class CacheManager {
                     </button>
                   </div>
                 </div>
-              `).join('')}
+              `
+                )
+                .join('')}
             </div>
-          `}
+          `
+          }
         </div>
         
         <div class="history-panel-footer">
@@ -306,9 +314,9 @@ class CacheManager {
         </div>
       </div>
     `;
-    
+
     document.body.appendChild(panel);
-    
+
     // 添加动画
     setTimeout(() => {
       panel.classList.add('show');
@@ -332,7 +340,7 @@ class CacheManager {
     if (input) {
       input.value = uid;
       this.closeHistoryPanel();
-      
+
       // 自动触发生成
       if (typeof handleSubscribe === 'function') {
         handleSubscribe();
@@ -376,7 +384,7 @@ class CacheManager {
   formatTime(timestamp) {
     const now = Date.now();
     const diff = now - timestamp;
-    
+
     if (diff < 60000) {
       return '刚刚';
     } else if (diff < 3600000) {
@@ -396,25 +404,25 @@ class CacheManager {
   initAutoSuggest() {
     const input = document.getElementById('uidInput');
     if (!input) return;
-    
+
     // 创建建议容器
     const suggestContainer = document.createElement('div');
     suggestContainer.className = 'auto-suggest-container';
     suggestContainer.id = 'autoSuggest';
     input.parentElement.appendChild(suggestContainer);
-    
+
     // 输入事件监听
     input.addEventListener('input', (e) => {
       this.showSuggestions(e.target.value);
     });
-    
+
     // 焦点事件
     input.addEventListener('focus', (e) => {
       if (e.target.value) {
         this.showSuggestions(e.target.value);
       }
     });
-    
+
     // 失焦事件
     input.addEventListener('blur', () => {
       setTimeout(() => {
@@ -427,37 +435,44 @@ class CacheManager {
   showSuggestions(value) {
     const container = document.getElementById('autoSuggest');
     if (!container) return;
-    
+
     const history = this.getUidHistory();
-    
+
     if (!value || history.length === 0) {
       this.hideSuggestions();
       return;
     }
-    
+
     // 过滤匹配的历史记录
-    const matches = history.filter(item => 
-      item.uid.includes(value) || 
-      (item.username && item.username.toLowerCase().includes(value.toLowerCase()))
-    ).slice(0, 5);
-    
+    const matches = history
+      .filter(
+        (item) =>
+          item.uid.includes(value) ||
+          (item.username && item.username.toLowerCase().includes(value.toLowerCase()))
+      )
+      .slice(0, 5);
+
     if (matches.length === 0) {
       this.hideSuggestions();
       return;
     }
-    
+
     container.innerHTML = `
       <div class="suggest-list">
-        ${matches.map(item => `
+        ${matches
+          .map(
+            (item) => `
           <div class="suggest-item" onclick="cacheManager.selectSuggestion('${item.uid}')">
             <div class="suggest-uid">${item.uid}</div>
             ${item.username ? `<div class="suggest-username">${item.username}</div>` : ''}
             <div class="suggest-time">${this.formatTime(item.timestamp)}</div>
           </div>
-        `).join('')}
+        `
+          )
+          .join('')}
       </div>
     `;
-    
+
     container.style.display = 'block';
   }
 
@@ -485,7 +500,7 @@ const cacheManager = new CacheManager();
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
   cacheManager.initAutoSuggest();
-  
+
   // 定期清理过期缓存
   setInterval(() => {
     cacheManager.cleanExpiredCache();
