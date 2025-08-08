@@ -1,7 +1,19 @@
-# Bili-Calendar (B站追番日历)
+<div align="center">
+<h1 align="center">Bili-Calendar (B站追番日历)<br><img align='middle' src='https://anay.cosr.eu.org/?text=@Silentely/bili-calendar'></img></h1>
+<img align='middle' src='https://anay.cosr.eu.org/?repo=Silentely/bili-calendar'></img>
+<br>
+<img src="https://img.shields.io/github/forks/Silentely/bili-calendar?color=orange" alt="GitHub forks">
+<img src="https://img.shields.io/github/issues/Silentely/bili-calendar?color=green" alt="GitHub issues">
+<br>
+<img src="https://img.shields.io/github/license/Silentely/bili-calendar?color=ff69b4" alt="License">
+<img src="https://img.shields.io/github/languages/code-size/Silentely/bili-calendar?color=blueviolet" alt="Code size">
+<img src="https://img.shields.io/github/last-commit/Silentely/bili-calendar/main?label=%E4%B8%8A%E6%AC%A1%E6%9B%B4%E6%96%B0&color=success" alt="Last commit">
+<br>
+</div>
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/efdead58-803f-40c4-bd24-f0f25a92922f/deploy-status)](https://app.netlify.com/projects/bili-calendar/deploys)
 [![Docker Image](https://img.shields.io/badge/Docker-ghcr.io%2Fsilentely%2Fbili--calendar-blue?logo=docker)](https://github.com/Silentely/bili-calendar/pkgs/container/bili-calendar)
+
 
 > 🎉 **将B站追番列表一键转换为日历订阅，支持 Apple/Google/Outlook 等主流日历应用！**
 
