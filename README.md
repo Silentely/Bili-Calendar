@@ -1,16 +1,16 @@
 <div align="center">
-<h1 align="center">Bili-Calendar (B站追番日历)<br><img align='middle' src='https://anay.cosr.eu.org/?text=@Silentely/bili-calendar'></img></h1>
-<img align='middle' src='https://anay.cosr.eu.org/?repo=Silentely/bili-calendar'></img>
+<h1 align="center">Bili-Calendar (B站追番日历)<br><img align='middle' src='https://anay.cosr.eu.org/?text=@Silentely/Bili-Calendar'></img></h1>
+<img align='middle' src='https://anay.cosr.eu.org/?repo=Silentely/Bili-Calendar'></img>
 <br>
-<img src="https://img.shields.io/github/forks/Silentely/bili-calendar?color=orange" alt="GitHub forks">
-<img src="https://img.shields.io/github/issues/Silentely/bili-calendar?color=green" alt="GitHub issues">
+<img src="https://img.shields.io/github/forks/Silentely/Bili-Calendar?color=orange" alt="GitHub forks">
+<img src="https://img.shields.io/github/issues/Silentely/Bili-Calendar?color=green" alt="GitHub issues">
 <br>
-<img src="https://img.shields.io/github/license/Silentely/bili-calendar?color=ff69b4" alt="License">
-<img src="https://img.shields.io/github/languages/code-size/Silentely/bili-calendar?color=blueviolet" alt="Code size">
-<img src="https://img.shields.io/github/last-commit/Silentely/bili-calendar/main?label=%E4%B8%8A%E6%AC%A1%E6%9B%B4%E6%96%B0&color=success" alt="Last commit">
+<img src="https://img.shields.io/github/license/Silentely/Bili-Calendar?color=ff69b4" alt="License">
+<img src="https://img.shields.io/github/languages/code-size/Silentely/Bili-Calendar?color=blueviolet" alt="Code size">
+<img src="https://img.shields.io/github/last-commit/Silentely/Bili-Calendar/main?label=%E4%B8%8A%E6%AC%A1%E6%9B%B4%E6%96%B0&color=success" alt="Last commit">
 <img src="https://api.netlify.com/api/v1/badges/efdead58-803f-40c4-bd24-f0f25a92922f/deploy-status" alt="Netlify Status">
 <br>
-  <a href="https://github.com/Silentely/bili-calendar/pkgs/container/bili-calendar">
+  <a href="https://github.com/Silentely/Bili-Calendar/pkgs/container/bili-calendar">
     <img src="https://img.shields.io/badge/Docker-ghcr.io%2Fsilentely%2Fbili--calendar-blue?logo=docker" alt="Docker Image">
   </a>
 </div>
@@ -146,8 +146,8 @@ docker-compose up -d
 
 ```bash
 # 克隆仓库
-git clone https://github.com/Silentely/bili-calendar.git
-cd bili-calendar
+git clone https://github.com/Silentely/Bili-Calendar.git
+cd Bili-Calendar
 
 # 安装依赖
 npm install
@@ -250,7 +250,7 @@ GET /status
 ### 项目结构
 
 ```
-bili-calendar/
+Bili-Calendar/
 ├── server.js              # 主服务（容器/本地）
 ├── main.js                # 主应用逻辑（容器/本地）
 ├── netlify.toml           # Netlify配置
@@ -332,7 +332,7 @@ npm run format
 2. 安装 Node.js 环境（建议使用 v18 或更高版本）
 3. 安装 PM2 进程管理器：`npm install -g pm2`
 4. 安装项目依赖：`npm install`
-5. 启动服务：`pm2 start npm --name "bili-calendar" -- start`
+5. 启动服务：`pm2 start npm --name "Bili-Calendar" -- start`
 6. 设置开机自启：`pm2 startup && pm2 save`
 
 ### 部署到 Netlify
@@ -575,3 +575,7 @@ API响应包含以下速率限制相关头部信息：
 <div align="center">
   <sub>Made with ❤️ by <a href="https://github.com/Silentely">Silentely</a></sub>
 </div>
+
+---
+
+© 2025 eSIM Tools. 保留所有权利。

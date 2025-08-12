@@ -336,6 +336,13 @@ app.use((req, res) => {
               color: #ddd;
               margin: 20px 0;
             }
+            .footer {
+              margin-top: 16px;
+              padding-top: 12px;
+              border-top: 1px solid #eee;
+              color: #9aa0a6;
+              font-size: 12px;
+            }
           </style>
         </head>
         <body>
@@ -344,6 +351,7 @@ app.use((req, res) => {
             <h1>页面未找到</h1>
             <p>抱歉，您访问的页面不存在。</p>
             <p><a href="/">返回首页</a></p>
+            <footer class="footer">© ${new Date().getFullYear()} CloudPaste. 保留所有权利。</footer>
           </div>
         </body>
       </html>

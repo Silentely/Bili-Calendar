@@ -1,5 +1,5 @@
 {
-  "name": "bili-calendar",
+  "name": "Bili-Calendar",
   "version": "1.0.0",
   "description": "将B站追番列表转换为日历订阅，支持 iCal/ICS 格式",
   "main": "server.js",
@@ -8,7 +8,8 @@
     "start": "node server.js",
     "dev": "NODE_ENV=development node --watch server.js",
     "start:prod": "NODE_ENV=production node server.js",
-    "build": "mkdir -p netlify/functions-build && cp -r utils netlify/functions-build/ && cp netlify/functions/server.js netlify/functions-build/",
+    "build": "node scripts/update-readme-year.js && mkdir -p netlify/functions-build && cp -r utils netlify/functions-build/ && cp netlify/functions/server.js netlify/functions-build/",
+    "postinstall": "node scripts/update-readme-year.js",
     "lint": "eslint .",
     "format": "prettier --check .",
     "format:write": "prettier --write .",

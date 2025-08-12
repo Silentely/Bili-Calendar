@@ -462,6 +462,14 @@ document.addEventListener('DOMContentLoaded', function () {
       handlePreview();
     }
   });
+
+  // 注入当前年份到版权占位符
+  try {
+    const yearEl = document.getElementById('copyrightYear');
+    if (yearEl) {
+      yearEl.textContent = new Date().getFullYear();
+    }
+  } catch {}
 });
 
 // 供 HTML 与外部脚本调用，避免构建时被当作未使用

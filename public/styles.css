@@ -908,3 +908,13 @@ html {
     box-shadow: none !important;
   }
 }
+
+/* 页脚版权声明 */
+.app-footer {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  color: var(--gray);
+  font-size: 12px;
+  text-align: center;
+}

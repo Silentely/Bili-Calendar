@@ -258,3 +258,9 @@
   background: rgba(50, 50, 50, 0.95);
   border-color: rgba(255, 255, 255, 0.25);
 }
+
+/* 暗色主题下的页脚版权声明颜色优化 */
+[data-theme='dark'] .app-footer {
+  border-top-color: rgba(255, 255, 255, 0.12);
+  color: var(--text-secondary);
+}
