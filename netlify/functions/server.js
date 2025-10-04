@@ -4,7 +4,8 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-// const { httpClient } = require('../../utils/http.cjs');
+const { createRateLimiter } = require('../../utils/rate-limiter.cjs');
+const { extractClientIP, generateRequestId } = require('../../utils/ip.cjs');
 
 // 复用时间与ICS工具
 const { generateICS, respondWithICS, respondWithEmptyCalendar } = require('../../utils/ics.cjs');
@@ -13,82 +14,8 @@ const { getBangumiData } = require('../../utils/bangumi.cjs');
 // 导入主应用逻辑
 const app = express();
 
-// 创建简单的内存存储限流器
-const rateLimiter = {
-  // 存储结构 { ip: { count: 0, resetTime: timestamp } }
-  store: {},
-
-  // 环境变量控制限制
-  MAX_REQUESTS: process.env.API_RATE_LIMIT || 3, // 默认每小时3次
-  TIME_WINDOW: process.env.API_RATE_WINDOW || 60 * 60 * 1000, // 默认1小时(毫秒)
-  ENABLED: process.env.ENABLE_RATE_LIMIT !== 'false', // 默认启用
-
-  // 检查并递增计数
-  check(ip) {
-    const now = Date.now();
-
-    // 如果功能被禁用，始终允许请求
-    if (!this.ENABLED) return true;
-
-    // 清理过期的条目（机会性清理）
-    this.cleanup(now);
-
-    // 初始化或重置过期的限制
-    if (!this.store[ip] || now > this.store[ip].resetTime) {
-      this.store[ip] = {
-        count: 1,
-        resetTime: now + this.TIME_WINDOW,
-      };
-      return true;
-    }
-
-    // 检查是否达到限制
-    if (this.store[ip].count >= this.MAX_REQUESTS) {
-      return false;
-    }
-
-    // 递增计数
-    this.store[ip].count += 1;
-    return true;
-  },
-
-  // 获取剩余可用次数
-  getRemainingRequests(ip) {
-    const now = Date.now();
-
-    // 清理过期的条目（机会性清理）
-    this.cleanup(now);
-
-    if (!this.store[ip] || now > this.store[ip].resetTime) {
-      return this.MAX_REQUESTS;
-    }
-
-    return Math.max(0, this.MAX_REQUESTS - this.store[ip].count);
-  },
-
-  // 获取重置时间
-  getResetTime(ip) {
-    const now = Date.now();
-
-    // 清理过期的条目（机会性清理）
-    this.cleanup(now);
-
-    if (!this.store[ip] || now > this.store[ip].resetTime) {
-      return now + this.TIME_WINDOW;
-    }
-
-    return this.store[ip].resetTime;
-  },
-
-  // 清理过期的条目
-  cleanup(now = Date.now()) {
-    for (const ip in this.store) {
-      if (now > this.store[ip].resetTime) {
-        delete this.store[ip];
-      }
-    }
-  },
-};
+// 创建速率限制器实例
+const rateLimiter = createRateLimiter();
 
 // 注意：在Netlify函数环境中，因为函数是无状态的，内存存储在每次调用之间不会保留
 // 在生产环境中应该考虑使用Redis等外部存储来实现持久化的限流
@@ -115,23 +42,7 @@ app.use((req, res, next) => {
 
 // 限流中间件
 const rateLimiterMiddleware = (req, res, next) => {
-  // 获取客户端IP，处理代理和IPv6地址
-  let ip =
-    req.headers['x-forwarded-for'] ||
-    req.connection.remoteAddress ||
-    req.socket.remoteAddress ||
-    (req.connection.socket ? req.connection.socket.remoteAddress : null);
-
-  // 处理 x-forwarded-for 头部可能包含多个IP地址的情况（逗号分隔）
-  if (ip && ip.includes(',')) {
-    // 使用第一个IP地址（最原始的客户端IP）
-    ip = ip.split(',')[0].trim();
-  }
-
-  // 处理IPv6地址的格式（例如：::ffff:127.0.0.1）
-  if (ip && ip.includes('::ffff:')) {
-    ip = ip.replace('::ffff:', '');
-  }
+  const ip = extractClientIP(req);
 
   // 应用限流（所有请求）
   if (!rateLimiter.check(ip)) {
@@ -165,13 +76,8 @@ app.use(express.static(path.join(__dirname, '../../public')));
 // 请求ID & 日志中间件 (简化)
 app.use((req, res, next) => {
   const start = Date.now();
-  const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '')
-    .toString()
-    .split(',')[0]
-    .trim();
-  const requestId =
-    (req.headers['x-request-id'] && String(req.headers['x-request-id'])) ||
-    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const ip = extractClientIP(req);
+  const requestId = generateRequestId(req);
   res.setHeader('X-Request-Id', requestId);
   console.log(`📥 ${req.method} ${req.originalUrl} - IP: ${ip} - id=${requestId}`);
   res.on('finish', () => {
@@ -229,7 +135,7 @@ app.get('/api/bangumi/:uid', rateLimiterMiddleware, async (req, res, next) => {
       return res.json(data);
     }
     const bodyJson = JSON.stringify(data);
-    const etag = 'W/"' + crypto.createHash('sha1').update(bodyJson).digest('hex') + '"';
+    const etag = `W/"${crypto.createHash('sha1').update(bodyJson).digest('hex')}"`;
     const inm = req.headers['if-none-match'];
     if (inm && inm === etag) {
       return res.status(304).end();

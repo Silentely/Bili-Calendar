@@ -7,6 +7,8 @@ import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 const require = createRequire(import.meta.url);
 const { getBangumiData } = require('./utils/bangumi.cjs');
+const { createRateLimiter } = require('./utils/rate-limiter.cjs');
+const { extractClientIP, generateRequestId } = require('./utils/ip.cjs');
 
 // 复用ICS工具（使用 CJS 版本）
 const { generateICS, respondWithICS, respondWithEmptyCalendar } = require('./utils/ics.cjs');
@@ -20,77 +22,19 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
-// 创建简单的内存存储限流器
-const rateLimiter = {
-  // 存储结构 { ip: { count: 0, resetTime: timestamp } }
-  store: {},
-
-  // 环境变量控制限制
-  MAX_REQUESTS: process.env.API_RATE_LIMIT || 3, // 默认每小时3次
-  TIME_WINDOW: process.env.API_RATE_WINDOW || 60 * 60 * 1000, // 默认1小时(毫秒)
-  ENABLED: process.env.ENABLE_RATE_LIMIT !== 'false', // 默认启用
-
-  // 检查并递增计数
-  check(ip) {
-    const now = Date.now();
-
-    // 如果功能被禁用，始终允许请求
-    if (!this.ENABLED) return true;
-
-    // 初始化或重置过期的限制
-    if (!this.store[ip] || now > this.store[ip].resetTime) {
-      this.store[ip] = {
-        count: 1,
-        resetTime: now + this.TIME_WINDOW,
-      };
-      return true;
-    }
-
-    // 检查是否达到限制
-    if (this.store[ip].count >= this.MAX_REQUESTS) {
-      return false;
-    }
-
-    // 递增计数
-    this.store[ip].count += 1;
-    return true;
-  },
-
-  // 获取剩余可用次数
-  getRemainingRequests(ip) {
-    const now = Date.now();
-
-    if (!this.store[ip] || now > this.store[ip].resetTime) {
-      return this.MAX_REQUESTS;
-    }
-
-    return Math.max(0, this.MAX_REQUESTS - this.store[ip].count);
-  },
-
-  // 获取重置时间
-  getResetTime(ip) {
-    const now = Date.now();
-
-    if (!this.store[ip] || now > this.store[ip].resetTime) {
-      return now + this.TIME_WINDOW;
-    }
-
-    return this.store[ip].resetTime;
-  },
-
-  // 清理过期的记录 (定期调用)
-  cleanup() {
-    const now = Date.now();
-    for (const ip in this.store) {
-      if (now > this.store[ip].resetTime) {
-        delete this.store[ip];
-      }
-    }
-  },
-};
+// 创建速率限制器实例
+const rateLimiter = createRateLimiter();
 
 // 每小时清理一次过期的限流记录
-setInterval(() => rateLimiter.cleanup(), 60 * 60 * 1000);
+const cleanupInterval = setInterval(() => rateLimiter.cleanup(), 60 * 60 * 1000);
+
+// 优雅关闭时清理定时器
+process.on('SIGTERM', () => {
+  clearInterval(cleanupInterval);
+});
+process.on('SIGINT', () => {
+  clearInterval(cleanupInterval);
+});
 
 /** 安全响应头 + CORS + 基础安全策略 */
 app.use((req, res, next) => {
@@ -120,13 +64,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use((req, res, next) => {
   const start = Date.now();
   const timestamp = new Date().toISOString();
-  const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '')
-    .toString()
-    .split(',')[0]
-    .trim();
-  const requestId =
-    (req.headers['x-request-id'] && String(req.headers['x-request-id'])) ||
-    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const ip = extractClientIP(req);
+  const requestId = generateRequestId(req);
   res.setHeader('X-Request-Id', requestId);
   // 请求开始日志
   console.log(`[${timestamp}] 📥 ${req.method} ${req.originalUrl} - IP: ${ip} - id=${requestId}`);
@@ -160,12 +99,7 @@ app.use((err, req, res, _next) => {
 
 // 限流中间件
 const rateLimiterMiddleware = (req, res, next) => {
-  // 获取客户端IP
-  const ip =
-    req.headers['x-forwarded-for'] ||
-    req.connection.remoteAddress ||
-    req.socket.remoteAddress ||
-    (req.connection.socket ? req.connection.socket.remoteAddress : null);
+  const ip = extractClientIP(req);
 
   // 应用限流（所有请求）
   if (!rateLimiter.check(ip)) {
@@ -223,7 +157,7 @@ app.get('/api/bangumi/:uid', rateLimiterMiddleware, async (req, res, next) => {
     }
 
     const bodyJson = JSON.stringify(data);
-    const etag = 'W/"' + crypto.createHash('sha1').update(bodyJson).digest('hex') + '"';
+    const etag = `W/"${crypto.createHash('sha1').update(bodyJson).digest('hex')}"`;
     const inm = req.headers['if-none-match'];
     if (inm && inm === etag) {
       return res.status(304).end();

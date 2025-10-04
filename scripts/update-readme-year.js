@@ -28,7 +28,7 @@ async function updateReadmeYear() {
   const readmePath = path.join(root, 'README.md');
   const currentYear = new Date().getFullYear();
 
-  let content = await readFileSafe(readmePath);
+  const content = await readFileSafe(readmePath);
 
   // 统一换行，便于处理
   const EOL = content.includes('\r\n') ? '\r\n' : '\n';
