@@ -1,5 +1,6 @@
 // main.js
 import express from 'express';
+import compression from 'compression';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -14,6 +15,12 @@ const { extractClientIP, generateRequestId } = require('./utils/ip.cjs');
 const { generateICS, respondWithICS, respondWithEmptyCalendar } = require('./utils/ics.cjs');
 
 const app = express();
+
+// 启用响应压缩以提升性能
+app.use(compression({
+  threshold: 1024, // 只压缩大于1KB的响应
+  level: 6, // 平衡压缩率和CPU使用率
+}));
 
 const PORT = process.env.PORT || 3000;
 const CORS_HEADERS = {

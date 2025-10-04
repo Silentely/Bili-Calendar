@@ -1,8 +1,18 @@
 // utils/http.cjs
-// 统一的 Axios 客户端：默认超时、有限重试（429/5xx）、统一Headers注入、环境变量健壮解析
+// 统一的 Axios 客户端：默认超时、有限重试（429/5xx）、统一Headers注入、环境变量健壮解析、连接池优化
 const axios = require('axios');
+const http = require('http');
+const https = require('https');
 
-/** 将字符串环境变量解析为整数，带上下界与默认值 */
+/**
+ * 将字符串环境变量解析为整数，带上下界与默认值
+ * 
+ * @param {string} name - 环境变量名称
+ * @param {number} def - 默认值
+ * @param {number} min - 最小值
+ * @param {number} max - 最大值
+ * @returns {number} 解析后的整数值
+ */
 function parseIntEnv(name, def, min, max) {
   const raw = process.env[name];
   if (raw == null || raw === '') return def;
@@ -23,16 +33,43 @@ const DEFAULT_HEADERS = {
   Cookie: process.env.BILIBILI_COOKIE || '',
 };
 
+// 创建连接池以提高性能
+// 连接池可以复用TCP连接，减少握手开销
+const httpAgent = new http.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 30000, // 保持连接30秒
+  maxSockets: 50, // 每个主机最多50个socket
+  maxFreeSockets: 10, // 空闲socket数量
+});
+
+const httpsAgent = new https.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 30000,
+  maxSockets: 50,
+  maxFreeSockets: 10,
+});
+
 const httpClient = axios.create({
   timeout: DEFAULT_TIMEOUT_MS,
   headers: DEFAULT_HEADERS,
+  httpAgent,
+  httpsAgent,
 });
 
-/** 指数退避 */
+/** 指数退避延迟函数 */
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+/**
+ * 响应拦截器：对429和5xx错误进行有限次数的指数退避重试
+ * 
+ * 重试策略：
+ * - 仅对GET请求重试
+ * - 仅对429（限流）和5xx（服务器错误）重试
+ * - 使用指数退避：300ms, 600ms, 1200ms...
+ * - 最多重试RETRY_MAX次
+ */
 httpClient.interceptors.response.use(
   (resp) => resp,
   async (error) => {
