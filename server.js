@@ -1,5 +1,6 @@
 // server.js
 import express from 'express';
+import compression from 'compression';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -14,6 +15,23 @@ const { extractClientIP, generateRequestId } = require('./utils/ip.cjs');
 const { generateICS, respondWithICS, respondWithEmptyCalendar } = require('./utils/ics.cjs');
 
 const app = express();
+
+// 启用响应压缩（gzip/brotli）以减少传输数据量
+app.use(compression({
+  // 只压缩大于1KB的响应
+  threshold: 1024,
+  // 压缩级别：6是平衡性能和压缩率的好选择
+  level: 6,
+  // 过滤函数：决定是否压缩特定响应
+  filter: (req, res) => {
+    // 不压缩已经指定no-transform的响应
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    // 使用compression的默认过滤器
+    return compression.filter(req, res);
+  }
+}));
 
 const PORT = process.env.PORT || 3000;
 const CORS_HEADERS = {
