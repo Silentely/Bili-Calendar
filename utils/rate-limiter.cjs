@@ -25,14 +25,30 @@
  *   console.log('请求过于频繁');
  * }
  */
+
+const DEFAULT_MAX_REQUESTS = 3;
+const DEFAULT_TIME_WINDOW = 60 * 60 * 1000;
+
+/**
+ * 解析整型环境变量，确保数值合法
+ */
+function parseIntEnv(name, def, min = 1, max = Number.MAX_SAFE_INTEGER) {
+  const raw = process.env[name];
+  if (raw == null || raw === '') return def;
+  const n = Number.parseInt(String(raw), 10);
+  if (Number.isNaN(n)) return def;
+  if (n < min || n > max) return def;
+  return n;
+}
+
 function createRateLimiter() {
   return {
     // 存储结构 { ip: { count: 0, resetTime: timestamp } }
     store: {},
 
     // 环境变量控制限制
-    MAX_REQUESTS: process.env.API_RATE_LIMIT || 3, // 默认每小时3次
-    TIME_WINDOW: process.env.API_RATE_WINDOW || 60 * 60 * 1000, // 默认1小时(毫秒)
+    MAX_REQUESTS: parseIntEnv('API_RATE_LIMIT', DEFAULT_MAX_REQUESTS), // 默认每小时3次
+    TIME_WINDOW: parseIntEnv('API_RATE_WINDOW', DEFAULT_TIME_WINDOW), // 默认1小时(毫秒)
     ENABLED: process.env.ENABLE_RATE_LIMIT !== 'false', // 默认启用
 
     /**

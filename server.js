@@ -134,15 +134,6 @@ const rateLimiterMiddleware = (req, res, next) => {
   next();
 };
 
-// 错误处理中间件
-app.use((err, req, res, _next) => {
-  console.error(`❌ 服务器错误:`, err);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'production' ? '服务器内部错误' : err.message,
-  });
-});
-
 // 健康检查接口
 app.get('/status', (req, res) => {
   res.send(`✅ Bili-Calendar Service is running.
@@ -308,6 +299,15 @@ app.use((req, res) => {
       </html>
     `);
   }
+});
+
+// 全局错误处理中间件（放在所有路由之后确保正确捕获）
+app.use((err, req, res, _next) => {
+  console.error(`❌ 服务器错误:`, err);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'production' ? '服务器内部错误' : err.message,
+  });
 });
 
 // 移除：本地 getBangumiData，实现统一复用 utils/bangumi.js
