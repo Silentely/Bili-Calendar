@@ -70,85 +70,32 @@ const rateLimiterMiddleware = (req, res, next) => {
   next();
 };
 
-/**
- * 提供静态文件服务（增强版静态目录查找和错误处理）
- * 优先使用打包后的 public，其次回退到仓库根目录
- */
-const publicDirCandidates = [
-  // 优先级1: 函数构建目录中的 public (netlify/functions-build/public)
+// 静态文件服务配置
+const PUBLIC_DIRS = [
   path.join(__dirname, 'public'),
-  // 优先级2: 相对于函数目录的 public (netlify/public)
   path.join(__dirname, '../public'),
-  // 优先级3: 项目根目录的 public (根目录/public)
   path.join(__dirname, '../../public'),
-  // 优先级4: 当前工作目录的 public
-  path.join(process.cwd(), 'public'),
-  // 优先级5: 上级目录的 public
-  path.join(process.cwd(), '../public'),
+  path.join(process.cwd(), 'public')
 ];
 
 let staticDir = null;
-let foundPath = '';
 
-// 详细查找逻辑
-for (const candidate of publicDirCandidates) {
+// 查找静态文件目录
+for (const candidate of PUBLIC_DIRS) {
   try {
     if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
-      // 检查是否包含关键的 index.html
       const indexPath = path.join(candidate, 'index.html');
       if (fs.existsSync(indexPath)) {
         staticDir = candidate;
-        foundPath = candidate;
-        console.log(`✅ 找到静态资源目录: ${staticDir}`);
         break;
-      } else {
-        console.log(`⚠️ 目录存在但缺少 index.html: ${candidate}`);
       }
     }
   } catch (error) {
-    console.log(`❌ 检查目录失败: ${candidate} - ${error.message}`);
+    // 静默失败，不输出错误日志
   }
 }
 
-if (!staticDir) {
-  console.error('💥 未找到可用的 public 静态目录');
-  console.error('📋 已检查的路径:');
-  publicDirCandidates.forEach(dir => {
-    const exists = fs.existsSync(dir);
-    console.error(`   - ${dir} (存在: ${exists})`);
-    if (exists) {
-      try {
-        const stats = fs.statSync(dir);
-        console.error(`     类型: ${stats.isDirectory() ? '目录' : '文件'}`);
-        const indexExists = fs.existsSync(path.join(dir, 'index.html'));
-        console.error(`     包含index.html: ${indexExists}`);
-      } catch (err) {
-        console.error(`     状态检查失败: ${err.message}`);
-      }
-    }
-  });
-  
-  // 提供更详细的错误信息
-  console.error('🔧 请检查以下项目:');
-  console.error('   1. 确保 public 目录存在且包含 index.html');
-  console.error('   2. 检查构建脚本是否正确复制文件');
-  console.error('   3. 验证 netlify.toml 配置正确');
-  console.error('   4. 确认函数构建目录结构正确');
-} else {
-  console.log(`📁 使用静态资源目录: ${staticDir}`);
-  console.log(`📄 静态文件详情:`);
-  try {
-    const files = fs.readdirSync(staticDir);
-    files.slice(0, 10).forEach(file => {
-      console.log(`   - ${file}`);
-    });
-    if (files.length > 10) {
-      console.log(`   ... 以及其他 ${files.length - 10} 个文件`);
-    }
-  } catch (err) {
-    console.log(`   无法读取目录内容: ${err.message}`);
-  }
-  
+if (staticDir) {
   app.use(express.static(staticDir));
 }
 
@@ -173,23 +120,18 @@ app.use((req, res, next) => {
 // 读取版本
 let VERSION = 'dev';
 
-// 尝试从运行时环境读取版本（备用方案）
 try {
-  // 尝试从当前目录读取
   const localPkgPath = path.join(process.cwd(), 'package.json');
   if (fs.existsSync(localPkgPath)) {
     const pkgContent = fs.readFileSync(localPkgPath, 'utf-8');
     const pkg = JSON.parse(pkgContent);
     if (pkg.version && pkg.version.trim() && pkg.version !== 'dev') {
       VERSION = pkg.version;
-      console.log(`✅ 版本信息已从运行时目录读取: ${VERSION}`);
     }
   }
 } catch (error) {
-  console.log(`⚠️ 运行时版本读取失败，使用硬编码版本: ${VERSION}`);
+  // 静默失败
 }
-
-console.log(`📋 最终版本信息: ${VERSION}`);
 
 /**
  * 将秒数转换为人类可读的运行时间字符串
