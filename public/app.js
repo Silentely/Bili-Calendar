@@ -86,28 +86,52 @@ function showProgressBar() {
 
   // 模拟进度
   let progress = 0;
-  const interval = setInterval(() => {
+  const interval = startProgressSimulation(progressFill);
+
+  return {
+    complete: () => completeProgressBar(progressFill, progressBar, interval),
+    error: () => errorProgressBar(progressBar, interval),
+  };
+}
+
+/**
+ * 开始进度条模拟
+ * @param {HTMLElement} progressFill - 进度条元素
+ * @returns {number} 定时器ID
+ */
+function startProgressSimulation(progressFill) {
+  let progress = 0;
+  return setInterval(() => {
     progress += Math.random() * 30;
     if (progress > 90) {
       progress = 90;
-      clearInterval(interval);
     }
     progressFill.style.width = `${progress}%`;
   }, 300);
+}
 
-  return {
-    complete: () => {
-      clearInterval(interval);
-      progressFill.style.width = '100%';
-      setTimeout(() => {
-        progressBar.classList.remove('active');
-      }, 500);
-    },
-    error: () => {
-      clearInterval(interval);
-      progressBar.classList.remove('active');
-    },
-  };
+/**
+ * 完成进度条显示
+ * @param {HTMLElement} progressFill - 进度条填充元素
+ * @param {HTMLElement} progressBar - 进度条容器
+ * @param {number} intervalId - 定时器ID
+ */
+function completeProgressBar(progressFill, progressBar, intervalId) {
+  clearInterval(intervalId);
+  progressFill.style.width = '100%';
+  setTimeout(() => {
+    progressBar.classList.remove('active');
+  }, 500);
+}
+
+/**
+ * 错误进度条显示
+ * @param {HTMLElement} progressBar - 进度条容器
+ * @param {number} intervalId - 定时器ID
+ */
+function errorProgressBar(progressBar, intervalId) {
+  clearInterval(intervalId);
+  progressBar.classList.remove('active');
 }
 
 // 显示加载遮罩

@@ -1,18 +1,18 @@
-// server.js
+// server-es.js - 使用 ES6 模块的服务器版本
 import express from 'express';
 import compression from 'compression';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const { getBangumiData } = require('./utils/bangumi.cjs');
-const { createRateLimiter } = require('./utils/rate-limiter.cjs');
-const { extractClientIP, generateRequestId } = require('./utils/ip.cjs');
 
-// 抽离的通用工具（使用 CJS 版本）
-const { generateICS, respondWithICS, respondWithEmptyCalendar } = require('./utils/ics.cjs');
+// 使用 ES6 模块导入
+import { getBangumiData } from './utils-es/bangumi.js';
+import { createRateLimiter } from './utils-es/rate-limiter.js';
+import { extractClientIP, generateRequestId } from './utils-es/ip.js';
+
+// 抽离的通用工具（使用 ES6 版本）
+import { generateICS, respondWithICS, respondWithEmptyCalendar } from './utils-es/ics.js';
 
 const app = express();
 
