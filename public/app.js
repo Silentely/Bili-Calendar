@@ -111,7 +111,7 @@ function showProgressBar() {
 }
 
 // 显示加载遮罩
-function showLoadingOverlay(text = '正在处理请求...') {
+function showLoadingOverlay(text = i18n.t('loading.processing')) {
   const overlay = document.getElementById('loadingOverlay');
   const loadingText = overlay.querySelector('.loading-text');
 
@@ -151,7 +151,7 @@ function copyToClipboard() {
     navigator.clipboard
       .writeText(url)
       .then(() => {
-        showToast('链接已复制到剪贴板', 'success');
+        showToast(i18n.t('toast.copied'), 'success');
         showResultAnimation(true);
       })
       .catch(() => {
@@ -169,11 +169,11 @@ function fallbackCopy(text) {
     document.body.appendChild(tmp);
     tmp.select();
     document.execCommand('copy');
-    showToast('链接已复制到剪贴板', 'success');
+    showToast(i18n.t('toast.copied'), 'success');
     showResultAnimation(true);
     document.body.removeChild(tmp);
   } catch {
-    showToast('复制失败，请手动选择并复制链接', 'error');
+    showToast(i18n.t('toast.copyFailed'), 'error');
     showResultAnimation(false);
   }
 }
@@ -207,28 +207,28 @@ async function precheckRate(uid) {
       // 透传一些常见错误
       if (resp.status === 400) {
         if (window.errorHandler) errorHandler.showErrorModal('INVALID_UID');
-        throw new Error('UID 非法：只能是数字');
+        throw new Error(i18n.t('error.invalidUid.message'));
       }
       if (resp.status === 403 || body.code === 53013) {
         if (window.errorHandler) errorHandler.showErrorModal('PRIVACY_PROTECTED');
-        throw new Error('该用户将追番列表设为隐私，无法获取');
+        throw new Error(i18n.t('error.privacy.message'));
       }
       if (resp.status === 404) {
         if (window.errorHandler) errorHandler.showErrorModal('USER_NOT_FOUND');
-        throw new Error('用户不存在');
+        throw new Error(i18n.t('error.userNotFound.message'));
       }
       if (resp.status === 429) {
         if (window.errorHandler) errorHandler.showErrorModal('RATE_LIMITED');
-        throw new Error('请求过于频繁，请稍后再试');
+        throw new Error(i18n.t('error.rateLimit.message'));
       }
       if (window.errorHandler) errorHandler.showErrorModal('SERVER_ERROR', body.message);
-      throw new Error(body.message || `服务异常：HTTP ${resp.status}`);
+      throw new Error(body.message || i18n.t('error.server.message'));
     }
 
     // 检查是否有番剧数据
     if (body && body.data && body.data.list && body.data.list.length === 0) {
       if (window.errorHandler) errorHandler.showErrorModal('NO_ANIME_FOUND');
-      return { ok: false, error: '该用户没有追番记录' };
+      return { ok: false, error: i18n.t('error.noAnime.message') };
     }
 
     const result = { limit, remaining, reset, ok: true, data: body.data };
@@ -240,10 +240,21 @@ async function precheckRate(uid) {
 
     return result;
   } catch (e) {
-    if (!e.message.includes('用户') && !e.message.includes('请求')) {
+    const knownErrorMessages = [
+      i18n.t('error.userNotFound.message'),
+      i18n.t('error.privacy.message'),
+      i18n.t('error.rateLimit.message'),
+      i18n.t('error.invalidUid.message'),
+      i18n.t('error.noAnime.message'),
+    ];
+
+    const message = e && e.message ? e.message : '';
+
+    if (!knownErrorMessages.some((msg) => message && message.includes(msg))) {
       if (window.errorHandler) errorHandler.showErrorModal('NETWORK_ERROR');
     }
-    return { ok: false, error: e && e.message ? e.message : '预检失败，请稍后重试' };
+
+    return { ok: false, error: message || i18n.t('error.precheckFailed') };
   }
 }
 
@@ -259,12 +270,12 @@ async function handlePreview() {
   uid = toHalfWidth(uid);
 
   if (!uid || !/^[0-9]+$/.test(uid)) {
-    showToast('请输入有效的 UID (纯数字)', 'warning');
+    showToast(i18n.t('toast.invalidUid'), 'warning');
     if (window.errorHandler) errorHandler.showErrorModal('INVALID_UID');
     return;
   }
 
-  const loadingOverlay = showLoadingOverlay('正在获取番剧列表...');
+  const loadingOverlay = showLoadingOverlay(i18n.t('loading.fetching'));
 
   try {
     let animeData = null;
@@ -274,7 +285,7 @@ async function handlePreview() {
       animeData = cacheManager.getFromCache('anime_list', uid);
       if (animeData) {
         console.log('使用缓存的番剧列表');
-        showToast('从缓存加载番剧列表', 'info');
+        showToast(i18n.t('toast.cacheLoaded'), 'info');
       }
     }
 
@@ -288,7 +299,7 @@ async function handlePreview() {
           cacheManager.saveToCache('anime_list', uid, animeData);
         }
       } else {
-        throw new Error('预览模块未加载');
+        throw new Error(i18n.t('error.previewModuleNotLoaded'));
       }
     }
 
@@ -305,7 +316,7 @@ async function handlePreview() {
         handleSubscribe();
       };
 
-      showToast(`成功获取 ${animeData.length} 部番剧`, 'success');
+      showToast(i18n.t('toast.animeCount', { count: animeData.length }), 'success');
     } else {
       loadingOverlay.hide();
       if (window.errorHandler) errorHandler.showErrorModal('NO_ANIME_FOUND');
@@ -313,7 +324,7 @@ async function handlePreview() {
   } catch (error) {
     loadingOverlay.hide();
     console.error('预览失败:', error);
-    showToast('获取番剧列表失败，请稍后重试', 'error');
+    showToast(i18n.t('toast.fetchFailed'), 'error');
   }
 }
 
@@ -333,7 +344,7 @@ async function handleSubscribe() {
   uid = toHalfWidth(uid);
 
   if (!uid || !/^[0-9]+$/.test(uid)) {
-    showToast('请输入有效的 UID (纯数字)', 'warning');
+    showToast(i18n.t('toast.invalidUid'), 'warning');
     if (window.errorHandler) errorHandler.showErrorModal('INVALID_UID');
     return;
   }
@@ -345,7 +356,7 @@ async function handleSubscribe() {
 
   // 显示加载动画
   const progressBar = showProgressBar();
-  const loadingOverlay = showLoadingOverlay('正在生成订阅链接...');
+  const loadingOverlay = showLoadingOverlay(i18n.t('loading.generating'));
   loading.style.display = 'block';
   resultBox.style.display = 'none';
 
@@ -363,7 +374,7 @@ async function handleSubscribe() {
     if (isMobile()) {
       setTimeout(() => {
         loading.style.display = 'none';
-        showToast('正在跳转到订阅链接...', 'info');
+        showToast(i18n.t('toast.redirecting'), 'info');
         // 移动端可尝试直接跳转
         window.location.href = url;
       }, 300);
@@ -386,7 +397,7 @@ async function handleSubscribe() {
         resultBox.scrollIntoView({ behavior: 'smooth' });
 
         showResultAnimation(true);
-        showToast('订阅链接生成成功！', 'success');
+        showToast(i18n.t('toast.success'), 'success');
 
         // 清除预览回调
         window.currentGenerateCallback = null;
@@ -396,7 +407,7 @@ async function handleSubscribe() {
     progressBar.error();
     loadingOverlay.hide();
     loading.style.display = 'none';
-    showToast('发生错误：' + error.message, 'error');
+    showToast(error && error.message ? error.message : i18n.t('error.server.message'), 'error');
     showResultAnimation(false);
   }
 }
