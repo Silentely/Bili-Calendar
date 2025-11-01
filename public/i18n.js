@@ -401,10 +401,7 @@ class I18n {
       element.setAttribute('aria-label', this.t(key));
     });
     
-    // Update active language button
-    document.querySelectorAll('.language-option').forEach(btn => {
-      btn.classList.toggle('active', btn.getAttribute('data-lang') === this.currentLang);
-    });
+    updateLanguageToggleLabel();
   }
 }
 
@@ -424,20 +421,20 @@ if (document.readyState === 'loading') {
 
 // Setup language switcher
 function setupLanguageSwitcher() {
-  const languageButtons = document.querySelectorAll('.language-option');
-  languageButtons.forEach(button => {
-    button.addEventListener('click', (e) => {
-      const lang = e.target.getAttribute('data-lang');
-      if (i18n.setLanguage(lang)) {
-        if (typeof showToast === 'function') {
-          const langKey = lang === 'zh-CN' ? 'language.zh' : 'language.en';
-          const langName = i18n.t(langKey);
-          showToast(i18n.t('toast.languageSwitched', { lang: langName }), 'success', 2000);
-        }
-      }
-    });
-  });
+  updateLanguageToggleLabel();
 }
+
+function updateLanguageToggleLabel() {
+  const label = document.getElementById('languageToggleLabel');
+  if (!label) return;
+
+  const current = i18n.getLanguage();
+  const target = current === 'zh-CN' ? 'en-US' : 'zh-CN';
+  const textKey = target === 'zh-CN' ? 'language.zh' : 'language.en';
+  label.textContent = i18n.t(textKey);
+}
+
+window.addEventListener('languageChanged', updateLanguageToggleLabel);
 
 // Export for ES modules
 if (typeof module !== 'undefined' && module.exports) {

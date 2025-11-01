@@ -95,9 +95,9 @@ The website supports multiple languages:
 - **English**: Full English interface
 
 **How to Switch Language:**
-1. Find the language switcher in the top-right corner of the page
-2. Click the language button (中文 / English)
-3. Page content will automatically update
+1. Locate the language button in the top-right corner
+2. Click it to toggle between English and 中文
+3. Page content updates instantly to the selected language
 
 Language preference is automatically saved and restored on next visit.
 
@@ -357,13 +357,7 @@ To add a new language:
 }
 ```
 
-3. Update the language switcher in `/public/index.html`:
-
-```html
-<button type="button" class="language-option" data-lang="ja-JP">
-  日本語
-</button>
-```
+3. Update the toggle logic in `/public/app.js` (`cycleLanguage`) and `/public/i18n.js` (`updateLanguageToggleLabel`) so the new language can be reached from the header switcher.
 
 ### Translation Keys
 

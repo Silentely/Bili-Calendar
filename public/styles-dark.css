@@ -263,32 +263,6 @@
   background: linear-gradient(135deg, #006c94, #2ea0d6);
 }
 
-/* 语言切换器暗黑模式 */
-[data-theme='dark'] .floating-controls {
-  background: transparent;
-}
-
-[data-theme='dark'] .language-switcher {
-  background: rgba(60, 60, 60, 0.9);
-  border-color: rgba(255, 102, 153, 0.3);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-}
-
-[data-theme='dark'] .language-option {
-  color: var(--text-secondary);
-}
-
-[data-theme='dark'] .language-option:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text-primary);
-}
-
-[data-theme='dark'] .language-option.active {
-  background: var(--bili-gradient);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(255, 102, 153, 0.4);
-}
-
 [data-theme='dark'] .github-btn:hover {
   background: rgba(50, 50, 50, 0.95);
   border-color: rgba(255, 255, 255, 0.25);

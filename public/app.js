@@ -78,32 +78,17 @@ function showToast(message, type = 'info', duration = 3000) {
 
 // 快速切换语言（循环切换已加载语言）
 function cycleLanguage() {
-  if (typeof i18n === 'undefined' || typeof i18n.getAvailableLanguages !== 'function') {
+  if (typeof i18n === 'undefined' || typeof i18n.setLanguage !== 'function') {
     console.warn('⚠️ 语言模块尚未加载');
     return;
   }
 
-  const languages = i18n.getAvailableLanguages();
-  if (!Array.isArray(languages) || languages.length === 0) {
-    return;
-  }
-
   const current = i18n.getLanguage();
-  const currentIndex = Math.max(0, languages.indexOf(current));
-  const nextLang = languages[(currentIndex + 1) % languages.length];
+  const next = current === 'zh-CN' ? 'en-US' : 'zh-CN';
+  const changed = i18n.setLanguage(next);
 
-  if (!nextLang || nextLang === current) {
-    return;
-  }
-
-  const changed = i18n.setLanguage(nextLang);
   if (changed && typeof showToast === 'function') {
-    const langNameMap = {
-      'zh-CN': 'language.zh',
-      'en-US': 'language.en',
-    };
-    const langKey = langNameMap[nextLang] || 'language.switcher';
-    const langName = i18n.t(langKey);
+    const langName = i18n.t(next === 'zh-CN' ? 'language.zh' : 'language.en');
     showToast(i18n.t('toast.languageSwitched', { lang: langName }), 'success', 2000);
   }
 }

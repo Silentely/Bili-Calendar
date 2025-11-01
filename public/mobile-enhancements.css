@@ -100,15 +100,6 @@
     flex-wrap: wrap;
   }
 
-  .language-switcher {
-    padding: 2px;
-  }
-
-  .language-option {
-    padding: 4px 10px;
-    font-size: 12px;
-  }
-
   /* 模态框全屏显示 */
   .anime-preview-content,
   .history-panel-content,

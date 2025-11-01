@@ -56,44 +56,6 @@ body {
   height: 50px;
 }
 
-.language-switcher {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(0, 161, 214, 0.2);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  backdrop-filter: blur(6px);
-}
-
-.language-option {
-  border: none;
-  background: transparent;
-  color: var(--secondary);
-  font-weight: 600;
-  font-size: 14px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 48px;
-}
-
-.language-option:hover {
-  background: rgba(0, 161, 214, 0.12);
-}
-
-.language-option.active {
-  background: var(--bili-gradient);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(0, 161, 214, 0.35);
-}
-
 /* 减少动画对性能的影响 */
 * {
   /* 优化动画性能 */
@@ -699,14 +661,27 @@ html {
 }
 
 .language-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: var(--bili-gradient);
   border: none;
   color: #fff;
   box-shadow: 0 4px 12px rgba(0, 161, 214, 0.25);
+  padding: 10px 18px;
+  border-radius: 999px;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
 }
 
 .language-btn:hover {
   background: linear-gradient(135deg, #0092c2, #49c2ff);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 161, 214, 0.35);
 }
 
 @media (max-width: 768px) {
