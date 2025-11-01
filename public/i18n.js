@@ -2,7 +2,6 @@
 
 class I18n {
   constructor() {
-    this.currentLang = this.detectLanguage();
     this.translations = {
       'zh-CN': {
         // Page Meta
@@ -291,6 +290,7 @@ class I18n {
         'sw.registered': 'Service Worker registration failed:',
       }
     };
+    this.currentLang = this.detectLanguage();
   }
 
   // Detect browser language
