@@ -97,11 +97,15 @@ app.use((req, res, next) => {
   next();
 });
 
-// 读取版本
+// 读取版本（增强版）
 let VERSION = 'dev';
 try {
   const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf-8'));
-  VERSION = pkg.version || 'dev';
+  if (pkg.version && pkg.version.trim() && pkg.version !== 'dev') {
+    VERSION = pkg.version;
+  } else if (pkg.version) {
+    VERSION = pkg.version;
+  }
 } catch {}
 
 // 限流中间件
@@ -136,13 +140,44 @@ const rateLimiterMiddleware = (req, res, next) => {
 
 // 健康检查接口
 app.get('/status', (req, res) => {
-  res.send(`✅ Bili-Calendar Service is running.
+  const uptime = process.uptime();
+  const uptimeFormatted = formatUptime(uptime);
+  const mem = Math.round(process.memoryUsage().rss / 1024 / 1024);
+  
+  // 智能判断环境类型
+  const env = process.env.NODE_ENV || 'development';
+  
+  const statusMessage = `✅ Bili-Calendar Service is running.
 
 服务状态:
 - 版本: ${VERSION}
-- 环境: ${process.env.NODE_ENV || 'development'}
-`);
+- 运行时间: ${uptimeFormatted}
+- 内存使用: ${mem} MB
+- 环境: ${env}
+- 端口: ${PORT}`;
+  
+  res.send(statusMessage);
 });
+
+/**
+ * 将秒数转换为人类可读的运行时间字符串
+ * @param {number} seconds - 运行秒数
+ * @return {string} 格式化的时间字符串
+ */
+function formatUptime(seconds) {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  const parts = [];
+  if (days > 0) parts.push(`${days}天`);
+  if (hours > 0) parts.push(`${hours}小时`);
+  if (minutes > 0) parts.push(`${minutes}分钟`);
+  if (secs > 0 || parts.length === 0) parts.push(`${secs}秒`);
+
+  return parts.join(' ');
+}
 
 // 根路径返回前端页面
 app.get('/', (req, res) => {

@@ -171,7 +171,7 @@ app.use((req, res, next) => {
 });
 
 // 读取版本（增强版）
-let VERSION = '1.0.0'; // 使用默认值而非'dev'
+let VERSION = 'dev'; // 改用dev作为默认值，符合语义
 const versionCandidates = [
   // 优先级1: 项目根目录的package.json
   path.join(__dirname, '../../package.json'),
@@ -187,9 +187,14 @@ for (const pkgPath of versionCandidates) {
     if (fs.existsSync(pkgPath)) {
       const pkgContent = fs.readFileSync(pkgPath, 'utf-8');
       const pkg = JSON.parse(pkgContent);
-      if (pkg.version && pkg.version !== 'dev') {
+      if (pkg.version && pkg.version.trim() && pkg.version !== 'dev') {
         VERSION = pkg.version;
         console.log(`✅ 版本信息已从 ${pkgPath} 读取: ${VERSION}`);
+        break;
+      } else if (pkg.version) {
+        // 如果是dev版本，也使用它而不是默认值
+        VERSION = pkg.version;
+        console.log(`✅ 版本信息已从 ${pkgPath} 读取: ${VERSION} (dev版本)`);
         break;
       }
     }
@@ -226,14 +231,20 @@ app.get('/status', (req, res) => {
   const uptimeFormatted = formatUptime(uptime);
   const mem = Math.round(process.memoryUsage().rss / 1024 / 1024);
   
-  res.send(`✅ Bili-Calendar Service is running here (Netlify Function).
+  // 智能判断环境类型
+  const env = process.env.NODE_ENV ||
+              (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME ? 'production' : 'development');
+  
+  const statusMessage = `✅ Bili-Calendar Service is running here (Netlify Function).
 
 服务状态:
 - 版本: ${VERSION}
 - 运行时间: ${uptimeFormatted}
 - 内存使用: ${mem} MB
-- 环境: ${process.env.NODE_ENV || 'development'}
-`);
+- 环境: ${env}
+- 端口: ${process.env.PORT || 'N/A (Serverless)'}`;
+  
+  res.send(statusMessage);
 });
 
 // 根路径返回前端页面
