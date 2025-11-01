@@ -76,6 +76,38 @@ function showToast(message, type = 'info', duration = 3000) {
   }, duration);
 }
 
+// 快速切换语言（循环切换已加载语言）
+function cycleLanguage() {
+  if (typeof i18n === 'undefined' || typeof i18n.getAvailableLanguages !== 'function') {
+    console.warn('⚠️ 语言模块尚未加载');
+    return;
+  }
+
+  const languages = i18n.getAvailableLanguages();
+  if (!Array.isArray(languages) || languages.length === 0) {
+    return;
+  }
+
+  const current = i18n.getLanguage();
+  const currentIndex = Math.max(0, languages.indexOf(current));
+  const nextLang = languages[(currentIndex + 1) % languages.length];
+
+  if (!nextLang || nextLang === current) {
+    return;
+  }
+
+  const changed = i18n.setLanguage(nextLang);
+  if (changed && typeof showToast === 'function') {
+    const langNameMap = {
+      'zh-CN': 'language.zh',
+      'en-US': 'language.en',
+    };
+    const langKey = langNameMap[nextLang] || 'language.switcher';
+    const langName = i18n.t(langKey);
+    showToast(i18n.t('toast.languageSwitched', { lang: langName }), 'success', 2000);
+  }
+}
+
 // 显示进度条
 function showProgressBar() {
   const progressBar = document.getElementById('progressBar');
@@ -510,3 +542,4 @@ document.addEventListener('DOMContentLoaded', function () {
 // 供 HTML 与外部脚本调用，避免构建时被当作未使用
 window.copyToClipboard = copyToClipboard;
 window.precheckRate = precheckRate;
+window.cycleLanguage = cycleLanguage;

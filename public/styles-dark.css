@@ -254,6 +254,15 @@
   border-color: rgba(255, 255, 255, 0.15);
 }
 
+[data-theme='dark'] .language-btn {
+  background: linear-gradient(135deg, #0078a6, #35aee8);
+  box-shadow: 0 4px 12px rgba(0, 161, 214, 0.3);
+}
+
+[data-theme='dark'] .language-btn:hover {
+  background: linear-gradient(135deg, #006c94, #2ea0d6);
+}
+
 /* 语言切换器暗黑模式 */
 [data-theme='dark'] .floating-controls {
   background: transparent;

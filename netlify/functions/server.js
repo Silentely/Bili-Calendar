@@ -73,10 +73,22 @@ const rateLimiterMiddleware = (req, res, next) => {
 // 提供静态文件服务（优先使用打包后的 public，其次回退到仓库根目录）
 const publicDirCandidates = [
   path.join(__dirname, 'public'),
+  path.join(__dirname, '../public'),
   path.join(__dirname, '../../public'),
+  path.join(process.cwd(), 'public'),
+  path.join(process.cwd(), '../public'),
 ];
-const staticDir = publicDirCandidates.find((dir) => fs.existsSync(dir));
+const staticDir =
+  publicDirCandidates.find((dir) => {
+    try {
+      return fs.existsSync(dir) && fs.statSync(dir).isDirectory();
+    } catch {
+      return false;
+    }
+  }) || null;
+
 if (staticDir) {
+  console.log(`📁 静态资源目录: ${staticDir}`);
   app.use(express.static(staticDir));
 } else {
   console.warn('⚠️ 未找到可用的 public 静态目录，请检查构建产物。');

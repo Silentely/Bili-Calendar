@@ -19,6 +19,7 @@ class I18n {
         'language.switcher': '选择语言',
         'language.zh': '中文',
         'language.en': 'English',
+        'language.button': '语言',
         
         // Input Section
         'input.placeholder': '例如: 614500',
@@ -161,6 +162,7 @@ class I18n {
         'language.switcher': 'Select Language',
         'language.zh': '中文',
         'language.en': 'English',
+        'language.button': 'Language',
         
         // Input Section
         'input.placeholder': 'e.g., 614500',

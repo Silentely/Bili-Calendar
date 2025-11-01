@@ -159,6 +159,13 @@ html {
   margin-bottom: 30px;
 }
 
+.header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
 .logo-container {
   display: flex;
   align-items: center;
@@ -681,7 +688,6 @@ html {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   text-decoration: none;
   z-index: 10;
-  margin-left: auto;
 }
 
 .github-btn:hover {
@@ -692,7 +698,30 @@ html {
   background: #111;
 }
 
+.language-btn {
+  background: var(--bili-gradient);
+  border: none;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 161, 214, 0.25);
+}
+
+.language-btn:hover {
+  background: linear-gradient(135deg, #0092c2, #49c2ff);
+}
+
 @media (max-width: 768px) {
+  .app-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 10px;
+  }
+
   .github-btn {
     font-size: 14px;
     padding: 8px 14px;

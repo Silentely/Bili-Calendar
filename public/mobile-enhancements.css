@@ -96,6 +96,10 @@
     height: 42px;
   }
 
+  .header-actions {
+    flex-wrap: wrap;
+  }
+
   .language-switcher {
     padding: 2px;
   }
