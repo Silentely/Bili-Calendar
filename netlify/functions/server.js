@@ -173,11 +173,13 @@ app.use((req, res, next) => {
 // 读取版本（增强版）
 let VERSION = 'dev'; // 改用dev作为默认值，符合语义
 const versionCandidates = [
-  // 优先级1: 项目根目录的package.json
+  // 优先级1: 函数构建目录中的package.json (最新构建的版本)
+  path.join(__dirname, 'package.json'),
+  // 优先级2: 项目根目录的package.json
   path.join(__dirname, '../../package.json'),
-  // 优先级2: 当前工作目录的package.json
+  // 优先级3: 当前工作目录的package.json
   path.join(process.cwd(), 'package.json'),
-  // 优先级3: 相对于函数的package.json
+  // 优先级4: 相对于函数的package.json
   path.join(__dirname, '../package.json'),
 ];
 
@@ -235,6 +237,7 @@ app.get('/status', (req, res) => {
   const env = process.env.NODE_ENV ||
               (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME ? 'production' : 'development');
   
+  // 使用换行符确保正确的格式显示
   const statusMessage = `✅ Bili-Calendar Service is running here (Netlify Function).
 
 服务状态:
@@ -243,6 +246,10 @@ app.get('/status', (req, res) => {
 - 内存使用: ${mem} MB
 - 环境: ${env}
 - 端口: ${process.env.PORT || 'N/A (Serverless)'}`;
+  
+  // 设置正确的响应头以确保换行符被正确处理
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
   
   res.send(statusMessage);
 });
