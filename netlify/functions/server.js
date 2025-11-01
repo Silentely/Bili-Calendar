@@ -200,6 +200,26 @@ for (const pkgPath of versionCandidates) {
 
 console.log(`📋 最终版本信息: ${VERSION}`);
 
+/**
+ * 将秒数转换为人类可读的运行时间字符串
+ * @param {number} seconds - 运行秒数
+ * @return {string} 格式化的时间字符串
+ */
+function formatUptime(seconds) {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  const parts = [];
+  if (days > 0) parts.push(`${days}天`);
+  if (hours > 0) parts.push(`${hours}小时`);
+  if (minutes > 0) parts.push(`${minutes}分钟`);
+  if (secs > 0 || parts.length === 0) parts.push(`${secs}秒`);
+
+  return parts.join(' ');
+}
+
 // 健康检查接口
 app.get('/status', (req, res) => {
   const uptime = process.uptime();
