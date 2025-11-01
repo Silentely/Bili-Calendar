@@ -70,8 +70,17 @@ const rateLimiterMiddleware = (req, res, next) => {
   next();
 };
 
-// 提供静态文件服务
-app.use(express.static(path.join(__dirname, '../../public')));
+// 提供静态文件服务（优先使用打包后的 public，其次回退到仓库根目录）
+const publicDirCandidates = [
+  path.join(__dirname, 'public'),
+  path.join(__dirname, '../../public'),
+];
+const staticDir = publicDirCandidates.find((dir) => fs.existsSync(dir));
+if (staticDir) {
+  app.use(express.static(staticDir));
+} else {
+  console.warn('⚠️ 未找到可用的 public 静态目录，请检查构建产物。');
+}
 
 // 请求ID & 日志中间件 (简化)
 app.use((req, res, next) => {
@@ -110,7 +119,16 @@ app.get('/status', (req, res) => {
 
 // 根路径返回前端页面
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../public', 'index.html'));
+  const indexCandidates = staticDir
+    ? [path.join(staticDir, 'index.html')]
+    : [];
+  indexCandidates.push(path.join(__dirname, '../../public', 'index.html'));
+
+  const target = indexCandidates.find((candidate) => fs.existsSync(candidate));
+  if (target) {
+    return res.sendFile(target);
+  }
+  res.status(500).send('静态首页缺失，请检查构建配置');
 });
 
 // 获取 B站追番数据
