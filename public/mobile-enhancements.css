@@ -84,12 +84,25 @@
     right: 80px;
   }
 
-  /* 主题切换按钮 */
-  .theme-switcher {
+  /* 顶部浮动控件 */
+  .floating-controls {
     top: 15px;
     right: 15px;
+    gap: 8px;
+  }
+
+  .floating-controls .theme-switcher {
     width: 42px;
     height: 42px;
+  }
+
+  .language-switcher {
+    padding: 2px;
+  }
+
+  .language-option {
+    padding: 4px 10px;
+    font-size: 12px;
   }
 
   /* 模态框全屏显示 */
