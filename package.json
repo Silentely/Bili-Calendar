@@ -8,7 +8,7 @@
     "start": "node server.js",
     "dev": "NODE_ENV=development node --watch server.js",
     "start:prod": "NODE_ENV=production node server.js",
-    "build": "node scripts/update-readme-year.js && rm -rf netlify/functions-build && mkdir -p netlify/functions-build && cp -r utils netlify/functions-build/ && cp -r public netlify/functions-build/ && cp netlify/functions/server.js netlify/functions-build/ && cp package.json netlify/functions-build/ && cp package-lock.json netlify/functions-build/ 2>/dev/null || true && echo '构建完成：静态文件已准备就绪'",
+    "build": "node scripts/update-readme-year.js && rm -rf netlify/functions-build && mkdir -p netlify/functions-build && cp -r utils netlify/functions-build/ && cp -r public netlify/functions-build/ && cp netlify/functions/server.js netlify/functions-build/ && echo '构建完成：静态文件已准备就绪'",
     "lint": "eslint .",
     "format": "prettier --check .",
     "format:write": "prettier --write .",

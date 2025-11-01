@@ -150,7 +150,6 @@ app.get('/status', (req, res) => {
   const statusMessage = `✅ Bili-Calendar Service is running.
 
 服务状态:
-- 版本: ${VERSION}
 - 运行时间: ${uptimeFormatted}
 - 内存使用: ${mem} MB
 - 环境: ${env}

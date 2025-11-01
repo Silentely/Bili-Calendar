@@ -170,39 +170,23 @@ app.use((req, res, next) => {
   next();
 });
 
-// 读取版本（增强版）
-let VERSION = 'dev'; // 改用dev作为默认值，符合语义
-const versionCandidates = [
-  // 优先级1: 函数构建目录中的package.json (最新构建的版本)
-  path.join(__dirname, 'package.json'),
-  // 优先级2: 项目根目录的package.json
-  path.join(__dirname, '../../package.json'),
-  // 优先级3: 当前工作目录的package.json
-  path.join(process.cwd(), 'package.json'),
-  // 优先级4: 相对于函数的package.json
-  path.join(__dirname, '../package.json'),
-];
+// 读取版本
+let VERSION = 'dev';
 
-// 尝试从多个路径读取版本
-for (const pkgPath of versionCandidates) {
-  try {
-    if (fs.existsSync(pkgPath)) {
-      const pkgContent = fs.readFileSync(pkgPath, 'utf-8');
-      const pkg = JSON.parse(pkgContent);
-      if (pkg.version && pkg.version.trim() && pkg.version !== 'dev') {
-        VERSION = pkg.version;
-        console.log(`✅ 版本信息已从 ${pkgPath} 读取: ${VERSION}`);
-        break;
-      } else if (pkg.version) {
-        // 如果是dev版本，也使用它而不是默认值
-        VERSION = pkg.version;
-        console.log(`✅ 版本信息已从 ${pkgPath} 读取: ${VERSION} (dev版本)`);
-        break;
-      }
+// 尝试从运行时环境读取版本（备用方案）
+try {
+  // 尝试从当前目录读取
+  const localPkgPath = path.join(process.cwd(), 'package.json');
+  if (fs.existsSync(localPkgPath)) {
+    const pkgContent = fs.readFileSync(localPkgPath, 'utf-8');
+    const pkg = JSON.parse(pkgContent);
+    if (pkg.version && pkg.version.trim() && pkg.version !== 'dev') {
+      VERSION = pkg.version;
+      console.log(`✅ 版本信息已从运行时目录读取: ${VERSION}`);
     }
-  } catch (error) {
-    console.log(`⚠️ 读取版本文件失败: ${pkgPath} - ${error.message}`);
   }
+} catch (error) {
+  console.log(`⚠️ 运行时版本读取失败，使用硬编码版本: ${VERSION}`);
 }
 
 console.log(`📋 最终版本信息: ${VERSION}`);
@@ -238,10 +222,9 @@ app.get('/status', (req, res) => {
               (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME ? 'production' : 'development');
   
   // 使用换行符确保正确的格式显示
-  const statusMessage = `✅ Bili-Calendar Service is running here (Netlify Function).
+  const statusMessage = `✅ Bili-Calendar Service is running here
 
 服务状态:
-- 版本: ${VERSION}
 - 运行时间: ${uptimeFormatted}
 - 内存使用: ${mem} MB
 - 环境: ${env}
