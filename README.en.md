@@ -36,7 +36,7 @@
 - 🚀 **Easy to Use**: Simply provide your Bilibili UID to generate subscription link
 - 🔒 **Privacy Protection**: No user data stored on server, supports self-hosting
 
-### 🆕 New Features (v2.0)
+### 🆕 New Features (v1.1.7)
 
 - 🌙 **Dark Mode**: Auto follows system theme, supports manual toggle to protect eyes
 - 👁️ **Anime Preview**: Preview all anime content before subscribing, see update time and status
@@ -398,6 +398,30 @@ Calendar subscription links are dynamically generated and automatically fetch th
 ### Why are some anime not showing in the calendar?
 
 The project automatically filters out finished anime and anime without clear broadcast times. Only airing anime with definite broadcast times will show in the calendar.
+
+---
+
+## 📝 Changelog
+
+### v1.1.7 (2025-11-02)
+
+- ✨ Added dark mode support
+- ✨ Added anime preview functionality
+- ✨ Added local cache and history features
+- ✨ Added PWA support
+- ✨ Added keyboard shortcuts
+- 🌍 Enhanced internationalization (Chinese, English)
+- 🎨 New UI design and animations
+- 📱 Mobile optimization
+- 🐛 Fixed multiple known issues
+- ⚡ Performance improvements
+
+### v1.1.0 (2025-10-01)
+
+- 🚀 Basic functionality optimization
+- 📅 Enhanced calendar subscription features
+- 🔁 Smart repeat rules
+- 📱 Multi-platform support
 
 ---
 
