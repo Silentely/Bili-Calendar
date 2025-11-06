@@ -258,7 +258,6 @@ Returns: Service status information for health checks
 ```
 Bili-Calendar/
 ├── server.js              # Main service (container/local)
-├── main.js                # Main app logic (container/local)
 ├── netlify.toml           # Netlify config
 ├── .github/               # GitHub config directory
 │   └── workflows/         # GitHub Actions workflow config
@@ -287,8 +286,6 @@ Bili-Calendar/
 │   ├── ics.cjs            # ICS generation (backend/functions)
 │   ├── http.cjs           # HTTP client (backend/functions)
 │   ├── bangumi.cjs        # Bilibili data fetching (backend/functions)
-│   ├── time.js            # Legacy/backup implementation
-│   ├── ics.js             # Legacy/backup implementation
 │   └── bangumi.js         # Misuse protection
 ├── assets/                # Asset files directory
 │   └── icons/             # PWA icons

@@ -271,7 +271,6 @@ GET /status
 ```
 Bili-Calendar/
 ├── server.js              # 主服务（容器/本地）
-├── main.js                # 主应用逻辑（容器/本地）
 ├── netlify.toml           # Netlify配置
 ├── .github/               # GitHub配置目录
 │   └── workflows/         # GitHub Actions工作流配置
@@ -300,8 +299,6 @@ Bili-Calendar/
 │   ├── ics.cjs            # ICS生成（后端/函数使用）
 │   ├── http.cjs           # HTTP客户端（后端/函数使用）
 │   ├── bangumi.cjs        # B站数据抓取（后端/函数使用）
-│   ├── time.js            # 历史兼容/备用实现（不建议直接引入）
-│   ├── ics.js             # 历史兼容/备用实现（不建议直接引入）
 │   └── bangumi.js         # 误用保护（被误加载将抛出说明性错误）
 ├── assets/                # 资源文件目录
 │   └── icons/             # PWA图标
@@ -426,7 +423,7 @@ npm run format
 
 ### Docker部署
 
-- 使用 `server.js` 和 `main.js` 作为主应用文件
+- 使用 `server.js` 作为主应用文件
 - 包含完整的 Express 应用实现
 - 适用于传统服务器部署或容器化部署
 

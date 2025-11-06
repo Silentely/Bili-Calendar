@@ -153,6 +153,7 @@ app.get('/status', (req, res) => {
 - 运行时间: ${uptimeFormatted}
 - 内存使用: ${mem} MB
 - 环境: ${env}
+- 版本: ${VERSION}
 - 端口: ${PORT}`;
   
   res.send(statusMessage);
@@ -369,12 +370,6 @@ app.use((err, req, res, _next) => {
     message: process.env.NODE_ENV === 'production' ? '服务器内部错误' : err.message,
   });
 });
-
-// 移除：本地 getBangumiData，实现统一复用 utils/bangumi.js
-
-/* 已迁移至 utils/time.js: formatDate */
-
-/* 已迁移至 utils/time.js: escapeICSText */
 
 app.listen(PORT, () => {
   console.log(`🚀 Bili-Calendar service running on port ${PORT}`);

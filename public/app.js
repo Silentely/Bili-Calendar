@@ -101,8 +101,6 @@ function showProgressBar() {
   progressBar.classList.add('active');
   progressFill.style.width = '0%';
 
-  // 模拟进度
-  let progress = 0;
   const interval = startProgressSimulation(progressFill);
 
   return {

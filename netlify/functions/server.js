@@ -90,7 +90,7 @@ for (const candidate of PUBLIC_DIRS) {
         break;
       }
     }
-  } catch (error) {
+  } catch {
     // 静默失败，不输出错误日志
   }
 }
@@ -129,7 +129,7 @@ try {
       VERSION = pkg.version;
     }
   }
-} catch (error) {
+} catch {
   // 静默失败
 }
 
@@ -170,6 +170,7 @@ app.get('/status', (req, res) => {
 - 运行时间: ${uptimeFormatted}
 - 内存使用: ${mem} MB
 - 环境: ${env}
+- 版本: ${VERSION}
 - 端口: ${process.env.PORT || 'N/A (Serverless)'}`;
   
   // 设置正确的响应头以确保换行符被正确处理
