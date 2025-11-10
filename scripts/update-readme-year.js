@@ -56,5 +56,3 @@ updateReadmeYear().catch((err) => {
   console.error('[update-readme-year] 执行失败:', err);
   process.exitCode = 1;
 });
-
-

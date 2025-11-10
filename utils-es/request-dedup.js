@@ -19,11 +19,10 @@ export function createRequestDedup() {
 
       // 创建新请求
       console.log(`🔄 请求去重: ${key} (执行新请求)`);
-      const promise = executor()
-        .finally(() => {
-          // 请求完成后，从活跃请求中移除
-          activeRequests.delete(key);
-        });
+      const promise = executor().finally(() => {
+        // 请求完成后，从活跃请求中移除
+        activeRequests.delete(key);
+      });
 
       // 将请求添加到活跃请求映射中
       activeRequests.set(key, promise);
@@ -36,6 +35,6 @@ export function createRequestDedup() {
         activeRequests.delete(key);
         throw error;
       }
-    }
+    },
   };
 }

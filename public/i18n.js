@@ -6,42 +6,45 @@ class I18n {
       'zh-CN': {
         // Page Meta
         'page.title': 'B站追番日历订阅',
-        
+
         // Header
         'app.title': 'B站追番日历',
         'app.subtitle': '输入您的B站用户ID(UID)，获取追番日历订阅链接',
         'app.github': 'GitHub',
         'app.githubAria': '在新窗口打开 GitHub 仓库',
         'theme.switch': '切换主题',
-        
+
         // Language
         'language.switcher': '选择语言',
         'language.zh': '中文',
         'language.en': 'English',
         'language.button': '语言',
-        
+
         // Input Section
         'input.placeholder': '例如: 614500',
         'input.generate': '生成订阅',
         'input.preview': '预览番剧',
-        'input.help': 'UID可在B站个人空间网址中找到，例如：https://space.bilibili.com/<strong>614500</strong>',
-        
+        'input.help':
+          'UID可在B站个人空间网址中找到，例如：https://space.bilibili.com/<strong>614500</strong>',
+
         // Loading
         'loading.text': '正在获取数据，请稍候...',
         'loading.processing': '正在处理请求...',
         'loading.generating': '正在生成订阅链接...',
         'loading.fetching': '正在获取番剧列表...',
-        
+
         // Result
         'result.success': '订阅链接生成成功',
         'result.description': '请复制以下链接并添加到您的日历应用中：',
         'result.copy': '复制链接',
         'result.addToCalendar': '添加到日历',
         'result.instructions': '使用说明',
-        'result.apple': '<strong>Apple 日历</strong>：打开设置 &gt; 密码与账户 &gt; 添加账户 &gt; 其他 &gt; 添加已订阅日历',
-        'result.google': '<strong>Google 日历</strong>：在左侧"我的日历"下点击"添加其他日历" &gt; "从URL添加"',
+        'result.apple':
+          '<strong>Apple 日历</strong>：打开设置 &gt; 密码与账户 &gt; 添加账户 &gt; 其他 &gt; 添加已订阅日历',
+        'result.google':
+          '<strong>Google 日历</strong>：在左侧"我的日历"下点击"添加其他日历" &gt; "从URL添加"',
         'result.outlook': '<strong>Outlook</strong>：在日历视图中点击"添加日历" &gt; "从Internet"',
-        
+
         // Features
         'features.title': '功能特色',
         'features.smart': '智能识别连载状态：连载中番剧自动设置每周重复，完结番剧仅保留首播时间',
@@ -49,12 +52,12 @@ class I18n {
         'features.auto': '每集更新时间会自动添加到您的日历中',
         'features.permanent': '日历链接长期有效，无需重复订阅',
         'features.privacy': '重要提醒：您的追番数据必须设置为公开，否则无法获取',
-        
+
         // Footer
         'footer.copyright': '保留所有权利。',
         'footer.help': '显示使用指南',
         'footer.history': '查看历史记录',
-        
+
         // Toasts
         'toast.copied': '链接已复制到剪贴板',
         'toast.copyFailed': '复制失败，请手动选择并复制链接',
@@ -65,7 +68,7 @@ class I18n {
         'toast.animeCount': '成功获取 {count} 部番剧',
         'toast.fetchFailed': '获取番剧列表失败，请稍后重试',
         'toast.languageSwitched': '语言已切换为 {lang}',
-        
+
         // Errors
         'error.invalidUid.title': 'UID格式错误',
         'error.invalidUid.message': '请输入有效的B站用户ID',
@@ -92,13 +95,13 @@ class I18n {
         'error.precheckFailed': '预检失败，请稍后重试',
         'error.previewModuleNotLoaded': '预览模块未加载',
         'error.close': '关闭',
-        
+
         // Error Patterns
         'error.pattern.rateLimit': '您的请求过于频繁，建议降低请求频率或联系管理员增加限额',
         'error.pattern.privacy': '多个用户的追番列表都是隐私的，这是B站的默认设置',
         'error.pattern.network': '持续的网络错误，请检查防火墙设置或代理配置',
         'error.pattern.invalidUid': '请确保输入的是数字UID，不是用户名或其他标识',
-        
+
         // User Guide
         'guide.step': '步骤',
         'guide.inputUid.title': '输入UID',
@@ -112,7 +115,7 @@ class I18n {
         'guide.prev': '上一步',
         'guide.next': '下一步',
         'guide.finish': '完成',
-        
+
         // Anime Preview
         'preview.title': '番剧预览',
         'preview.close': '关闭',
@@ -131,7 +134,7 @@ class I18n {
         'preview.updateTime': '更新时间',
         'preview.unknown': '时间未知',
         'preview.noSchedule': '无更新计划',
-        
+
         // Cache & History
         'history.title': '历史记录',
         'history.close': '关闭',
@@ -142,62 +145,67 @@ class I18n {
         'history.confirmClear': '确定要清除所有历史记录吗？',
         'cache.cleared': '缓存已清除',
         'cache.loading': '使用缓存数据',
-        
+
         // Service Worker
         'sw.registered': 'Service Worker 注册失败:',
       },
       'en-US': {
         // Page Meta
         'page.title': 'Bilibili Anime Calendar Subscription',
-        
+
         // Header
         'app.title': 'Bili Calendar',
         'app.subtitle': 'Enter your Bilibili UID to get anime calendar subscription',
         'app.github': 'GitHub',
         'app.githubAria': 'Open GitHub repository in new window',
         'theme.switch': 'Switch Theme',
-        
+
         // Language
         'language.switcher': 'Select Language',
         'language.zh': '中文',
         'language.en': 'English',
         'language.button': 'Language',
-        
+
         // Input Section
         'input.placeholder': 'e.g., 614500',
         'input.generate': 'Generate',
         'input.preview': 'Preview',
-        'input.help': 'Find your UID in your Bilibili profile URL, e.g., https://space.bilibili.com/<strong>614500</strong>',
-        
+        'input.help':
+          'Find your UID in your Bilibili profile URL, e.g., https://space.bilibili.com/<strong>614500</strong>',
+
         // Loading
         'loading.text': 'Loading data, please wait...',
         'loading.processing': 'Processing request...',
         'loading.generating': 'Generating subscription link...',
         'loading.fetching': 'Fetching anime list...',
-        
+
         // Result
         'result.success': 'Subscription Link Generated',
         'result.description': 'Copy the following link and add it to your calendar app:',
         'result.copy': 'Copy Link',
         'result.addToCalendar': 'Add to Calendar',
         'result.instructions': 'Instructions',
-        'result.apple': '<strong>Apple Calendar</strong>: Settings &gt; Passwords & Accounts &gt; Add Account &gt; Other &gt; Add Subscribed Calendar',
-        'result.google': '<strong>Google Calendar</strong>: Click "Add other calendars" on the left &gt; "From URL"',
-        'result.outlook': '<strong>Outlook</strong>: Click "Add calendar" in calendar view &gt; "From Internet"',
-        
+        'result.apple':
+          '<strong>Apple Calendar</strong>: Settings &gt; Passwords & Accounts &gt; Add Account &gt; Other &gt; Add Subscribed Calendar',
+        'result.google':
+          '<strong>Google Calendar</strong>: Click "Add other calendars" on the left &gt; "From URL"',
+        'result.outlook':
+          '<strong>Outlook</strong>: Click "Add calendar" in calendar view &gt; "From Internet"',
+
         // Features
         'features.title': 'Features',
-        'features.smart': 'Smart Status Recognition: Airing shows repeat weekly, finished shows show premiere only',
+        'features.smart':
+          'Smart Status Recognition: Airing shows repeat weekly, finished shows show premiere only',
         'features.compatible': 'Compatible with Apple Calendar, Google Calendar, Outlook, and more',
         'features.auto': 'Episode updates automatically added to your calendar',
         'features.permanent': 'Subscription link is permanent, no need to resubscribe',
         'features.privacy': 'Important: Your anime list must be set to public to be accessed',
-        
+
         // Footer
         'footer.copyright': 'All rights reserved.',
         'footer.help': 'Show Guide',
         'footer.history': 'View History',
-        
+
         // Toasts
         'toast.copied': 'Link copied to clipboard',
         'toast.copyFailed': 'Copy failed, please select and copy manually',
@@ -208,17 +216,19 @@ class I18n {
         'toast.animeCount': 'Successfully fetched {count} anime',
         'toast.fetchFailed': 'Failed to fetch anime list, please try again later',
         'toast.languageSwitched': 'Language switched to {lang}',
-        
+
         // Errors
         'error.invalidUid.title': 'Invalid UID Format',
         'error.invalidUid.message': 'Please enter a valid Bilibili user ID',
         'error.invalidUid.solution': 'UID should be numbers only, e.g., 672328094',
         'error.userNotFound.title': 'User Not Found',
         'error.userNotFound.message': 'Could not find this Bilibili account',
-        'error.userNotFound.solution': 'Please check if the UID is correct. You can find it in your Bilibili profile URL',
+        'error.userNotFound.solution':
+          'Please check if the UID is correct. You can find it in your Bilibili profile URL',
         'error.privacy.title': 'Privacy Protected',
-        'error.privacy.message': 'This user\'s anime list is set to private',
-        'error.privacy.solution': 'User needs to set their anime list to public in Bilibili settings',
+        'error.privacy.message': "This user's anime list is set to private",
+        'error.privacy.solution':
+          'User needs to set their anime list to public in Bilibili settings',
         'error.privacy.helpLink': 'View Help',
         'error.rateLimit.title': 'Rate Limit Exceeded',
         'error.rateLimit.message': 'Too many requests, please try again later',
@@ -231,17 +241,22 @@ class I18n {
         'error.server.solution': 'This might be a temporary issue, please try again later',
         'error.noAnime.title': 'No Anime Found',
         'error.noAnime.message': 'This user has no anime records',
-        'error.noAnime.solution': 'Please confirm the user has anime on Bilibili, or try another UID',
+        'error.noAnime.solution':
+          'Please confirm the user has anime on Bilibili, or try another UID',
         'error.precheckFailed': 'Precheck failed, please try again later',
         'error.previewModuleNotLoaded': 'Preview module not loaded',
         'error.close': 'Close',
-        
+
         // Error Patterns
-        'error.pattern.rateLimit': 'Your requests are too frequent. Consider reducing frequency or contacting admin for higher limits',
-        'error.pattern.privacy': 'Multiple users have private anime lists. This is Bilibili\'s default setting',
-        'error.pattern.network': 'Persistent network errors. Please check firewall or proxy settings',
-        'error.pattern.invalidUid': 'Make sure you\'re entering numeric UID, not username or other identifiers',
-        
+        'error.pattern.rateLimit':
+          'Your requests are too frequent. Consider reducing frequency or contacting admin for higher limits',
+        'error.pattern.privacy':
+          "Multiple users have private anime lists. This is Bilibili's default setting",
+        'error.pattern.network':
+          'Persistent network errors. Please check firewall or proxy settings',
+        'error.pattern.invalidUid':
+          "Make sure you're entering numeric UID, not username or other identifiers",
+
         // User Guide
         'guide.step': 'Step',
         'guide.inputUid.title': 'Enter UID',
@@ -249,13 +264,14 @@ class I18n {
         'guide.findUid.title': 'Find UID',
         'guide.findUid.content': 'You can find your UID in your Bilibili profile URL',
         'guide.generate.title': 'Generate Subscription',
-        'guide.generate.content': 'Click this button to generate your anime calendar subscription link',
+        'guide.generate.content':
+          'Click this button to generate your anime calendar subscription link',
         'guide.theme.title': 'Theme Switcher',
         'guide.theme.content': 'Click here to switch between light and dark themes',
         'guide.prev': 'Previous',
         'guide.next': 'Next',
         'guide.finish': 'Finish',
-        
+
         // Anime Preview
         'preview.title': 'Anime Preview',
         'preview.close': 'Close',
@@ -274,7 +290,7 @@ class I18n {
         'preview.updateTime': 'Update Time',
         'preview.unknown': 'Time Unknown',
         'preview.noSchedule': 'No Schedule',
-        
+
         // Cache & History
         'history.title': 'History',
         'history.close': 'Close',
@@ -285,10 +301,10 @@ class I18n {
         'history.confirmClear': 'Are you sure you want to clear all history?',
         'cache.cleared': 'Cache cleared',
         'cache.loading': 'Using cached data',
-        
+
         // Service Worker
         'sw.registered': 'Service Worker registration failed:',
-      }
+      },
     };
     this.currentLang = this.detectLanguage();
   }
@@ -299,14 +315,14 @@ class I18n {
     if (saved && this.translations[saved]) {
       return saved;
     }
-    
+
     const browserLang = navigator.language || navigator.userLanguage;
-    
+
     // Check if we have exact match
     if (this.translations[browserLang]) {
       return browserLang;
     }
-    
+
     // Check for language prefix match (e.g., 'en' from 'en-US')
     const langPrefix = browserLang.split('-')[0];
     for (const key in this.translations) {
@@ -314,7 +330,7 @@ class I18n {
         return key;
       }
     }
-    
+
     // Default to Chinese
     return 'zh-CN';
   }
@@ -323,12 +339,12 @@ class I18n {
   t(key, params = {}) {
     const lang = this.translations[this.currentLang];
     let text = lang[key] || key;
-    
+
     // Replace parameters
     for (const [param, value] of Object.entries(params)) {
       text = text.replace(`{${param}}`, value);
     }
-    
+
     return text;
   }
 
@@ -338,10 +354,10 @@ class I18n {
       this.currentLang = lang;
       localStorage.setItem('language', lang);
       this.updatePageContent();
-      
+
       // Trigger custom event for other modules
       window.dispatchEvent(new CustomEvent('languageChanged', { detail: { language: lang } }));
-      
+
       return true;
     }
     return false;
@@ -361,46 +377,46 @@ class I18n {
   updatePageContent() {
     // Update HTML lang attribute
     document.documentElement.lang = this.currentLang;
-    
+
     // Update document title
     const titleElement = document.querySelector('title[data-i18n]');
     if (titleElement) {
       const key = titleElement.getAttribute('data-i18n');
       document.title = this.t(key);
     }
-    
+
     // Update all elements with data-i18n attribute
-    document.querySelectorAll('[data-i18n]').forEach(element => {
+    document.querySelectorAll('[data-i18n]').forEach((element) => {
       const key = element.getAttribute('data-i18n');
       if (element.tagName !== 'TITLE') {
         element.textContent = this.t(key);
       }
     });
-    
+
     // Update all elements with data-i18n-html attribute (for HTML content)
-    document.querySelectorAll('[data-i18n-html]').forEach(element => {
+    document.querySelectorAll('[data-i18n-html]').forEach((element) => {
       const key = element.getAttribute('data-i18n-html');
       element.innerHTML = this.t(key);
     });
-    
+
     // Update all elements with data-i18n-placeholder attribute
-    document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+    document.querySelectorAll('[data-i18n-placeholder]').forEach((element) => {
       const key = element.getAttribute('data-i18n-placeholder');
       element.placeholder = this.t(key);
     });
-    
+
     // Update all elements with data-i18n-title attribute
-    document.querySelectorAll('[data-i18n-title]').forEach(element => {
+    document.querySelectorAll('[data-i18n-title]').forEach((element) => {
       const key = element.getAttribute('data-i18n-title');
       element.title = this.t(key);
     });
-    
+
     // Update all elements with data-i18n-aria-label attribute
-    document.querySelectorAll('[data-i18n-aria-label]').forEach(element => {
+    document.querySelectorAll('[data-i18n-aria-label]').forEach((element) => {
       const key = element.getAttribute('data-i18n-aria-label');
       element.setAttribute('aria-label', this.t(key));
     });
-    
+
     updateLanguageToggleLabel();
   }
 }

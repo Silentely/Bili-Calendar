@@ -6,7 +6,7 @@ const https = require('https');
 
 /**
  * 将字符串环境变量解析为整数，带上下界与默认值
- * 
+ *
  * @param {string} name - 环境变量名称
  * @param {number} def - 默认值
  * @param {number} min - 最小值
@@ -86,9 +86,10 @@ httpClient.interceptors.response.use(
 
     // 检查是否为可重试的错误
     const shouldRetry =
-      cfg?.method?.toLowerCase() === 'get' && (
-        // HTTP状态码错误
-        status === 429 || (status && status >= 500 && status < 600) ||
+      cfg?.method?.toLowerCase() === 'get' &&
+      // HTTP状态码错误
+      (status === 429 ||
+        (status && status >= 500 && status < 600) ||
         // 网络相关错误
         errorCode === 'ETIMEDOUT' ||
         errorCode === 'ECONNRESET' ||
@@ -98,8 +99,7 @@ httpClient.interceptors.response.use(
         errorMessage?.includes('timeout') ||
         errorMessage?.includes('socket hang up') ||
         errorMessage?.includes('connect ECONNREFUSED') ||
-        errorMessage?.includes('getaddrinfo ENOTFOUND')
-      );
+        errorMessage?.includes('getaddrinfo ENOTFOUND'));
 
     if (!shouldRetry) {
       return Promise.reject(error);
@@ -111,9 +111,11 @@ httpClient.interceptors.response.use(
     }
 
     const delay = RETRY_BASE_DELAY_MS * Math.pow(2, cfg.__retryCount - 1); // 500, 1000, 2000...
-    console.log(`🔄 重试第 ${cfg.__retryCount} 次请求 (${cfg.method?.toUpperCase()} ${cfg.url})，延迟 ${delay}ms`);
+    console.log(
+      `🔄 重试第 ${cfg.__retryCount} 次请求 (${cfg.method?.toUpperCase()} ${cfg.url})，延迟 ${delay}ms`
+    );
     console.log(`❌ 错误类型: ${error.code || 'HTTP_' + status}, 消息: ${error.message}`);
-    
+
     await sleep(delay);
 
     return httpClient(cfg);

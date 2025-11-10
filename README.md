@@ -91,10 +91,12 @@
 ### 🌍 多语言切换
 
 网站目前支持：
+
 - **中文**（默认）
 - **English**（英文界面）
 
 **切换方式：**
+
 1. 在页面右上角找到语言切换器
 2. 点击“中文”或“English”按钮
 3. 页面内容会自动更新为对应语言
@@ -631,3 +633,11 @@ API响应包含以下速率限制相关头部信息：
 <div align="center">
   <sub>Made with ❤️ by <a href="https://github.com/Silentely">Silentely</a></sub>
 </div>
+
+© 2025 CloudPaste. 保留所有权利。
+
+© 2025 CloudPaste. 保留所有权利。
+
+© 2025 CloudPaste. 保留所有权利。
+
+© 2025 CloudPaste. 保留所有权利。

@@ -17,21 +17,23 @@ const { generateICS, respondWithICS, respondWithEmptyCalendar } = require('./uti
 const app = express();
 
 // 启用响应压缩（gzip/brotli）以减少传输数据量
-app.use(compression({
-  // 只压缩大于1KB的响应
-  threshold: 1024,
-  // 压缩级别：6是平衡性能和压缩率的好选择
-  level: 6,
-  // 过滤函数：决定是否压缩特定响应
-  filter: (req, res) => {
-    // 不压缩已经指定no-transform的响应
-    if (req.headers['x-no-compression']) {
-      return false;
-    }
-    // 使用compression的默认过滤器
-    return compression.filter(req, res);
-  }
-}));
+app.use(
+  compression({
+    // 只压缩大于1KB的响应
+    threshold: 1024,
+    // 压缩级别：6是平衡性能和压缩率的好选择
+    level: 6,
+    // 过滤函数：决定是否压缩特定响应
+    filter: (req, res) => {
+      // 不压缩已经指定no-transform的响应
+      if (req.headers['x-no-compression']) {
+        return false;
+      }
+      // 使用compression的默认过滤器
+      return compression.filter(req, res);
+    },
+  })
+);
 
 const PORT = process.env.PORT || 3000;
 const CORS_HEADERS = {
@@ -143,10 +145,10 @@ app.get('/status', (req, res) => {
   const uptime = process.uptime();
   const uptimeFormatted = formatUptime(uptime);
   const mem = Math.round(process.memoryUsage().rss / 1024 / 1024);
-  
+
   // 智能判断环境类型
   const env = process.env.NODE_ENV || 'development';
-  
+
   const statusMessage = `✅ Bili-Calendar Service is running.
 
 服务状态:
@@ -155,7 +157,7 @@ app.get('/status', (req, res) => {
 - 环境: ${env}
 - 版本: ${VERSION}
 - 端口: ${PORT}`;
-  
+
   res.send(statusMessage);
 });
 
@@ -224,36 +226,35 @@ app.get('/api/bangumi/:uid', rateLimiterMiddleware, async (req, res, next) => {
 const handleCalendar = async (req, res, next) => {
   const raw = req.params.uid;
   const cleanUid = raw.replace('.ics', '');
-  
+
   try {
     console.log(`🔍 处理UID: ${cleanUid}`);
-    
+
     // 获取追番数据
     const data = await getBangumiData(cleanUid);
     if (!data) {
       return res.status(500).send('获取数据失败');
     }
-    
+
     // 检查API返回错误
     const errorResponse = processBangumiApiError(res, data, cleanUid);
     if (errorResponse) {
       return errorResponse;
     }
-    
+
     // 处理番剧列表
     const bangumiList = data.data?.list || [];
     console.log(`📋 获取到番剧列表数量: ${bangumiList.length}`);
-    
+
     if (bangumiList.length === 0) {
       console.warn(`⚠️ 未找到正在播出的番剧: ${cleanUid}`);
       return respondWithEmptyCalendar(res, cleanUid, '未找到正在播出的番剧');
     }
-    
+
     // 生成并返回ICS日历
     console.log(`📅 生成日历文件`);
     const icsContent = generateICS(bangumiList, cleanUid);
     return respondWithICS(res, icsContent, cleanUid);
-    
   } catch (err) {
     console.error(`❌ 处理请求时出错:`, err);
     next(err);

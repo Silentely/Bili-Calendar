@@ -1,4 +1,5 @@
 # 目录结构要点
+
 - 根目录：`server.js` 为 Express 入口；`server-es.js` 提供 ES 版本；`main.js` 可能为打包入口；部署配置包括 `docker-compose.yml`、`Dockerfile`、`netlify/`。
 - `public/`：静态前端资源（HTML/CSS/JS/PWA 相关）。
 - `utils/`：核心服务端逻辑（番剧数据拉取、ICS 生成、IP/限流工具等），同时保留 `.cjs` 与 `.js` 版本以兼容不同运行环境。

@@ -3,7 +3,7 @@ import { httpClient } from './http.js';
 import {
   BILIBILI_API_BASE_URL,
   BILIBILI_API_SUCCESS_CODE,
-  BILIBILI_PRIVACY_ERROR_CODE
+  BILIBILI_PRIVACY_ERROR_CODE,
 } from './constants.js';
 import { createRequestDedup } from './request-dedup.js';
 
@@ -12,17 +12,17 @@ const dedupManager = createRequestDedup();
 
 /**
  * 获取B站用户追番数据并过滤正在播出的番剧
- * 
+ *
  * 该函数从B站API获取用户的追番列表，并自动过滤出正在播出的番剧。
  * 过滤条件：is_finish === 0（未完结）且具有播出时间信息。
- * 
+ *
  * @param {string|number} uid - B站用户UID，必须是纯数字
  * @returns {Promise<Object|null>} 返回值说明：
  *   - 成功: { code: 0, data: { list: Array, ... }, filtered: true, filtered_count: number, original_count: number }
  *   - 业务错误: { code: number, message: string, error: string }
  *   - 网络/系统错误: null
  * @throws {Error} 当网络请求失败时不抛出异常，而是返回null或错误对象
- * 
+ *
  * @example
  * const data = await getBangumiData('123456');
  * if (data && data.code === 0) {

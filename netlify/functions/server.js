@@ -4,12 +4,28 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const { createRateLimiter } = require('../../utils/rate-limiter.cjs');
-const { extractClientIP, generateRequestId } = require('../../utils/ip.cjs');
+
+// 动态解析模块路径，兼容开发和构建后的环境
+function resolveModule(...segments) {
+  const candidates = [
+    path.join(__dirname, '..', '..', ...segments), // 开发环境: ../../utils/
+    path.join(__dirname, ...segments), // 构建后: ./utils/
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  // 回退到相对路径
+  return path.join(__dirname, '..', '..', ...segments);
+}
+
+const { createRateLimiter } = require(resolveModule('utils', 'rate-limiter.cjs'));
+const { extractClientIP, generateRequestId } = require(resolveModule('utils', 'ip.cjs'));
 
 // 复用时间与ICS工具
-const { generateICS, respondWithICS, respondWithEmptyCalendar } = require('../../utils/ics.cjs');
-const { getBangumiData } = require('../../utils/bangumi.cjs');
+const { generateICS, respondWithICS, respondWithEmptyCalendar } = require(resolveModule('utils', 'ics.cjs'));
+const { getBangumiData } = require(resolveModule('utils', 'bangumi.cjs'));
 
 // 导入主应用逻辑
 const app = express();
@@ -75,7 +91,7 @@ const PUBLIC_DIRS = [
   path.join(__dirname, 'public'),
   path.join(__dirname, '../public'),
   path.join(__dirname, '../../public'),
-  path.join(process.cwd(), 'public')
+  path.join(process.cwd(), 'public'),
 ];
 
 let staticDir = null;
@@ -158,11 +174,12 @@ app.get('/status', (req, res) => {
   const uptime = process.uptime();
   const uptimeFormatted = formatUptime(uptime);
   const mem = Math.round(process.memoryUsage().rss / 1024 / 1024);
-  
+
   // 智能判断环境类型
-  const env = process.env.NODE_ENV ||
-              (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME ? 'production' : 'development');
-  
+  const env =
+    process.env.NODE_ENV ||
+    (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME ? 'production' : 'development');
+
   // 使用换行符确保正确的格式显示
   const statusMessage = `✅ Bili-Calendar Service is running here
 
@@ -172,19 +189,17 @@ app.get('/status', (req, res) => {
 - 环境: ${env}
 - 版本: ${VERSION}
 - 端口: ${process.env.PORT || 'N/A (Serverless)'}`;
-  
+
   // 设置正确的响应头以确保换行符被正确处理
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  
+
   res.send(statusMessage);
 });
 
 // 根路径返回前端页面
 app.get('/', (req, res) => {
-  const indexCandidates = staticDir
-    ? [path.join(staticDir, 'index.html')]
-    : [];
+  const indexCandidates = staticDir ? [path.join(staticDir, 'index.html')] : [];
   indexCandidates.push(path.join(__dirname, '../../public', 'index.html'));
 
   const target = indexCandidates.find((candidate) => fs.existsSync(candidate));

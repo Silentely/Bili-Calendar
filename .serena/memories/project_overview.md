@@ -1,4 +1,5 @@
 # 项目概览
+
 - 项目名称：Bili-Calendar
 - 核心目标：将用户在 B 站追番列表自动转换为 ICS 日历订阅，支持 Apple/Google/Outlook 等主流日历应用，并提供多语言、PWA、历史记录等增强体验。
 - 部署形态：Node.js/Express 服务，可直接运行或部署到 Netlify Functions、Docker；前端为静态站点与 PWA。

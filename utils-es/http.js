@@ -18,9 +18,9 @@ function parseIntEnv(name, def, min, max) {
   return Math.min(Math.max(parsed, min), max);
 }
 
-const DEFAULT_TIMEOUT_MS = parseIntEnv('HTTP_TIMEOUT_MS', 10000, 1000, 60000);
-const RETRY_MAX = parseIntEnv('HTTP_RETRY_MAX', 2, 0, 5);
-const RETRY_BASE_DELAY_MS = parseIntEnv('HTTP_RETRY_BASE_DELAY_MS', 300, 50, 5000);
+const DEFAULT_TIMEOUT_MS = parseIntEnv('HTTP_TIMEOUT_MS', 25000, 5000, 60000);
+const RETRY_MAX = parseIntEnv('HTTP_RETRY_MAX', 3, 0, 5);
+const RETRY_BASE_DELAY_MS = parseIntEnv('HTTP_RETRY_BASE_DELAY_MS', 500, 100, 5000);
 
 const DEFAULT_HEADERS = {
   'User-Agent':
@@ -33,16 +33,16 @@ const DEFAULT_HEADERS = {
 // 复用 TCP 连接以降低建连开销
 const httpAgent = new http.Agent({
   keepAlive: true,
-  keepAliveMsecs: 30000,
-  maxSockets: 50,
-  maxFreeSockets: 10,
+  keepAliveMsecs: 15000,
+  maxSockets: 10,
+  maxFreeSockets: 5,
 });
 
 const httpsAgent = new https.Agent({
   keepAlive: true,
-  keepAliveMsecs: 30000,
-  maxSockets: 50,
-  maxFreeSockets: 10,
+  keepAliveMsecs: 15000,
+  maxSockets: 10,
+  maxFreeSockets: 5,
 });
 
 /**
@@ -62,21 +62,24 @@ function sleep(ms) {
 }
 
 /**
- * 响应拦截器：对 GET 请求的 429/5xx 进行有限次数的指数退避重试
+ * 响应拦截器：对 GET 请求的 429/5xx/网络错误 进行有限次数的指数退避重试
  */
 httpClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const cfg = error.config;
-    if (!cfg) {
-      return Promise.reject(error);
-    }
-
-    const status = error.response?.status;
+    const cfg = error.config || {};
     const method = cfg.method?.toLowerCase();
+    const status = error.response?.status;
+    const errorCode = error.code;
+    const errorMessage = error.message || '';
+
+    const networkErrorHints = ['timeout', 'socket hang up', 'connect ECONNREFUSED', 'getaddrinfo ENOTFOUND'];
     const shouldRetry =
       method === 'get' &&
-      (status === 429 || (status && status >= 500 && status < 600));
+      (status === 429 ||
+        (status && status >= 500 && status < 600) ||
+        ['ETIMEDOUT', 'ECONNRESET', 'ENOTFOUND', 'ECONNREFUSED', 'EHOSTUNREACH'].includes(errorCode) ||
+        networkErrorHints.some((hint) => errorMessage.includes(hint)));
 
     if (!shouldRetry) {
       return Promise.reject(error);
@@ -88,9 +91,8 @@ httpClient.interceptors.response.use(
     }
 
     const delay = RETRY_BASE_DELAY_MS * Math.pow(2, cfg.__retryCount - 1);
-    console.log(
-      `⚠️ HTTP请求失败，${delay}ms后重试 (${cfg.__retryCount}/${RETRY_MAX}): ${cfg.url}`
-    );
+    console.log(`🔄 重试第 ${cfg.__retryCount} 次请求 (${cfg.method?.toUpperCase()} ${cfg.url})，延迟 ${delay}ms`);
+
     await sleep(delay);
     return httpClient(cfg);
   }

@@ -60,12 +60,12 @@
 
 > Screenshots showing the new frontend interface, dark mode, anime preview and calendar subscription effects:
 
-|        Light Mode        |        Dark Mode        |      Anime Preview       |
-| :----------------------: | :---------------------: | :----------------------: |
+|          Light Mode          |          Dark Mode          |       Anime Preview       |
+| :--------------------------: | :-------------------------: | :-----------------------: |
 | ![](./assets/light-mode.jpg) | ![](./assets/dark-mode.jpg) | ![](./assets/preview.jpg) |
 
-|       Mobile View        |       Calendar View        |        Event Detail        |
-| :----------------------: | :------------------------: | :------------------------: |
+|          Mobile View          |          Calendar View          |          Event Detail          |
+| :---------------------------: | :-----------------------------: | :----------------------------: |
 | ![](./assets/mobile-view.jpg) | ![](./assets/calendar-view.jpg) | ![](./assets/event-detail.jpg) |
 
 ### Interface Features
@@ -91,10 +91,12 @@
 ### 🌍 Language Switching
 
 The website supports multiple languages:
+
 - **Chinese (中文)**: Default language
 - **English**: Full English interface
 
 **How to Switch Language:**
+
 1. Locate the language button in the top-right corner
 2. Click it to toggle between English and 中文
 3. Page content updates instantly to the selected language
@@ -125,15 +127,15 @@ Language preference is automatically saved and restored on next visit.
 
 ### ⌨️ Keyboard Shortcuts
 
-| Shortcut       | Function                  |
-| -------------- | ------------------------- |
-| `Enter`        | Generate/Execute action   |
-| `Ctrl/Cmd + K` | Focus search box          |
-| `Ctrl/Cmd + P` | Preview anime list        |
-| `Ctrl/Cmd + D` | Toggle dark mode          |
-| `Ctrl/Cmd + H` | Show/Hide history         |
-| `Ctrl/Cmd + C` | Copy subscription link    |
-| `Esc`          | Close popup/Clear input   |
+| Shortcut       | Function                |
+| -------------- | ----------------------- |
+| `Enter`        | Generate/Execute action |
+| `Ctrl/Cmd + K` | Focus search box        |
+| `Ctrl/Cmd + P` | Preview anime list      |
+| `Ctrl/Cmd + D` | Toggle dark mode        |
+| `Ctrl/Cmd + H` | Show/Hide history       |
+| `Ctrl/Cmd + C` | Copy subscription link  |
+| `Esc`          | Close popup/Clear input |
 
 ---
 
@@ -230,18 +232,18 @@ Returns: Service status information for health checks
 
 ### Environment Variables
 
-| Variable                   | Default       | Description                                                 |
-| -------------------------- | ------------- | ----------------------------------------------------------- |
-| `PORT`                     | 3000          | Service listening port                                      |
-| `BILIBILI_COOKIE`          | Empty         | Bilibili Cookie, improves API access success rate          |
-| `NODE_ENV`                 | development   | Runtime environment (development/production)                |
-| `TZ`                       | Asia/Shanghai | Timezone setting                                            |
-| `API_RATE_LIMIT`           | 3             | API call rate limit (times/window)                          |
-| `API_RATE_WINDOW`          | 3600000       | Rate limit time window (milliseconds, default 1 hour)      |
-| `ENABLE_RATE_LIMIT`        | true          | Enable rate limiting (true/false)                           |
-| `HTTP_TIMEOUT_MS`          | 10000         | HTTP request timeout (milliseconds)                         |
-| `HTTP_RETRY_MAX`           | 2             | HTTP request max retry count                                |
-| `HTTP_RETRY_BASE_DELAY_MS` | 300           | HTTP retry base delay (milliseconds)                        |
+| Variable                   | Default       | Description                                           |
+| -------------------------- | ------------- | ----------------------------------------------------- |
+| `PORT`                     | 3000          | Service listening port                                |
+| `BILIBILI_COOKIE`          | Empty         | Bilibili Cookie, improves API access success rate     |
+| `NODE_ENV`                 | development   | Runtime environment (development/production)          |
+| `TZ`                       | Asia/Shanghai | Timezone setting                                      |
+| `API_RATE_LIMIT`           | 3             | API call rate limit (times/window)                    |
+| `API_RATE_WINDOW`          | 3600000       | Rate limit time window (milliseconds, default 1 hour) |
+| `ENABLE_RATE_LIMIT`        | true          | Enable rate limiting (true/false)                     |
+| `HTTP_TIMEOUT_MS`          | 10000         | HTTP request timeout (milliseconds)                   |
+| `HTTP_RETRY_MAX`           | 2             | HTTP request max retry count                          |
+| `HTTP_RETRY_BASE_DELAY_MS` | 300           | HTTP retry base delay (milliseconds)                  |
 
 ### Notes
 
@@ -319,14 +321,14 @@ npm run format
 
 ### Frontend Modules
 
-| Module         | Functionality              | Files                           |
-| -------------- | -------------------------- | ------------------------------- |
-| Main App       | Core business logic, theme | `app.js`                        |
-| I18n           | Multi-language support     | `i18n.js`                       |
-| Error Handler  | Smart error hints          | `error-handler.js`              |
-| Anime Preview  | Anime list display         | `anime-preview.js`              |
-| Cache Manager  | Data cache and history     | `cache-manager.js`              |
-| PWA            | Offline support            | `sw.js`, `manifest.webmanifest` |
+| Module        | Functionality              | Files                           |
+| ------------- | -------------------------- | ------------------------------- |
+| Main App      | Core business logic, theme | `app.js`                        |
+| I18n          | Multi-language support     | `i18n.js`                       |
+| Error Handler | Smart error hints          | `error-handler.js`              |
+| Anime Preview | Anime list display         | `anime-preview.js`              |
+| Cache Manager | Data cache and history     | `cache-manager.js`              |
+| PWA           | Offline support            | `sw.js`, `manifest.webmanifest` |
 
 ---
 
@@ -359,6 +361,7 @@ To add a new language:
 ### Translation Keys
 
 All text strings use translation keys following the format `section.key`. For example:
+
 - `app.title`: Application title
 - `input.placeholder`: Input field placeholder
 - `error.invalidUid.title`: Error title for invalid UID
@@ -366,6 +369,7 @@ All text strings use translation keys following the format `section.key`. For ex
 ### Automatic Language Detection
 
 The system automatically:
+
 - Detects browser language on first visit
 - Falls back to Chinese if detected language is not supported
 - Saves user's language preference to localStorage
