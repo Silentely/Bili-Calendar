@@ -5,18 +5,17 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 
-// 动态解析模块路径，兼容开发和构建后的环境
+// 动态解析模块路径，兼容开发和 Netlify 部署环境
 function resolveModule(...segments) {
   const candidates = [
+    path.join(__dirname, ...segments), // Netlify 部署: ./utils/
     path.join(__dirname, '..', '..', ...segments), // 开发环境: ../../utils/
-    path.join(__dirname, ...segments), // 构建后: ./utils/
   ];
   for (const candidate of candidates) {
     if (fs.existsSync(candidate)) {
       return candidate;
     }
   }
-  // 回退到相对路径
   return path.join(__dirname, '..', '..', ...segments);
 }
 

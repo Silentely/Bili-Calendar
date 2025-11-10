@@ -633,11 +633,3 @@ API响应包含以下速率限制相关头部信息：
 <div align="center">
   <sub>Made with ❤️ by <a href="https://github.com/Silentely">Silentely</a></sub>
 </div>
-
-© 2025 CloudPaste. 保留所有权利。
-
-© 2025 CloudPaste. 保留所有权利。
-
-© 2025 CloudPaste. 保留所有权利。
-
-© 2025 CloudPaste. 保留所有权利。
