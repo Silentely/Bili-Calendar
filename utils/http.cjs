@@ -33,20 +33,14 @@ const DEFAULT_HEADERS = {
   Cookie: process.env.BILIBILI_COOKIE || '',
 };
 
-// 创建连接池以提高性能，适配Serverless环境
-// Serverless环境中连接生命周期较短，需要优化配置
+// Serverless 环境禁用连接池，避免 EPIPE 错误
+// 每次请求使用新连接，虽然性能略低但更可靠
 const httpAgent = new http.Agent({
-  keepAlive: true,
-  keepAliveMsecs: 15000, // 减少到15秒，适配Serverless短生命周期
-  maxSockets: 10, // 减少到10个，Serverless环境中不需要太多并发连接
-  maxFreeSockets: 5, // 减少空闲socket数量
+  keepAlive: false,
 });
 
 const httpsAgent = new https.Agent({
-  keepAlive: true,
-  keepAliveMsecs: 15000,
-  maxSockets: 10,
-  maxFreeSockets: 5,
+  keepAlive: false,
 });
 
 const httpClient = axios.create({

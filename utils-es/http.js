@@ -30,19 +30,14 @@ const DEFAULT_HEADERS = {
   Cookie: process.env.BILIBILI_COOKIE || '',
 };
 
-// 复用 TCP 连接以降低建连开销
+// Serverless 环境禁用连接池，避免 EPIPE 错误
+// 每次请求使用新连接，虽然性能略低但更可靠
 const httpAgent = new http.Agent({
-  keepAlive: true,
-  keepAliveMsecs: 15000,
-  maxSockets: 10,
-  maxFreeSockets: 5,
+  keepAlive: false,
 });
 
 const httpsAgent = new https.Agent({
-  keepAlive: true,
-  keepAliveMsecs: 15000,
-  maxSockets: 10,
-  maxFreeSockets: 5,
+  keepAlive: false,
 });
 
 /**
