@@ -5,26 +5,10 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 
-// 动态解析模块路径，兼容开发和 Netlify 部署环境
-function resolveModule(...segments) {
-  const candidates = [
-    path.join(__dirname, ...segments), // Netlify 部署: ./utils/
-    path.join(__dirname, '..', '..', ...segments), // 开发环境: ../../utils/
-  ];
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) {
-      return candidate;
-    }
-  }
-  return path.join(__dirname, '..', '..', ...segments);
-}
-
-const { createRateLimiter } = require(resolveModule('utils', 'rate-limiter.cjs'));
-const { extractClientIP, generateRequestId } = require(resolveModule('utils', 'ip.cjs'));
-
-// 复用时间与ICS工具
-const { generateICS, respondWithICS, respondWithEmptyCalendar } = require(resolveModule('utils', 'ics.cjs'));
-const { getBangumiData } = require(resolveModule('utils', 'bangumi.cjs'));
+const { createRateLimiter } = require('./utils/rate-limiter.cjs');
+const { extractClientIP, generateRequestId } = require('./utils/ip.cjs');
+const { generateICS, respondWithICS, respondWithEmptyCalendar } = require('./utils/ics.cjs');
+const { getBangumiData } = require('./utils/bangumi.cjs');
 
 // 导入主应用逻辑
 const app = express();
