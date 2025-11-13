@@ -30,22 +30,14 @@
     <script src="./error-handler.js"></script>
     <script src="./anime-preview.js"></script>
     <script src="./cache-manager.js"></script>
+    <script src="./pwa-init.js"></script>
     <script src="./app.js"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch((err) => {
-            console.warn(i18n.t('sw.registered'), err);
-          });
-        });
-      }
-    </script>
   </head>
   <body>
     <div class="floating-controls">
       <button
         class="theme-switcher"
-        onclick="toggleTheme()"
+        id="themeSwitcher"
         data-i18n-aria-label="theme.switch"
         aria-label="切换主题"
         data-i18n-title="theme.switch"
@@ -65,7 +57,7 @@
           <button
             type="button"
             class="language-btn"
-            onclick="cycleLanguage()"
+            id="languageBtn"
             data-i18n-aria-label="language.switcher"
             aria-label="选择语言"
             data-i18n-title="language.switcher"
@@ -101,11 +93,10 @@
             class="form-control"
             data-i18n-placeholder="input.placeholder"
             placeholder="例如: 614500"
-            onkeydown="if(event.key==='Enter') handleSubscribe()"
           />
           <button
             class="btn-primary"
-            onclick="handleSubscribe()"
+            id="generateBtn"
             data-i18n-aria-label="input.generate"
             aria-label="生成订阅"
             data-i18n-title="input.generate"
@@ -116,7 +107,7 @@
           </button>
           <button
             class="btn-outline"
-            onclick="handlePreview()"
+            id="previewBtn"
             data-i18n-aria-label="input.preview"
             aria-label="预览番剧"
             data-i18n-title="input.preview"
@@ -149,7 +140,7 @@
         <div class="btn-group">
           <button
             class="btn btn-outline-primary"
-            onclick="copyToClipboard()"
+            id="copyBtn"
             data-i18n-aria-label="result.copy"
             aria-label="复制订阅链接"
             data-i18n-title="result.copy"
@@ -223,7 +214,7 @@
 
     <button
       class="help-button"
-      onclick="userGuide.startTour()"
+      id="helpBtn"
       data-i18n-aria-label="footer.help"
       aria-label="显示使用指南"
       data-i18n-title="footer.help"
@@ -234,7 +225,7 @@
 
     <button
       class="history-button"
-      onclick="cacheManager.showHistoryPanel()"
+      id="historyBtn"
       data-i18n-aria-label="footer.history"
       aria-label="查看历史记录"
       data-i18n-title="footer.history"

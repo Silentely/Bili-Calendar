@@ -68,7 +68,7 @@ app.use((req, res, next) => {
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; form-action 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline'; connect-src 'self' https://api.bilibili.com; font-src 'self' data: https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; manifest-src 'self'"
+    "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; form-action 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'self'; connect-src 'self' https://api.bilibili.com; font-src 'self' data: https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; manifest-src 'self'"
   );
   // CORS
   Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
@@ -102,13 +102,19 @@ app.use((req, res, next) => {
 // 读取版本（增强版）
 let VERSION = 'dev';
 try {
-  const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf-8'));
-  if (pkg.version && pkg.version.trim() && pkg.version !== 'dev') {
-    VERSION = pkg.version;
-  } else if (pkg.version) {
-    VERSION = pkg.version;
+  const pkgPath = path.join(__dirname, 'package.json');
+  const pkgContent = fs.readFileSync(pkgPath, 'utf-8');
+  const pkg = JSON.parse(pkgContent);
+  
+  if (pkg.version && typeof pkg.version === 'string') {
+    const trimmedVersion = pkg.version.trim();
+    if (trimmedVersion && trimmedVersion !== 'dev') {
+      VERSION = trimmedVersion;
+    }
   }
-} catch {}
+} catch (err) {
+  console.warn('⚠️ 无法读取版本信息:', err.message);
+}
 
 // 限流中间件
 const rateLimiterMiddleware = (req, res, next) => {

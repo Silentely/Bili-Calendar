@@ -451,10 +451,60 @@ async function handleSubscribe() {
   }
 }
 
-// 页面加载动画
+// 页面加载动画和事件绑定
 document.addEventListener('DOMContentLoaded', function () {
   // 初始化主题
   initTheme();
+
+  // 绑定主题切换按钮
+  const themeSwitcher = document.getElementById('themeSwitcher');
+  if (themeSwitcher) {
+    themeSwitcher.addEventListener('click', toggleTheme);
+  }
+
+  // 绑定语言切换按钮
+  const languageBtn = document.getElementById('languageBtn');
+  if (languageBtn) {
+    languageBtn.addEventListener('click', cycleLanguage);
+  }
+
+  // 绑定生成订阅按钮
+  const generateBtn = document.getElementById('generateBtn');
+  if (generateBtn) {
+    generateBtn.addEventListener('click', handleSubscribe);
+  }
+
+  // 绑定预览按钮
+  const previewBtn = document.getElementById('previewBtn');
+  if (previewBtn) {
+    previewBtn.addEventListener('click', handlePreview);
+  }
+
+  // 绑定复制按钮
+  const copyBtn = document.getElementById('copyBtn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', copyToClipboard);
+  }
+
+  // 绑定帮助按钮
+  const helpBtn = document.getElementById('helpBtn');
+  if (helpBtn) {
+    helpBtn.addEventListener('click', () => {
+      if (window.userGuide && typeof window.userGuide.startTour === 'function') {
+        window.userGuide.startTour();
+      }
+    });
+  }
+
+  // 绑定历史记录按钮
+  const historyBtn = document.getElementById('historyBtn');
+  if (historyBtn) {
+    historyBtn.addEventListener('click', () => {
+      if (window.cacheManager && typeof window.cacheManager.showHistoryPanel === 'function') {
+        window.cacheManager.showHistoryPanel();
+      }
+    });
+  }
 
   // 初始化缓存管理器的自动建议
   if (window.cacheManager) {
@@ -522,7 +572,10 @@ document.addEventListener('DOMContentLoaded', function () {
   } catch {}
 });
 
-// 供 HTML 与外部脚本调用，避免构建时被当作未使用
+// 导出函数供外部脚本调用
+window.toggleTheme = toggleTheme;
+window.cycleLanguage = cycleLanguage;
+window.handleSubscribe = handleSubscribe;
+window.handlePreview = handlePreview;
 window.copyToClipboard = copyToClipboard;
 window.precheckRate = precheckRate;
-window.cycleLanguage = cycleLanguage;
