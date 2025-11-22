@@ -32,3 +32,8 @@ netlify/functions-build/
 
 # Docker
 docker-compose.override.yml
+
+# BMad Method
+.bmad-core/
+.claude/commands/BMad/
+docs/
