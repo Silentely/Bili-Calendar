@@ -21,7 +21,7 @@ logs/
 # OS generated files
 .DS_Store
 Thumbs.db
-./serena
+.serena
 
 # Build outputs
 dist/
