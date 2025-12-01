@@ -33,15 +33,31 @@ async function updateReadmeYear() {
   // 统一换行，便于处理
   const EOL = content.includes('\r\n') ? '\r\n' : '\n';
 
-  const pattern = /©\s*\d{4}\s*CloudPaste\. 保留所有权利。/g;
-  const replacement = `© ${currentYear} CloudPaste. 保留所有权利。`;
+  const pattern = /©\s*\d{4}\s*Bili-Calendar[.\u3002]\s*保留所有权利[.\u3002]?/g;
+  const replacement = `© ${currentYear} Bili-Calendar. 保留所有权利。`;
 
-  let updated = content.replace(pattern, replacement);
+  // 查找所有匹配项
+  const matches = [...content.matchAll(pattern)];
 
-  // 若未找到既有版权行，则在文末追加
-  if (updated === content) {
+  let updated;
+  if (matches.length === 0) {
+    // 没有版权行，在文末追加
     const trimmed = content.trimEnd();
     updated = `${trimmed}${EOL}${EOL}${replacement}${EOL}`;
+  } else {
+    // 有版权行，只保留第一个并更新年份，删除其他的
+    let firstReplaced = false;
+    updated = content.replace(pattern, () => {
+      if (!firstReplaced) {
+        firstReplaced = true;
+        return replacement;
+      }
+      // 删除后续的匹配（替换为空并移除多余换行）
+      return '';
+    });
+
+    // 清理可能产生的多余空行（连续 3+ 个换行符压缩为 2 个）
+    updated = updated.replace(/(\r?\n){3,}/g, '$1$1');
   }
 
   const changed = await writeFileIfChanged(readmePath, content, updated);
