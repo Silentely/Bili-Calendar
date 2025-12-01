@@ -11,7 +11,7 @@ services:
       - NODE_ENV=production # 设置为生产环境
       - TZ=Asia/Shanghai # 设置时区为上海
     restart: unless-stopped # 除非手动停止，否则自动重启
-    image: cosrbackup/bili-calendar:latest
+    image: ghcr.io/silentely/bili-calendar:latest
     # 如果需要使用本地构建，可以取消下面的注释
     # build:
     #   context: .

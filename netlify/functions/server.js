@@ -336,7 +336,7 @@ app.use((req, res) => {
             <h1>页面未找到</h1>
             <p>抱歉，您访问的页面不存在。</p>
             <p><a href="/">返回首页</a></p>
-            <footer class="footer">© ${new Date().getFullYear()} CloudPaste. 保留所有权利。</footer>
+            <footer class="footer">© ${new Date().getFullYear()} Bili-Calendar. 保留所有权利。</footer>
           </div>
         </body>
       </html>
