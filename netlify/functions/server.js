@@ -14,6 +14,7 @@ const { generateICS, respondWithICS, respondWithEmptyCalendar } = requireFromRoo
 const { generateMergedICS, fetchExternalICS } = requireFromRoot('./utils/ics-merge.cjs');
 const { getBangumiData } = requireFromRoot('./utils/bangumi.cjs');
 const metrics = requireFromRoot('./utils/metrics.cjs');
+const PUSH_ADMIN_TOKEN = process.env.PUSH_ADMIN_TOKEN || '';
 let webpush = null;
 const pushSubscriptions = new Set();
 
@@ -23,6 +24,15 @@ app.use(express.json({ limit: '1mb' }));
 
 // 创建速率限制器实例
 const rateLimiter = createRateLimiter();
+const requirePushAuth = (req, res) => {
+  if (!PUSH_ADMIN_TOKEN) return true;
+  const header = req.headers['authorization'] || '';
+  const bearer = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const token = bearer || req.query.token;
+  if (token === PUSH_ADMIN_TOKEN) return true;
+  res.status(401).json({ error: 'Unauthorized', message: '缺少推送管理令牌' });
+  return false;
+};
 
 // 注意：在Netlify函数环境中，因为函数是无状态的，内存存储在每次调用之间不会保留
 // 在生产环境中应该考虑使用Redis等外部存储来实现持久化的限流
@@ -440,6 +450,7 @@ app.post('/push/test', async (req, res) => {
   if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
     return res.status(501).json({ error: 'push not configured' });
   }
+  if (!requirePushAuth(req, res)) return;
   try {
     if (!webpush) {
       webpush = requireFromRoot('web-push');
