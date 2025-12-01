@@ -6,23 +6,23 @@
 # API 请求交给函数处理
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/server/api/:splat"
+  to = "/.netlify/functions/server"
   status = 200
 
 # 健康检查路由
 [[redirects]]
   from = "/status"
-  to = "/.netlify/functions/server/status"
+  to = "/.netlify/functions/server"
   status = 200
 
 # 日历订阅 (.ics) 重写到函数
 [[redirects]]
   from = "/:uid.ics"
-  to = "/.netlify/functions/server/:uid.ics"
+  to = "/.netlify/functions/server"
   status = 200
 
 # 纯 UID 访问（日历预览）交给函数，若存在同名静态文件则优先使用静态内容
 [[redirects]]
   from = "/:uid"
-  to = "/.netlify/functions/server/:uid"
+  to = "/.netlify/functions/server"
   status = 200
