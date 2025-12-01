@@ -1,0 +1,15 @@
+# 依赖目录
+node_modules/
+
+# 构建产物
+dist/
+.vite/
+netlify/functions-build/
+
+# 日志文件
+*.log
+logs/
+
+# 临时文件
+*.tmp
+.DS_Store

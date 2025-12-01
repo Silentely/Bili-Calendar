@@ -3,7 +3,7 @@ import globals from 'globals';
 export default [
   {
     // Ignore built artifacts and vendor dirs
-    ignores: ['node_modules/', 'netlify/functions-build/'],
+    ignores: ['node_modules/', 'netlify/functions-build/', 'dist/', '.vite/'],
   },
   {
     files: ['**/*.{js,cjs,mjs}'],
