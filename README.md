@@ -171,10 +171,13 @@ cd Bili-Calendar
 # 安装依赖
 npm install
 
+# 构建前端资源
+npm run build
+
 # 启动服务
 npm start
 
-# 或者在开发模式下运行
+# 或者在开发模式下运行（自动构建和热重载）
 npm run dev
 ```
 
@@ -207,6 +210,8 @@ GET /api/bangumi/:uid
 返回：B站追番列表的 JSON 数据
 
 > **速率限制**：为防止滥用，API直接访问限制为每个IP每小时3次。项目内部调用不受此限制。API响应头中包含 `X-RateLimit-*` 系列字段，用于了解当前使用情况。
+>
+> **注意**：Netlify Serverless 部署环境下，由于函数实例无状态特性，速率限制可能在冷启动或横向扩容时重置。建议自行部署或使用 Docker 版本以获得更可靠的速率限制。
 
 ### 前端页面
 
@@ -439,18 +444,28 @@ npm run format
 1. 在 Netlify 导入 GitHub 仓库
 2. 配置以下构建设置:
    - 构建命令: `npm run build`
-   - 发布目录: `public`
+   - 发布目录: `dist`
    - 环境变量: 根据需要设置 `BILIBILI_COOKIE` 等
 3. Netlify.toml 文件已包含必要配置:
 
    ```toml
    [build]
      command = "npm run build"
-     publish = "public"
+     publish = "dist"
      functions = "netlify/functions-build"
 
    [[redirects]]
-     from = "/*"
+     from = "/api/*"
+     to = "/.netlify/functions/server"
+     status = 200
+
+   [[redirects]]
+     from = "/status"
+     to = "/.netlify/functions/server"
+     status = 200
+
+   [[redirects]]
+     from = "/:uid.ics"
      to = "/.netlify/functions/server"
      status = 200
    ```
