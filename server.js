@@ -79,7 +79,7 @@ app.use((req, res, next) => {
 // 提供静态文件服务
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static(path.join(__dirname, 'dist'), { dotfiles: 'allow' }));
 
 // 请求ID & 日志中间件
 app.use((req, res, next) => {

@@ -127,15 +127,13 @@
 
 ### ⌨️ 键盘快捷键
 
-| 快捷键         | 功能              |
-| -------------- | ----------------- |
-| `Enter`        | 生成订阅/执行操作 |
-| `Ctrl/Cmd + K` | 聚焦搜索框        |
-| `Ctrl/Cmd + P` | 预览番剧列表      |
-| `Ctrl/Cmd + D` | 切换暗黑模式      |
-| `Ctrl/Cmd + H` | 显示/隐藏历史记录 |
-| `Ctrl/Cmd + C` | 复制订阅链接      |
-| `Esc`          | 关闭弹窗/清除输入 |
+| 快捷键    | 功能              |
+| --------- | ----------------- |
+| `Enter`   | 生成订阅/执行操作 |
+| `Alt + T` | 切换暗黑模式      |
+| `Alt + G` | 生成订阅链接      |
+| `Alt + P` | 预览番剧列表      |
+| `Esc`     | 关闭弹窗/清除输入 |
 
 ---
 
@@ -273,42 +271,58 @@ GET /status
 ```
 Bili-Calendar/
 ├── server.js              # 主服务（容器/本地）
+├── vite.config.js         # Vite 构建配置
+├── index.html             # 前端入口 HTML
 ├── netlify.toml           # Netlify配置
 ├── .github/               # GitHub配置目录
 │   └── workflows/         # GitHub Actions工作流配置
 │       └── docker-build.yml # Docker镜像自动构建配置
+├── src/                   # 前端源代码目录
+│   ├── main.js            # 前端入口文件
+│   ├── components/        # 组件目录
+│   │   └── AnimePreview.js # 番剧预览组件
+│   ├── services/          # 服务模块
+│   │   ├── i18n.js        # 国际化支持
+│   │   ├── cacheManager.js # 缓存管理
+│   │   ├── errorHandler.js # 错误处理
+│   │   └── pwa.js         # PWA 初始化
+│   ├── styles/            # 样式目录 (SCSS)
+│   │   ├── app.scss       # 主样式入口
+│   │   ├── _modules.scss  # 模块化样式
+│   │   ├── _preview.scss  # 预览样式
+│   │   ├── _loading.scss  # 加载动画
+│   │   ├── _error.scss    # 错误样式
+│   │   ├── _dark.scss     # 暗黑模式
+│   │   └── _history.scss  # 历史记录样式
+│   └── utils/             # 前端工具函数
+├── dist/                  # 构建产物目录（Vite 打包输出，不提交到 Git）
+│   ├── index.html         # 处理后的 HTML
+│   ├── assets/            # 打包后的 JS/CSS
+│   └── ...                # 其他静态资源
+├── public/                # 静态资源目录（直接复制到 dist/）
+│   ├── favicon.ico        # 网站图标
+│   ├── manifest.webmanifest # PWA 清单
+│   ├── sw.js              # Service Worker
+│   └── icons/             # 应用图标
 ├── netlify/
 │   └── functions/
 │       └── server.js      # Netlify Functions 入口（CJS）
-├── public/                # 静态文件目录
-│   ├── index.html         # 前端页面
-│   ├── i18n.js            # 国际化模块
-│   ├── styles.css         # 基础样式
-│   ├── styles-dark.css    # 暗黑模式样式
-│   ├── loading-animations.css # 加载动画样式
-│   ├── error-guide.css    # 错误引导样式
-│   ├── anime-preview.css  # 番剧预览样式
-│   ├── cache-history.css  # 缓存历史样式
-│   ├── mobile-enhancements.css # 移动端优化样式
-│   ├── app.js             # 主应用逻辑
-│   ├── error-handler.js   # 错误处理模块
-│   ├── anime-preview.js   # 番剧预览模块
-│   ├── cache-manager.js   # 缓存管理模块
-│   ├── sw.js              # Service Worker
-│   └── manifest.webmanifest # PWA清单文件
-├── utils/                 # 工具函数目录
-│   ├── time.cjs           # 时间处理（后端/函数使用）
-│   ├── ics.cjs            # ICS生成（后端/函数使用）
-│   ├── http.cjs           # HTTP客户端（后端/函数使用）
-│   ├── bangumi.cjs        # B站数据抓取（后端/函数使用）
-│   └── bangumi.js         # 误用保护（被误加载将抛出说明性错误）
-├── assets/                # 资源文件目录
+├── utils/                 # 后端工具函数目录（CommonJS）
+│   ├── time.cjs           # 时间处理
+│   ├── ics.cjs            # ICS生成
+│   ├── http.cjs           # HTTP客户端
+│   ├── bangumi.cjs        # B站数据抓取
+│   ├── rate-limiter.cjs   # 请求速率限制
+│   └── request-dedup.cjs  # 请求去重
+├── utils-es/              # 后端工具函数目录（ES Module，Netlify 专用）
+├── scripts/               # 构建脚本
+│   ├── build-netlify.mjs
+│   └── update-readme-year.js
+├── assets/                # 文档资源目录
 │   └── icons/             # PWA图标
 ├── Dockerfile             # Docker 镜像配置
 ├── docker-compose.yml     # Docker Compose 配置
-├── package.json           # Node.js 项目配置
-├── IMPROVEMENTS.md        # 功能改进文档
-└── README.md              # 项目说明文档
+└── package.json           # Node.js 项目配置
 ```
 
 ### 本地开发
@@ -335,12 +349,12 @@ npm run format
 
 | 模块     | 功能                   | 文件                            |
 | -------- | ---------------------- | ------------------------------- |
-| 主应用   | 核心业务逻辑、主题切换 | `app.js`                        |
-| 错误处理 | 智能错误提示和解决方案 | `error-handler.js`              |
-| 番剧预览 | 追番列表展示和筛选     | `anime-preview.js`              |
-| 缓存管理 | 数据缓存和历史记录     | `cache-manager.js`              |
-| PWA      | 离线支持和应用安装     | `sw.js`, `manifest.webmanifest` |
-| 国际化   | 多语言支持             | `i18n.js`                       |
+| 主应用   | 核心业务逻辑、主题切换 | `src/main.js`                   |
+| 错误处理 | 智能错误提示和解决方案 | `src/services/errorHandler.js`  |
+| 番剧预览 | 追番列表展示和筛选     | `src/components/AnimePreview.js`|
+| 缓存管理 | 数据缓存和历史记录     | `src/services/cacheManager.js`  |
+| PWA      | 离线支持和应用安装     | `public/sw.js`, `public/manifest.webmanifest` |
+| 国际化   | 多语言支持             | `src/services/i18n.js`          |
 
 ---
 
@@ -354,13 +368,13 @@ npm run format
 ### 使用方式
 
 1. 页面右上角点击语言切换器
-2. 在“中文 / English”之间切换
+2. 在"中文 / English"之间切换
 3. 页面会即刻切换到对应语言
 4. 系统会自动保存当前语言偏好
 
 ### 新增语言
 
-1. 打开 `/public/i18n.js`
+1. 打开 `src/services/i18n.js`
 2. 在 `translations` 对象中新增语言配置，例如：
 
    ```javascript
@@ -371,7 +385,7 @@ npm run format
    }
    ```
 
-3. 在 `/public/index.html` 的语言切换器中添加按钮：
+3. 在 `index.html` 的语言切换器中添加按钮：
 
    ```html
    <button type="button" class="language-option" data-lang="ja-JP">日本語</button>
