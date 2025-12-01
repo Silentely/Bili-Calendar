@@ -43,13 +43,18 @@ export class AnimePreview {
     return animeList.map((anime) => {
       // 处理评分数据
       let rating = '暂无评分';
+      let ratingValue = null;
       if (anime.rating) {
         if (typeof anime.rating === 'object') {
           rating = anime.rating.score || anime.rating.value || '暂无评分';
+          ratingValue = parseFloat(anime.rating.score || anime.rating.value);
         } else {
           rating = anime.rating;
+          ratingValue = parseFloat(anime.rating);
         }
       }
+
+      if (Number.isNaN(ratingValue)) ratingValue = null;
 
       // 处理图片防盗链 - 使用B站的referrer策略
       let coverUrl = anime.cover || '';
@@ -74,10 +79,12 @@ export class AnimePreview {
         status: this.getAnimeStatus(anime),
         updateTime: this.formatUpdateTime(anime),
         rating: rating,
+        ratingValue,
         url: `https://www.bilibili.com/bangumi/media/md${anime.media_id}`,
         isFinished: anime.is_finish === 1,
         updateDay: this.getUpdateDay(anime),
         nextEpisodeTime: this.getNextEpisodeTime(anime),
+        rawPubTime: anime.new_ep?.pub_time ? new Date(anime.new_ep.pub_time) : null,
       };
     });
   }
@@ -212,9 +219,26 @@ export class AnimePreview {
           <div class="anime-stats">
             ${this.renderStats()}
           </div>
-          <button class="btn-confirm" onclick="animePreview.confirmAndGenerate()" aria-label="确认并生成订阅" title="确认并生成订阅">
-            <i class="fas fa-check"></i> 确认并生成订阅
-          </button>
+          <div class="preview-actions">
+            <label class="lead-select">
+              <span>提前</span>
+              <select id="reminderLead">
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="15">15</option>
+              </select>
+              <span>分钟提醒</span>
+            </label>
+            <button class="btn-ghost" id="enableReminder" aria-label="开启更新提醒" title="开启更新提醒">
+              <i class="fas fa-bell"></i> 开启更新提醒
+            </button>
+            <button class="btn-ghost" id="enablePush" aria-label="启用推送" title="启用推送（实验）">
+              <i class="fas fa-satellite-dish"></i> 启用推送
+            </button>
+            <button class="btn-confirm" onclick="animePreview.confirmAndGenerate()" aria-label="确认并生成订阅" title="确认并生成订阅">
+              <i class="fas fa-check"></i> 确认并生成订阅
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -332,24 +356,96 @@ export class AnimePreview {
 
   // 渲染统计信息
   renderStats() {
-    const watching = this.animeData.filter((a) => a.status.type === 'watching').length;
-    const finished = this.animeData.filter((a) => a.status.type === 'finished').length;
-    const notStarted = this.animeData.filter((a) => a.status.type === 'not-started').length;
+    const stats = this.computeStats();
+    const weekBars = Object.entries(stats.weekMap)
+      .map(([day, count]) => {
+        const width = stats.weekMax === 0 ? 0 : Math.round((count / stats.weekMax) * 100);
+        return `
+          <div class="week-row">
+            <span>${day}</span>
+            <div class="week-bar">
+              <div class="week-bar-fill" style="width:${width}%"></div>
+            </div>
+            <span class="week-count">${count}</span>
+          </div>
+        `;
+      })
+      .join('');
 
     return `
-      <span class="stat-item">
-        <i class="fas fa-play-circle" style="color: #00a1d6"></i>
-        追番中 ${watching}
-      </span>
-      <span class="stat-item">
-        <i class="fas fa-check-circle" style="color: #4caf50"></i>
-        已完结 ${finished}
-      </span>
-      <span class="stat-item">
-        <i class="fas fa-clock" style="color: #ff9800"></i>
-        未开始 ${notStarted}
-      </span>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-title">状态概览</div>
+          <div class="stat-chips">
+            <span class="stat-chip stat-chip-primary">
+              <i class="fas fa-play-circle"></i> 追番中 ${stats.status.watching}
+            </span>
+            <span class="stat-chip stat-chip-success">
+              <i class="fas fa-check-circle"></i> 已完结 ${stats.status.finished}
+            </span>
+            <span class="stat-chip stat-chip-warn">
+              <i class="fas fa-clock"></i> 未开始 ${stats.status.notStarted}
+            </span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-title">更新时间</div>
+          <div class="stat-highlight">${stats.todayCount} 部今日更新</div>
+          <div class="stat-sub">近7天更新 ${stats.recent7} 部</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-title">按星期分布</div>
+          <div class="week-chart">${weekBars}</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-title">评分概览</div>
+          <div class="stat-highlight">${stats.avgRating ?? '暂无评分'}</div>
+          <div class="stat-sub">${stats.ratingCount} 部作品提供评分</div>
+        </div>
+      </div>
     `;
+  }
+
+  computeStats() {
+    const status = { watching: 0, finished: 0, notStarted: 0 };
+    const weekLabels = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    const weekMap = { 周日: 0, 周一: 0, 周二: 0, 周三: 0, 周四: 0, 周五: 0, 周六: 0, 未定: 0 };
+    const todayLabel = weekLabels[new Date().getDay()];
+    let todayCount = 0;
+    let recent7 = 0;
+    let ratingSum = 0;
+    let ratingCount = 0;
+
+    this.animeData.forEach((anime) => {
+      if (anime.status?.type === 'watching') status.watching += 1;
+      else if (anime.status?.type === 'finished') status.finished += 1;
+      else status.notStarted += 1;
+
+      const day = anime.updateDay || '未定';
+      if (weekMap[day] !== undefined) weekMap[day] += 1;
+      else weekMap['未定'] += 1;
+      if (day === todayLabel) todayCount += 1;
+
+      if (anime.rawPubTime instanceof Date) {
+        const diff = Date.now() - anime.rawPubTime.getTime();
+        if (diff >= 0 && diff <= 7 * 24 * 60 * 60 * 1000) {
+          recent7 += 1;
+        }
+      }
+
+      if (typeof anime.ratingValue === 'number') {
+        ratingSum += anime.ratingValue;
+        ratingCount += 1;
+      }
+    });
+
+    const weekMax = Math.max(...Object.values(weekMap));
+    const avgRating = ratingCount > 0 ? (ratingSum / ratingCount).toFixed(1) : null;
+
+    return { status, weekMap, weekMax, todayCount, recent7, avgRating, ratingCount };
   }
 
   // 绑定筛选事件

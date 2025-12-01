@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bili-Calendar 运维面板</title>
+    <link rel="stylesheet" href="/admin/metrics.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="topbar">
+        <div>
+          <div class="title">Bili-Calendar Metrics</div>
+          <div class="subtitle">实时查看请求与限流指标（仅本地内存，不持久化）</div>
+        </div>
+        <button id="refreshBtn">手动刷新</button>
+      </header>
+
+      <section class="cards" id="summary"></section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-title">请求统计</div>
+        </div>
+        <div id="requestChart" class="chart"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-title">B站 API 延迟 (ms)</div>
+        </div>
+        <div id="apiChart" class="chart"></div>
+      </section>
+
+      <footer class="footer">数据来源 /status?format=json · 页面每 5s 自动刷新</footer>
+    </div>
+
+    <script src="/admin/metrics.js" defer></script>
+  </body>
+</html>

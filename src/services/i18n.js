@@ -66,6 +66,11 @@ export class I18n {
         'toast.success': '订阅链接生成成功！',
         'toast.cacheLoaded': '从缓存加载番剧列表',
         'toast.animeCount': '成功获取 {count} 部番剧',
+        'toast.reminderOn': '已为 {count} 部番剧开启提醒 (提前 {minutes} 分钟)',
+        'toast.reminderDenied': '通知权限被拒绝，无法开启提醒',
+        'toast.reminderLeadSaved': '已保存提醒提前时间 {minutes} 分钟',
+        'toast.pushEnabled': '浏览器推送已启用 (实验)',
+        'toast.pushFailed': '推送启用失败，请检查权限或服务器配置',
         'toast.fetchFailed': '获取番剧列表失败，请稍后重试',
         'toast.languageSwitched': '语言已切换为 {lang}',
 
@@ -214,6 +219,11 @@ export class I18n {
         'toast.success': 'Subscription link generated successfully!',
         'toast.cacheLoaded': 'Loaded anime list from cache',
         'toast.animeCount': 'Successfully fetched {count} anime',
+        'toast.reminderOn': 'Reminder enabled for {count} titles (lead {minutes} mins)',
+        'toast.reminderDenied': 'Notification permission denied, cannot enable reminders',
+        'toast.reminderLeadSaved': 'Lead time saved: {minutes} mins',
+        'toast.pushEnabled': 'Browser push enabled (experimental)',
+        'toast.pushFailed': 'Failed to enable push; check permissions or server config',
         'toast.fetchFailed': 'Failed to fetch anime list, please try again later',
         'toast.languageSwitched': 'Language switched to {lang}',
 
