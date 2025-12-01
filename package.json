@@ -5,6 +5,7 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
+    "prestart": "node scripts/check-dist.js",
     "start": "node server.js",
     "dev": "concurrently -k \"npm:server:dev\" \"vite\"",
     "server:dev": "NODE_ENV=development node --watch server.js",

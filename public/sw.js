@@ -10,7 +10,8 @@ const CORE_ASSETS = [
 
 async function loadViteAssets() {
   try {
-    const resp = await fetch('/manifest.json', { cache: 'no-store' });
+    // Vite 默认将 manifest 输出到 .vite/manifest.json
+    const resp = await fetch('/.vite/manifest.json', { cache: 'no-store' });
     if (!resp.ok) throw new Error('manifest fetch failed: ' + resp.status);
     const manifest = await resp.json();
     const assets = new Set();

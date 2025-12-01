@@ -444,10 +444,27 @@ window.handleSubscribe = handleSubscribe;
 document.addEventListener('DOMContentLoaded', function () {
   // 初始化主题
   initTheme();
-  
+
   // Initialize Modules
   // i18n.updatePageContent(); // Handled in constructor? No, let's ensure it runs.
   i18n.updatePageContent();
+
+  // 加载错误历史记录
+  if (errorHandler && typeof errorHandler.loadFromLocalStorage === 'function') {
+    errorHandler.loadFromLocalStorage();
+  }
+
+  // 检查是否需要显示新手引导（首次访问）
+  if (userGuide && typeof userGuide.shouldShowTour === 'function') {
+    if (userGuide.shouldShowTour()) {
+      // 延迟 5 秒后自动启动新手引导
+      setTimeout(() => {
+        if (typeof userGuide.startTour === 'function') {
+          userGuide.startTour();
+        }
+      }, 5000);
+    }
+  }
 
   // 绑定主题切换按钮
   const themeSwitcher = document.getElementById('themeSwitcher');
