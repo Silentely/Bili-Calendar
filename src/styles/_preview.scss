@@ -1,4 +1,7 @@
 /* 番剧预览模态框样式 */
+:root {
+  --z-modal-preview: 1000;
+}
 
 .anime-preview-modal {
   position: fixed;
@@ -6,7 +9,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 10000;
+  z-index: var(--z-modal-preview, 1000);
   opacity: 0;
   visibility: hidden;
   transition:
@@ -27,6 +30,13 @@
   bottom: 0;
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(5px);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.anime-preview-overlay:focus-visible {
+  outline: 2px solid #00a1d6;
 }
 
 .anime-preview-content {
@@ -535,6 +545,16 @@
   justify-content: flex-end;
 }
 
+.reminder-hint {
+  font-size: 12px;
+  color: #7a8699;
+  margin-top: 8px;
+}
+
+[data-theme='dark'] .reminder-hint {
+  color: #b0b9c9;
+}
+
 .lead-select {
   display: inline-flex;
   align-items: center;
@@ -687,4 +707,8 @@
 
 [data-theme='dark'] .anime-loading-text {
   color: #999;
+}
+.week-empty {
+  color: #b0b9c9;
+  font-size: 12px;
 }

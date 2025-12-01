@@ -1,10 +1,33 @@
 // 番剧预览功能模块
+import i18n from '../services/i18n';
+
+const STATUS_COLORS = {
+  watching: '#00a1d6',
+  finished: '#999999',
+  completed: '#4caf50',
+  'not-started': '#ff9800',
+};
+
+const WEEK_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 export class AnimePreview {
   constructor() {
     this.animeData = [];
     this.modalId = 'animePreviewModal';
     this.isLoading = false;
+    this.activeFilter = 'all';
+    this.previousActiveElement = null;
+    this.focusTrapHandler = null;
+    this.modalElement = null;
   }
 
   // 获取番剧数据
@@ -42,11 +65,12 @@ export class AnimePreview {
 
     return animeList.map((anime) => {
       // 处理评分数据
-      let rating = '暂无评分';
+      const defaultRating = i18n.t('preview.meta.noRating');
+      let rating = defaultRating;
       let ratingValue = null;
       if (anime.rating) {
         if (typeof anime.rating === 'object') {
-          rating = anime.rating.score || anime.rating.value || '暂无评分';
+          rating = anime.rating.score || anime.rating.value || defaultRating;
           ratingValue = parseFloat(anime.rating.score || anime.rating.value);
         } else {
           rating = anime.rating;
@@ -69,44 +93,46 @@ export class AnimePreview {
         }
       }
 
+      const statusType = this.getAnimeStatusType(anime);
+
       return {
         id: anime.media_id || anime.season_id,
-        title: anime.title || '未知番剧',
+        title: anime.title || i18n.t('preview.meta.unknownAnime'),
         cover: coverUrl,
-        season: anime.season_title || anime.title || '未知',
-        episodes: anime.total_count || anime.new_ep?.index || '未知',
+        season: anime.season_title || anime.title || i18n.t('preview.meta.unknownSeason'),
+        episodes: anime.total_count || anime.new_ep?.index || i18n.t('preview.meta.unknownEpisode'),
         currentEpisode: anime.progress || anime.new_ep?.index_show || 0,
-        status: this.getAnimeStatus(anime),
+        statusType,
+        statusColor: STATUS_COLORS[statusType] || STATUS_COLORS.watching,
         updateTime: this.formatUpdateTime(anime),
         rating: rating,
         ratingValue,
         url: `https://www.bilibili.com/bangumi/media/md${anime.media_id}`,
         isFinished: anime.is_finish === 1,
-        updateDay: this.getUpdateDay(anime),
+        updateDayKey: this.getUpdateDayKey(anime),
         nextEpisodeTime: this.getNextEpisodeTime(anime),
         rawPubTime: anime.new_ep?.pub_time ? new Date(anime.new_ep.pub_time) : null,
       };
     });
   }
 
-  // 获取番剧状态
-  getAnimeStatus(anime) {
+  getAnimeStatusType(anime) {
     if (anime.is_finish === 1) {
-      return { text: '已完结', type: 'finished', color: '#999' };
+      return 'finished';
     }
     if (anime.progress && anime.total_count) {
       if (anime.progress >= anime.total_count) {
-        return { text: '已看完', type: 'completed', color: '#4caf50' };
+        return 'completed';
       }
-      return { text: '追番中', type: 'watching', color: '#00a1d6' };
+      return 'watching';
     }
-    return { text: '未开始', type: 'not-started', color: '#ff9800' };
+    return 'not-started';
   }
 
   // 格式化更新时间
   formatUpdateTime(anime) {
     if (!anime.new_ep || !anime.new_ep.pub_time) {
-      return '暂无更新';
+      return i18n.t('preview.update.none');
     }
 
     const date = new Date(anime.new_ep.pub_time);
@@ -116,28 +142,29 @@ export class AnimePreview {
     if (diff < 86400000) {
       // 24小时内
       const hours = Math.floor(diff / 3600000);
-      return hours > 0 ? `${hours}小时前更新` : '刚刚更新';
+      return hours > 0
+        ? i18n.t('preview.update.hoursAgo', { count: hours })
+        : i18n.t('preview.update.justNow');
     } else if (diff < 604800000) {
       // 7天内
       const days = Math.floor(diff / 86400000);
-      return `${days}天前更新`;
+      return i18n.t('preview.update.daysAgo', { count: days });
     } else {
-      return date.toLocaleDateString('zh-CN');
+      return date.toLocaleDateString(i18n.getLanguage());
     }
   }
 
-  // 获取更新日
-  getUpdateDay(anime) {
-    if (anime.is_finish === 1) return null;
+  // 获取更新日 key
+  getUpdateDayKey(anime) {
+    if (anime.is_finish === 1) return 'unknown';
 
-    // 尝试从API数据中解析更新日
     if (anime.new_ep && anime.new_ep.pub_time) {
       const date = new Date(anime.new_ep.pub_time);
-      const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-      return days[date.getDay()];
+      const dayIndex = date.getDay();
+      return WEEK_KEYS[dayIndex] || 'unknown';
     }
 
-    return null;
+    return 'unknown';
   }
 
   // 获取下一集更新时间
@@ -151,7 +178,7 @@ export class AnimePreview {
       nextUpdate.setDate(nextUpdate.getDate() + 7); // 假设每周更新
 
       if (nextUpdate > new Date()) {
-        return nextUpdate.toLocaleString('zh-CN', {
+        return nextUpdate.toLocaleString(i18n.getLanguage(), {
           month: 'numeric',
           day: 'numeric',
           hour: '2-digit',
@@ -168,6 +195,7 @@ export class AnimePreview {
     if (animeData) {
       this.animeData = animeData;
     }
+    this.activeFilter = 'all';
 
     // 移除已存在的模态框
     this.closePreview();
@@ -180,33 +208,51 @@ export class AnimePreview {
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
     modal.setAttribute('aria-labelledby', 'animePreviewTitle');
+
+    const countLabel = escapeHtml(i18n.t('preview.count', { count: this.animeData.length }));
+    const filterLabel = escapeHtml(i18n.t('preview.actions.filter'));
+    const sortLabel = escapeHtml(i18n.t('preview.actions.sort'));
+    const closeLabel = escapeHtml(i18n.t('preview.actions.close'));
+    const confirmLabel = escapeHtml(i18n.t('preview.actions.confirm'));
+    const reminderLabel = escapeHtml(i18n.t('preview.actions.enableReminder'));
+    const pushLabel = escapeHtml(i18n.t('preview.actions.enablePush'));
+    const leadPrefix = escapeHtml(i18n.t('preview.actions.reminderLeadPrefix'));
+    const leadSuffix = escapeHtml(i18n.t('preview.actions.reminderLeadSuffix'));
+    const reminderHint = escapeHtml(i18n.t('preview.reminder.hint'));
+    const filterAll = escapeHtml(i18n.t('preview.filter.all'));
+    const filterWatching = escapeHtml(i18n.t('preview.filter.watching'));
+    const filterFinished = escapeHtml(i18n.t('preview.filter.finished'));
+    const filterNotStarted = escapeHtml(i18n.t('preview.filter.notStarted'));
+
     modal.innerHTML = `
-      <div class="anime-preview-overlay" onclick="animePreview.closePreview()"></div>
-      <div class="anime-preview-content">
+      <button type="button" class="anime-preview-overlay" data-action="overlay-close" aria-label="${escapeHtml(
+        i18n.t('preview.close')
+      )}"></button>
+      <div class="anime-preview-content" role="document">
         <div class="anime-preview-header">
           <h2 id="animePreviewTitle">
             <i class="fas fa-film"></i>
-            番剧预览
-            <span class="anime-count">${this.animeData.length} 部</span>
+            ${escapeHtml(i18n.t('preview.title'))}
+            <span class="anime-count">${countLabel}</span>
           </h2>
           <div class="anime-preview-actions">
-            <button class="btn-filter" onclick="animePreview.showFilter()" aria-label="筛选" title="筛选">
-              <i class="fas fa-filter"></i> 筛选
+            <button class="btn-filter" type="button" data-action="toggle-filters" aria-label="${filterLabel}" title="${filterLabel}">
+              <i class="fas fa-filter"></i> ${filterLabel}
             </button>
-            <button class="btn-sort" onclick="animePreview.toggleSort()" aria-label="排序" title="排序">
-              <i class="fas fa-sort"></i> 排序
+            <button class="btn-sort" type="button" data-action="toggle-sort" aria-label="${sortLabel}" title="${sortLabel}">
+              <i class="fas fa-sort"></i> ${sortLabel}
             </button>
-            <button class="close-preview" onclick="animePreview.closePreview()" aria-label="关闭预览" title="关闭预览">
+            <button class="close-preview" type="button" data-action="close-modal" aria-label="${closeLabel}" title="${closeLabel}">
               <i class="fas fa-times"></i>
             </button>
           </div>
         </div>
         
         <div class="anime-preview-filters" id="animeFilters" style="display: none;">
-          <button class="filter-btn active" data-filter="all">全部</button>
-          <button class="filter-btn" data-filter="watching">追番中</button>
-          <button class="filter-btn" data-filter="finished">已完结</button>
-          <button class="filter-btn" data-filter="not-started">未开始</button>
+          <button class="filter-btn active" type="button" data-filter="all">${filterAll}</button>
+          <button class="filter-btn" type="button" data-filter="watching">${filterWatching}</button>
+          <button class="filter-btn" type="button" data-filter="finished">${filterFinished}</button>
+          <button class="filter-btn" type="button" data-filter="not-started">${filterNotStarted}</button>
         </div>
         
         <div class="anime-preview-body">
@@ -219,24 +265,25 @@ export class AnimePreview {
           <div class="anime-stats">
             ${this.renderStats()}
           </div>
+          <div class="reminder-hint">${reminderHint}</div>
           <div class="preview-actions">
             <label class="lead-select">
-              <span>提前</span>
-              <select id="reminderLead">
+              <span>${leadPrefix}</span>
+              <select id="reminderLead" aria-label="${leadPrefix} ${leadSuffix}">
                 <option value="5">5</option>
                 <option value="10">10</option>
                 <option value="15">15</option>
               </select>
-              <span>分钟提醒</span>
+              <span>${leadSuffix}</span>
             </label>
-            <button class="btn-ghost" id="enableReminder" aria-label="开启更新提醒" title="开启更新提醒">
-              <i class="fas fa-bell"></i> 开启更新提醒
+            <button class="btn-ghost" id="enableReminder" type="button" aria-label="${reminderLabel}" title="${reminderLabel}">
+              <i class="fas fa-bell"></i> ${reminderLabel}
             </button>
-            <button class="btn-ghost" id="enablePush" aria-label="启用推送" title="启用推送（实验）">
-              <i class="fas fa-satellite-dish"></i> 启用推送
+            <button class="btn-ghost" id="enablePush" type="button" aria-label="${pushLabel}" title="${pushLabel}">
+              <i class="fas fa-satellite-dish"></i> ${pushLabel}
             </button>
-            <button class="btn-confirm" onclick="animePreview.confirmAndGenerate()" aria-label="确认并生成订阅" title="确认并生成订阅">
-              <i class="fas fa-check"></i> 确认并生成订阅
+            <button class="btn-confirm" type="button" data-action="confirm-generate" aria-label="${confirmLabel}" title="${confirmLabel}">
+              <i class="fas fa-check"></i> ${confirmLabel}
             </button>
           </div>
         </div>
@@ -244,84 +291,189 @@ export class AnimePreview {
     `;
 
     document.body.appendChild(modal);
+    this.modalElement = modal;
 
-    // 添加动画
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       modal.classList.add('show');
-      // 将焦点移动到关闭按钮，建立简单的焦点圈
-      const closeBtn = modal.querySelector('.close-preview');
-      if (closeBtn) closeBtn.focus();
-      // ESC 关闭
-      const onKeydown = (e) => {
-        if (e.key === 'Escape') {
-          this.closePreview();
-          document.removeEventListener('keydown', onKeydown);
-        }
-      };
-      document.addEventListener('keydown', onKeydown);
-    }, 10);
+    });
 
-    // 绑定筛选事件
-    this.bindFilterEvents();
+    this.bindModalEvents(modal);
+    this.bindFilterEvents(modal);
+    this.setupListDelegation(modal);
+    this.enableFocusTrap(modal);
+  }
+
+  bindModalEvents(modal) {
+    const overlay = modal.querySelector('[data-action="overlay-close"]');
+    if (overlay) {
+      overlay.addEventListener('click', () => this.closePreview());
+    }
+
+    const closeBtn = modal.querySelector('[data-action="close-modal"]');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => this.closePreview());
+    }
+
+    const filterBtn = modal.querySelector('[data-action="toggle-filters"]');
+    if (filterBtn) {
+      filterBtn.addEventListener('click', () => this.showFilter());
+    }
+
+    const sortBtn = modal.querySelector('[data-action="toggle-sort"]');
+    if (sortBtn) {
+      sortBtn.addEventListener('click', () => this.toggleSort());
+    }
+
+    const confirmBtn = modal.querySelector('[data-action="confirm-generate"]');
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', () => this.confirmAndGenerate());
+    }
+  }
+
+  setupListDelegation(modal) {
+    const listContainer = modal.querySelector('#animeList');
+    if (!listContainer) return;
+    listContainer.addEventListener('click', (event) => {
+      const detailBtn = event.target.closest('[data-action="show-detail"]');
+      if (detailBtn) {
+        this.showDetail(detailBtn.dataset.animeId);
+      }
+    });
+  }
+
+  enableFocusTrap(modal) {
+    this.previousActiveElement = document.activeElement;
+    const focusableSelectors =
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+    const focusable = modal.querySelectorAll(focusableSelectors);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    this.focusTrapHandler = (event) => {
+      if (event.key === 'Tab') {
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+      if (event.key === 'Escape') {
+        this.closePreview();
+      }
+    };
+    modal.addEventListener('keydown', this.focusTrapHandler);
+    first.focus();
+  }
+
+  disableFocusTrap() {
+    if (this.modalElement && this.focusTrapHandler) {
+      this.modalElement.removeEventListener('keydown', this.focusTrapHandler);
+    }
+    this.focusTrapHandler = null;
+    if (this.previousActiveElement && typeof this.previousActiveElement.focus === 'function') {
+      this.previousActiveElement.focus();
+    }
+    this.previousActiveElement = null;
   }
 
   // 渲染番剧列表
-  renderAnimeList(filter = 'all') {
+  renderAnimeList(filter = null) {
+    if (filter) {
+      this.activeFilter = filter;
+    }
+    const effectiveFilter = this.activeFilter || 'all';
     let filteredData = this.animeData;
 
-    if (filter !== 'all') {
-      filteredData = this.animeData.filter((anime) => anime.status.type === filter);
+    if (effectiveFilter !== 'all') {
+      filteredData = this.animeData.filter((anime) => {
+        if (effectiveFilter === 'finished') {
+          return ['finished', 'completed'].includes(anime.statusType);
+        }
+        return anime.statusType === effectiveFilter;
+      });
     }
 
     if (filteredData.length === 0) {
       return `
         <div class="anime-empty">
           <i class="fas fa-inbox"></i>
-          <p>没有找到相关番剧</p>
+          <p>${escapeHtml(i18n.t('preview.empty'))}</p>
         </div>
       `;
     }
 
+    const fallbackAlt = encodeURIComponent(i18n.t('preview.meta.noImage'));
+
     return filteredData
-      .map(
-        (anime) => `
-      <div class="anime-item" data-id="${anime.id}">
+      .map((anime) => {
+        const statusText = escapeHtml(i18n.t(`preview.status.${anime.statusType}`));
+        const safeTitle = escapeHtml(anime.title);
+        const safeUrl = escapeHtml(anime.url);
+        const animeId = escapeHtml(anime.id);
+        const episodesText = escapeHtml(
+          i18n.t('preview.meta.episodes', {
+            current: anime.currentEpisode,
+            total: anime.episodes,
+          })
+        );
+        const updateDayText =
+          anime.updateDayKey && anime.updateDayKey !== 'unknown'
+            ? escapeHtml(
+                i18n.t('preview.meta.updateDay', {
+                  day: i18n.t(`preview.week.${anime.updateDayKey}`),
+                })
+              )
+            : '';
+        const ratingText =
+          anime.rating && anime.rating !== i18n.t('preview.meta.noRating')
+            ? escapeHtml(anime.rating)
+            : '';
+        const updateTimeText = escapeHtml(anime.updateTime);
+        const nextEpisodeText = anime.nextEpisodeTime
+          ? escapeHtml(i18n.t('preview.meta.nextEpisode', { time: anime.nextEpisodeTime }))
+          : '';
+
+        const coverSrc = escapeHtml(anime.cover || '');
+        return `
+      <div class="anime-item" data-id="${animeId}">
         <div class="anime-cover">
-          <img src="${anime.cover}"
-               alt="${anime.title}"
+          <img src="${coverSrc}"
+               alt="${safeTitle}"
                loading="lazy"
-               onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 320 200%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22320%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22 font-size=%2214%22%3E暂无图片%3C/text%3E%3C/svg%3E'"
+               onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 320 200%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22320%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22 font-size=%2214%22%3E${fallbackAlt}%3C/text%3E%3C/svg%3E'"
                referrerpolicy="no-referrer">
-          <div class="anime-status-badge" style="background: ${anime.status.color}">
-            ${anime.status.text}
+          <div class="anime-status-badge" style="background: ${anime.statusColor}">
+            ${statusText}
           </div>
         </div>
         
         <div class="anime-info">
           <h3 class="anime-title">
-            <a href="${anime.url}" target="_blank">${anime.title}</a>
+            <a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeTitle}</a>
           </h3>
           <div class="anime-meta">
             <span class="anime-episodes">
               <i class="fas fa-list"></i>
-              ${anime.currentEpisode}/${anime.episodes} 集
+              ${episodesText}
             </span>
             ${
-              anime.updateDay
+              updateDayText
                 ? `
               <span class="anime-update-day">
                 <i class="fas fa-calendar-day"></i>
-                ${anime.updateDay}更新
+                ${updateDayText}
               </span>
             `
                 : ''
             }
             ${
-              anime.rating !== '暂无评分'
+              ratingText
                 ? `
               <span class="anime-rating">
                 <i class="fas fa-star"></i>
-                ${anime.rating}
+                ${ratingText}
               </span>
             `
                 : ''
@@ -329,14 +481,14 @@ export class AnimePreview {
           </div>
           <div class="anime-update-time">
             <i class="fas fa-clock"></i>
-            ${anime.updateTime}
+            ${updateTimeText}
           </div>
           ${
-            anime.nextEpisodeTime
+            nextEpisodeText
               ? `
             <div class="anime-next-episode">
               <i class="fas fa-bell"></i>
-              下集：${anime.nextEpisodeTime}
+              ${nextEpisodeText}
             </div>
           `
               : ''
@@ -344,25 +496,28 @@ export class AnimePreview {
         </div>
         
         <div class="anime-actions">
-          <button class="btn-anime-detail" onclick="animePreview.showDetail('${anime.id}')">
+          <button class="btn-anime-detail" type="button" data-action="show-detail" data-anime-id="${animeId}">
             <i class="fas fa-info-circle"></i>
           </button>
         </div>
       </div>
-    `
-      )
+    `;
+      })
       .join('');
   }
 
   // 渲染统计信息
   renderStats() {
     const stats = this.computeStats();
-    const weekBars = Object.entries(stats.weekMap)
-      .map(([day, count]) => {
+    const weekOrder = [...WEEK_KEYS, 'unknown'];
+    const weekBars = weekOrder
+      .map((key) => {
+        const count = stats.weekMap[key] || 0;
+        if (count === 0) return '';
         const width = stats.weekMax === 0 ? 0 : Math.round((count / stats.weekMax) * 100);
         return `
           <div class="week-row">
-            <span>${day}</span>
+            <span>${escapeHtml(i18n.t(`preview.week.${key}`))}</span>
             <div class="week-bar">
               <div class="week-bar-fill" style="width:${width}%"></div>
             </div>
@@ -372,38 +527,50 @@ export class AnimePreview {
       })
       .join('');
 
+    const watchingLabel = escapeHtml(i18n.t('preview.stats.status.watching'));
+    const finishedLabel = escapeHtml(i18n.t('preview.stats.status.finished'));
+    const notStartedLabel = escapeHtml(i18n.t('preview.stats.status.notStarted'));
+    const stateTitle = escapeHtml(i18n.t('preview.stats.stateTitle'));
+    const updateTitle = escapeHtml(i18n.t('preview.stats.updateTitle'));
+    const todayLabel = escapeHtml(i18n.t('preview.stats.todayCount', { count: stats.todayCount }));
+    const recentLabel = escapeHtml(i18n.t('preview.stats.recentCount', { count: stats.recent7 }));
+    const weekTitle = escapeHtml(i18n.t('preview.stats.weekTitle'));
+    const ratingTitle = escapeHtml(i18n.t('preview.stats.ratingTitle'));
+    const ratingCount = escapeHtml(i18n.t('preview.stats.ratingCount', { count: stats.ratingCount }));
+    const ratingValue = stats.avgRating ?? i18n.t('preview.meta.noRating');
+
     return `
       <div class="stat-grid">
         <div class="stat-card">
-          <div class="stat-title">状态概览</div>
+          <div class="stat-title">${stateTitle}</div>
           <div class="stat-chips">
             <span class="stat-chip stat-chip-primary">
-              <i class="fas fa-play-circle"></i> 追番中 ${stats.status.watching}
+              <i class="fas fa-play-circle"></i> ${watchingLabel} ${stats.status.watching}
             </span>
             <span class="stat-chip stat-chip-success">
-              <i class="fas fa-check-circle"></i> 已完结 ${stats.status.finished}
+              <i class="fas fa-check-circle"></i> ${finishedLabel} ${stats.status.finished}
             </span>
             <span class="stat-chip stat-chip-warn">
-              <i class="fas fa-clock"></i> 未开始 ${stats.status.notStarted}
+              <i class="fas fa-clock"></i> ${notStartedLabel} ${stats.status.notStarted}
             </span>
           </div>
         </div>
 
         <div class="stat-card">
-          <div class="stat-title">更新时间</div>
-          <div class="stat-highlight">${stats.todayCount} 部今日更新</div>
-          <div class="stat-sub">近7天更新 ${stats.recent7} 部</div>
+          <div class="stat-title">${updateTitle}</div>
+          <div class="stat-highlight">${todayLabel}</div>
+          <div class="stat-sub">${recentLabel}</div>
         </div>
 
         <div class="stat-card">
-          <div class="stat-title">按星期分布</div>
-          <div class="week-chart">${weekBars}</div>
+          <div class="stat-title">${weekTitle}</div>
+          <div class="week-chart">${weekBars || '<div class="week-empty">-</div>'}</div>
         </div>
 
         <div class="stat-card">
-          <div class="stat-title">评分概览</div>
-          <div class="stat-highlight">${stats.avgRating ?? '暂无评分'}</div>
-          <div class="stat-sub">${stats.ratingCount} 部作品提供评分</div>
+          <div class="stat-title">${ratingTitle}</div>
+          <div class="stat-highlight">${escapeHtml(ratingValue)}</div>
+          <div class="stat-sub">${ratingCount}</div>
         </div>
       </div>
     `;
@@ -411,23 +578,21 @@ export class AnimePreview {
 
   computeStats() {
     const status = { watching: 0, finished: 0, notStarted: 0 };
-    const weekLabels = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-    const weekMap = { 周日: 0, 周一: 0, 周二: 0, 周三: 0, 周四: 0, 周五: 0, 周六: 0, 未定: 0 };
-    const todayLabel = weekLabels[new Date().getDay()];
+    const weekMap = WEEK_KEYS.reduce((acc, key) => ({ ...acc, [key]: 0 }), { unknown: 0 });
+    const todayKey = WEEK_KEYS[new Date().getDay()];
     let todayCount = 0;
     let recent7 = 0;
     let ratingSum = 0;
     let ratingCount = 0;
 
     this.animeData.forEach((anime) => {
-      if (anime.status?.type === 'watching') status.watching += 1;
-      else if (anime.status?.type === 'finished') status.finished += 1;
+      if (anime.statusType === 'watching') status.watching += 1;
+      else if (['finished', 'completed'].includes(anime.statusType)) status.finished += 1;
       else status.notStarted += 1;
 
-      const day = anime.updateDay || '未定';
-      if (weekMap[day] !== undefined) weekMap[day] += 1;
-      else weekMap['未定'] += 1;
-      if (day === todayLabel) todayCount += 1;
+      const dayKey = anime.updateDayKey || 'unknown';
+      if (weekMap[dayKey] !== undefined) weekMap[dayKey] += 1;
+      if (dayKey === todayKey) todayCount += 1;
 
       if (anime.rawPubTime instanceof Date) {
         const diff = Date.now() - anime.rawPubTime.getTime();
@@ -449,25 +614,26 @@ export class AnimePreview {
   }
 
   // 绑定筛选事件
-  bindFilterEvents() {
-    const filterBtns = document.querySelectorAll('.filter-btn');
+  bindFilterEvents(modal) {
+    const filterBtns = modal.querySelectorAll('.filter-btn');
+    if (!filterBtns.length) return;
     filterBtns.forEach((btn) => {
       btn.addEventListener('click', (e) => {
-        // 更新按钮状态
         filterBtns.forEach((b) => b.classList.remove('active'));
-        e.target.classList.add('active');
-
-        // 重新渲染列表
-        const filter = e.target.dataset.filter;
-        const listContainer = document.getElementById('animeList');
-        listContainer.innerHTML = this.renderAnimeList(filter);
+        e.currentTarget.classList.add('active');
+        const filter = e.currentTarget.dataset.filter;
+        const listContainer = modal.querySelector('#animeList');
+        if (listContainer) {
+          listContainer.innerHTML = this.renderAnimeList(filter);
+        }
       });
     });
   }
 
   // 显示筛选器
   showFilter() {
-    const filters = document.getElementById('animeFilters');
+    const filters = this.modalElement?.querySelector('#animeFilters');
+    if (!filters) return;
     filters.style.display = filters.style.display === 'none' ? 'flex' : 'none';
   }
 
@@ -475,8 +641,10 @@ export class AnimePreview {
   toggleSort() {
     // 按更新时间排序
     this.animeData.reverse();
-    const listContainer = document.getElementById('animeList');
-    listContainer.innerHTML = this.renderAnimeList();
+    const listContainer = this.modalElement?.querySelector('#animeList');
+    if (listContainer) {
+      listContainer.innerHTML = this.renderAnimeList();
+    }
   }
 
   // 显示番剧详情
@@ -504,6 +672,8 @@ export class AnimePreview {
         modal.remove();
       }, 300);
     }
+    this.disableFocusTrap();
+    this.modalElement = null;
   }
 
   // 确认并生成订阅
