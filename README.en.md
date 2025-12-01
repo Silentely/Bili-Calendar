@@ -249,6 +249,8 @@ Returns: Service status information for health checks
 | `VAPID_PUBLIC_KEY`         | Empty         | Optional, WebPush public key                          |
 | `VAPID_PRIVATE_KEY`        | Empty         | Optional, WebPush private key                         |
 | `VAPID_SUBJECT`            | mailto:...    | Optional VAPID subject (from generator)               |
+| `PUSH_STORE_FILE`          | ./data/push-subscriptions.json | Optional, persistent subscription file (server deployment) |
+| `PUSH_ADMIN_TOKEN`         | Empty         | Optional token protecting `/push/test` admin endpoint |
 
 ### Notes
 
@@ -256,7 +258,9 @@ Returns: Service status information for health checks
 2. **Cookie Settings**: If encountering access frequency limits, set `BILIBILI_COOKIE` environment variable
 3. **Timezone Handling**: Service defaults to UTC+8 (Beijing Time), ensure deployment environment timezone is correct
 4. **Push Reminder (experimental)**: Run `node scripts/generate-vapid.js` to generate VAPID keys and set env vars, then click “Enable Push” on frontend; without config the button fails gracefully
-5. **Prometheus**: Use `/metrics/prometheus` or `/metrics` JSON; per-route stats are in-memory and reset on restart
+5. **Push Storage**: By default subscriptions are saved to `./data/push-subscriptions.json` (configurable via `PUSH_STORE_FILE`). Netlify/serverless builds fall back to in-memory storage only
+6. **Push Security**: Set `PUSH_ADMIN_TOKEN` so `/push/test` (and other admin endpoints) require `Authorization: Bearer <token>` or `?token=...` query. Recommended for production
+7. **Prometheus**: Use `/metrics/prometheus` or `/metrics` JSON; per-route stats are in-memory and reset on restart
 
 ---
 

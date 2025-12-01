@@ -252,6 +252,8 @@ GET /status
 | `VAPID_PUBLIC_KEY`         | 空            | 可选，启用 WebPush 所需公钥         |
 | `VAPID_PRIVATE_KEY`        | 空            | 可选，启用 WebPush 所需私钥         |
 | `VAPID_SUBJECT`            | mailto:...    | 可选，VAPID 识别（可用生成脚本输出） |
+| `PUSH_STORE_FILE`          | ./data/push-subscriptions.json | 可选，推送订阅持久化文件路径（仅主服务） |
+| `PUSH_ADMIN_TOKEN`         | 空            | 可选，保护 `/push/test` 等管理接口的令牌 |
 
 ### 注意事项
 
@@ -259,7 +261,9 @@ GET /status
 2. **Cookie 设置**：如果遇到访问频率限制，可以设置 `BILIBILI_COOKIE` 环境变量
 3. **时区处理**：服务默认使用东八区时间（北京时间），请确保部署环境时区正确
 4. **推送提醒（实验）**：执行 `node scripts/generate-vapid.js` 生成 VAPID 公私钥并设置上述环境变量，然后前端点击“启用推送”完成订阅；未配置时按钮会提示失败
-5. **Prometheus 抓取**：使用 `/metrics/prometheus`，或 `/metrics` 获取 JSON；路由级统计为进程内指标，重启会清零
+5. **推送订阅存储**：默认将订阅写入 `./data/push-subscriptions.json`（可通过 `PUSH_STORE_FILE` 变更），Netlify 等无状态环境会回退为内存存储
+6. **推送接口安全**：若设置 `PUSH_ADMIN_TOKEN`，调用 `/push/test` 等管理端点时需在 `Authorization: Bearer <token>` 或 `?token=` 传入；生产环境建议开启
+7. **Prometheus 抓取**：使用 `/metrics/prometheus`，或 `/metrics` 获取 JSON；路由级统计为进程内指标，重启会清零
 
 ---
 

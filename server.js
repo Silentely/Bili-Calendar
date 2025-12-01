@@ -11,7 +11,10 @@ const { getBangumiData } = require('./utils/bangumi.cjs');
 const { createRateLimiter } = require('./utils/rate-limiter.cjs');
 const { extractClientIP, generateRequestId } = require('./utils/ip.cjs');
 const metrics = require('./utils/metrics.cjs');
-const pushSubscriptions = new Set();
+const createPushStore = require('./utils/push-store.cjs');
+const pushStore = createPushStore(process.env.PUSH_STORE_FILE);
+const PUSH_ADMIN_TOKEN = process.env.PUSH_ADMIN_TOKEN || '';
+let webpushInstance = null;
 
 // 抽离的通用工具（使用 CJS 版本）
 const { generateICS, respondWithICS, respondWithEmptyCalendar } = require('./utils/ics.cjs');
@@ -50,6 +53,28 @@ const CORS_HEADERS = {
 
 // 创建速率限制器实例
 const rateLimiter = createRateLimiter();
+const requirePushAuth = (req, res) => {
+  if (!PUSH_ADMIN_TOKEN) return true;
+  const header = req.headers['authorization'] || '';
+  const bearer = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const token = bearer || req.query.token;
+  if (token === PUSH_ADMIN_TOKEN) return true;
+  res.status(401).json({ error: 'Unauthorized', message: '缺少推送管理令牌' });
+  return false;
+};
+
+async function getWebpush() {
+  if (!webpushInstance) {
+    const mod = await import('web-push');
+    webpushInstance = mod.default;
+    webpushInstance.setVapidDetails(
+      process.env.VAPID_SUBJECT || 'mailto:admin@example.com',
+      process.env.VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY
+    );
+  }
+  return webpushInstance;
+}
 
 // 定期清理过期的限流记录（每小时一次）
 const cleanupInterval = setInterval(() => rateLimiter.cleanup(), 60 * 60 * 1000);
@@ -269,33 +294,29 @@ app.post('/push/subscribe', (req, res) => {
   if (!req.body || !req.body.endpoint) {
     return res.status(400).json({ error: 'invalid subscription' });
   }
-  pushSubscriptions.add(req.body);
-  res.json({ status: 'ok' });
+  pushStore.add(req.body);
+  res.json({ status: 'ok', stored: pushStore.list().length });
 });
 
 app.post('/push/test', async (req, res) => {
   if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
     return res.status(501).json({ error: 'push not configured' });
   }
-  let webpush;
+  if (!requirePushAuth(req, res)) return;
   try {
-    webpush = (await import('web-push')).default;
+    const webpush = await getWebpush();
+    const payload = JSON.stringify({ title: 'Bili-Calendar 推送测试', body: '推送配置已生效' });
+    const subs = pushStore.list();
+    const promises = subs.map((sub) =>
+      webpush.sendNotification(sub, payload).catch((err) => {
+        console.warn('push send failed', err?.statusCode || err?.message);
+      })
+    );
+    await Promise.all(promises);
+    res.json({ status: 'sent', count: subs.length });
   } catch (err) {
-    return res.status(501).json({ error: 'web-push module missing' });
+    res.status(501).json({ error: 'web-push module missing', detail: err.message });
   }
-  webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT || 'mailto:admin@example.com',
-    process.env.VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
-  );
-  const payload = JSON.stringify({ title: 'Bili-Calendar 推送测试', body: '推送配置已生效' });
-  const promises = Array.from(pushSubscriptions).map((sub) =>
-    webpush.sendNotification(sub, payload).catch((err) => {
-      console.warn('push send failed', err?.statusCode || err?.message);
-    })
-  );
-  await Promise.all(promises);
-  res.json({ status: 'sent', count: pushSubscriptions.size });
 });
 
 /**
