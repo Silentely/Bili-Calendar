@@ -10,11 +10,17 @@ const require = createRequire(import.meta.url);
 const { getBangumiData } = require('./utils/bangumi.cjs');
 const { createRateLimiter } = require('./utils/rate-limiter.cjs');
 const { extractClientIP, generateRequestId } = require('./utils/ip.cjs');
+const metrics = require('./utils/metrics.cjs');
+const pushSubscriptions = new Set();
 
 // 抽离的通用工具（使用 CJS 版本）
 const { generateICS, respondWithICS, respondWithEmptyCalendar } = require('./utils/ics.cjs');
+const { generateMergedICS, fetchExternalICS } = require('./utils/ics-merge.cjs');
 
 const app = express();
+
+// JSON 解析
+app.use(express.json({ limit: '1mb' }));
 
 // 启用响应压缩（gzip/brotli）以减少传输数据量
 app.use(
@@ -84,6 +90,8 @@ app.use(express.static(path.join(__dirname, 'dist'), { dotfiles: 'allow' }));
 // 请求ID & 日志中间件
 app.use((req, res, next) => {
   const start = Date.now();
+  const routeKey = req.path || req.originalUrl || 'unknown';
+  metrics.onRequest(routeKey);
   const ip = extractClientIP(req);
   const requestId = generateRequestId(req);
   res.setHeader('X-Request-Id', requestId);
@@ -95,6 +103,7 @@ app.use((req, res, next) => {
     console.log(
       `${statusEmoji} ${req.method} ${req.originalUrl} - ${statusCode} - ${duration}ms - id=${requestId}`
     );
+    metrics.onResponse(statusCode, duration, routeKey);
   });
   next();
 });
@@ -123,6 +132,7 @@ const rateLimiterMiddleware = (req, res, next) => {
   // 应用限流（所有请求）
   if (!rateLimiter.check(ip)) {
     const resetTime = new Date(rateLimiter.getResetTime(ip)).toISOString();
+    metrics.onRateLimited();
 
     // 设置速率限制响应头
     res.setHeader('X-RateLimit-Limit', rateLimiter.MAX_REQUESTS);
@@ -155,16 +165,137 @@ app.get('/status', (req, res) => {
   // 智能判断环境类型
   const env = process.env.NODE_ENV || 'development';
 
-  const statusMessage = `✅ Bili-Calendar Service is running.
+  const data = {
+    status: 'ok',
+    uptime: uptimeFormatted,
+    uptimeMs: Math.round(uptime * 1000),
+    memoryMB: mem,
+    env,
+    version: VERSION,
+    port: PORT,
+    metrics: metrics.snapshot(),
+  };
+
+  const wantJson = req.query.format === 'json' || req.headers.accept?.includes('application/json');
+  if (wantJson) {
+    res.json(data);
+  } else {
+    const statusMessage = `✅ Bili-Calendar Service is running.
 
 服务状态:
 - 运行时间: ${uptimeFormatted}
 - 内存使用: ${mem} MB
 - 环境: ${env}
 - 版本: ${VERSION}
-- 端口: ${PORT}`;
+- 端口: ${PORT}
+- 请求统计: 总计 ${data.metrics.requests.total}, 成功 ${data.metrics.requests.success}, 错误 ${data.metrics.requests.errors}, 限流 ${data.metrics.requests.rateLimited}
+- B站API: 调用 ${data.metrics.api.calls}, 错误 ${data.metrics.api.errors}, 平均耗时 ${data.metrics.api.avgLatencyMs}ms, 最大耗时 ${data.metrics.api.maxLatencyMs}ms`;
 
-  res.send(statusMessage);
+    res.send(statusMessage);
+  }
+});
+
+// 简易指标 API（JSON）
+app.get('/metrics', (req, res) => {
+  res.json({ status: 'ok', metrics: metrics.snapshot() });
+});
+
+// Prometheus 文本格式
+app.get('/metrics/prometheus', (req, res) => {
+  const m = metrics.snapshot();
+  const lines = [
+    '# HELP bili_requests_total Total requests',
+    '# TYPE bili_requests_total counter',
+    `bili_requests_total ${m.requests.total}`,
+    '# HELP bili_requests_errors Total error responses',
+    '# TYPE bili_requests_errors counter',
+    `bili_requests_errors ${m.requests.errors}`,
+    '# HELP bili_requests_success Total success responses',
+    '# TYPE bili_requests_success counter',
+    `bili_requests_success ${m.requests.success}`,
+    '# HELP bili_requests_rate_limited Rate limited count',
+    '# TYPE bili_requests_rate_limited counter',
+    `bili_requests_rate_limited ${m.requests.rateLimited}`,
+    '# HELP bili_api_calls Total Bilibili API calls',
+    '# TYPE bili_api_calls counter',
+    `bili_api_calls ${m.api.calls}`,
+    '# HELP bili_api_errors Bilibili API errors',
+    '# TYPE bili_api_errors counter',
+    `bili_api_errors ${m.api.errors}`,
+    '# HELP bili_api_latency_avg_ms Average API latency ms',
+    '# TYPE bili_api_latency_avg_ms gauge',
+    `bili_api_latency_avg_ms ${m.api.avgLatencyMs}`,
+    '# HELP bili_api_latency_p95_ms API latency p95 ms',
+    '# TYPE bili_api_latency_p95_ms gauge',
+    `bili_api_latency_p95_ms ${m.api.p95Ms}`,
+    '# HELP bili_api_latency_p99_ms API latency p99 ms',
+    '# TYPE bili_api_latency_p99_ms gauge',
+    `bili_api_latency_p99_ms ${m.api.p99Ms}`,
+  ];
+
+  m.routes.forEach((r) => {
+    const label = `{route="${r.route}"}`;
+    lines.push('# HELP bili_route_requests_total Requests per route');
+    lines.push('# TYPE bili_route_requests_total counter');
+    lines.push(`bili_route_requests_total${label} ${r.total}`);
+    lines.push('# HELP bili_route_requests_errors Route errors');
+    lines.push('# TYPE bili_route_requests_errors counter');
+    lines.push(`bili_route_requests_errors${label} ${r.errors}`);
+    lines.push('# HELP bili_route_latency_avg_ms Route avg latency');
+    lines.push('# TYPE bili_route_latency_avg_ms gauge');
+    lines.push(`bili_route_latency_avg_ms${label} ${r.avg}`);
+    lines.push('# HELP bili_route_latency_p95_ms Route p95 latency');
+    lines.push('# TYPE bili_route_latency_p95_ms gauge');
+    lines.push(`bili_route_latency_p95_ms${label} ${r.p95}`);
+    lines.push('# HELP bili_route_latency_p99_ms Route p99 latency');
+    lines.push('# TYPE bili_route_latency_p99_ms gauge');
+    lines.push(`bili_route_latency_p99_ms${label} ${r.p99}`);
+  });
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.send(lines.join('\n'));
+});
+
+// WebPush 实验接口
+app.get('/push/public-key', (req, res) => {
+  const key = process.env.VAPID_PUBLIC_KEY;
+  if (!key) return res.status(404).json({ error: 'missing key' });
+  res.json({ key });
+});
+
+app.post('/push/subscribe', (req, res) => {
+  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+    return res.status(501).json({ error: 'push not configured' });
+  }
+  if (!req.body || !req.body.endpoint) {
+    return res.status(400).json({ error: 'invalid subscription' });
+  }
+  pushSubscriptions.add(req.body);
+  res.json({ status: 'ok' });
+});
+
+app.post('/push/test', async (req, res) => {
+  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+    return res.status(501).json({ error: 'push not configured' });
+  }
+  let webpush;
+  try {
+    webpush = (await import('web-push')).default;
+  } catch (err) {
+    return res.status(501).json({ error: 'web-push module missing' });
+  }
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT || 'mailto:admin@example.com',
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+  const payload = JSON.stringify({ title: 'Bili-Calendar 推送测试', body: '推送配置已生效' });
+  const promises = Array.from(pushSubscriptions).map((sub) =>
+    webpush.sendNotification(sub, payload).catch((err) => {
+      console.warn('push send failed', err?.statusCode || err?.message);
+    })
+  );
+  await Promise.all(promises);
+  res.json({ status: 'sent', count: pushSubscriptions.size });
 });
 
 /**
@@ -205,7 +336,9 @@ app.get('/api/bangumi/:uid', rateLimiterMiddleware, async (req, res, next) => {
   }
 
   try {
+    const apiStart = Date.now();
     const data = await getBangumiData(uid);
+    metrics.onApiCall(Date.now() - apiStart, data && data.code === 0);
     if (!data) {
       return res.status(500).json({ error: 'Internal Server Error', message: '获取数据失败' });
     }
@@ -237,7 +370,9 @@ const handleCalendar = async (req, res, next) => {
     console.log(`🔍 处理UID: ${cleanUid}`);
 
     // 获取追番数据
+    const apiStart = Date.now();
     const data = await getBangumiData(cleanUid);
+    metrics.onApiCall(Date.now() - apiStart, data && data.code === 0);
     if (!data) {
       return res.status(500).send('获取数据失败');
     }
@@ -267,6 +402,62 @@ const handleCalendar = async (req, res, next) => {
   }
 };
 
+// 聚合番剧 + 外部 ICS 日程
+const handleAggregate = async (req, res, next) => {
+  const raw = req.params.uid;
+  const cleanUid = raw.replace('.ics', '');
+
+  const sourcesParam = req.query.sources || '';
+  const sourceList = sourcesParam
+    .split(',')
+    .map((s) => decodeURIComponent(s.trim()))
+    .filter(Boolean);
+
+  if (sourceList.length > 5) {
+    return res
+      .status(400)
+      .json({ error: 'Too many sources', message: '最多支持 5 个外部 ICS 链接' });
+  }
+
+  const invalid = sourceList.find((s) => !/^https?:\/\//i.test(s));
+  if (invalid) {
+    return res.status(400).json({ error: 'Invalid source', message: '仅支持 http/https 链接' });
+  }
+
+  try {
+    console.log(`🔀 聚合 UID: ${cleanUid}, 外部源数量: ${sourceList.length}`);
+
+    const apiStart = Date.now();
+    const data = await getBangumiData(cleanUid);
+    metrics.onApiCall(Date.now() - apiStart, data && data.code === 0);
+    if (!data) {
+      return res.status(500).send('获取数据失败');
+    }
+
+    const errorResponse = processBangumiApiError(res, data, cleanUid);
+    if (errorResponse) return errorResponse;
+
+    const bangumiList = data.data?.list || [];
+    const externalCalendars = await fetchExternalICS(sourceList);
+
+    const merged = generateMergedICS(bangumiList, cleanUid, externalCalendars);
+    if (!merged) {
+      return respondWithEmptyCalendar(res, cleanUid, '未找到可用日程');
+    }
+
+    const icsName = `bili_merge_${cleanUid}.ics`;
+    res.set({
+      'Content-Type': 'text/calendar; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${icsName}"`,
+      'Cache-Control': 'public, max-age=600',
+    });
+    return res.send(merged);
+  } catch (err) {
+    console.error(`❌ 聚合处理出错:`, err);
+    next(err);
+  }
+};
+
 /**
  * 处理B站API返回的错误
  * @param {Object} res - Express响应对象
@@ -285,8 +476,11 @@ function processBangumiApiError(res, data, uid) {
   }
   return undefined;
 }
+
 app.get('/:uid(\\d+)\\.ics', handleCalendar);
 app.get('/:uid(\\d+)', handleCalendar);
+app.get('/aggregate/:uid(\\d+)\\.ics', rateLimiterMiddleware, handleAggregate);
+app.get('/aggregate/:uid(\\d+)', rateLimiterMiddleware, handleAggregate);
 
 // 处理404错误 - 为浏览器请求返回HTML页面
 app.use((req, res) => {

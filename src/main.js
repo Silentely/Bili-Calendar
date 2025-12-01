@@ -4,6 +4,8 @@ import { errorHandler, userGuide } from './services/errorHandler';
 import cacheManager from './services/cacheManager';
 import animePreview from './components/AnimePreview';
 import { initPWA } from './services/pwa';
+import notifier from './services/notifier';
+import pushService from './services/push';
 
 // Initialize PWA
 initPWA();
@@ -14,6 +16,8 @@ window.errorHandler = errorHandler;
 window.userGuide = userGuide;
 window.cacheManager = cacheManager;
 window.animePreview = animePreview;
+window.notifier = notifier;
+window.pushService = pushService;
 
 // Helper Functions
 
@@ -344,6 +348,45 @@ export async function handlePreview() {
       window.currentGenerateCallback = () => {
         handleSubscribe();
       };
+
+      // 绑定提醒按钮
+      const reminderBtn = document.getElementById('enableReminder');
+      if (reminderBtn) {
+        reminderBtn.onclick = async () => {
+          const leadSelect = document.getElementById('reminderLead');
+          const lead = leadSelect ? Number(leadSelect.value) || 5 : 5;
+          const result = await notifier.scheduleAnimeReminders(animeData, { leadMinutes: lead });
+          if (result.denied) {
+            showToast(i18n.t('toast.reminderDenied'), 'warning');
+          } else {
+            showToast(i18n.t('toast.reminderOn', { count: result.scheduled, minutes: lead }), 'success');
+          }
+        };
+      }
+
+      const leadSelect = document.getElementById('reminderLead');
+      if (leadSelect) {
+        const saved = localStorage.getItem('reminderLeadMinutes');
+        if (saved) leadSelect.value = saved;
+        leadSelect.addEventListener('change', (e) => {
+          localStorage.setItem('reminderLeadMinutes', e.target.value);
+          showToast(i18n.t('toast.reminderLeadSaved', { minutes: e.target.value }), 'info');
+        });
+      }
+
+      const pushBtn = document.getElementById('enablePush');
+      if (pushBtn) {
+        pushBtn.onclick = async () => {
+          try {
+            await notifier.ensurePermission();
+            await pushService.registerPush();
+            showToast(i18n.t('toast.pushEnabled'), 'success');
+          } catch (err) {
+            console.error(err);
+            showToast(i18n.t('toast.pushFailed'), 'error');
+          }
+        };
+      }
 
       showToast(i18n.t('toast.animeCount', { count: animeData.length }), 'success');
     } else {

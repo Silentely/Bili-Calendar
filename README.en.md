@@ -36,7 +36,7 @@
 - 🚀 **Easy to Use**: Simply provide your Bilibili UID to generate subscription link
 - 🔒 **Privacy Protection**: No user data stored on server, supports self-hosting
 
-### 🆕 New Features (v1.1.7)
+### 🆕 New Features (v1.1.7+ experimental)
 
 - 🌙 **Dark Mode**: Auto follows system theme, supports manual toggle to protect eyes
 - 👁️ **Anime Preview**: Preview all anime content before subscribing, see update time and status
@@ -46,6 +46,8 @@
 - 🎨 **Enhanced UI/UX**: Beautiful animations, loading states, error guidance
 - ⌨️ **Keyboard Shortcuts**: Supports shortcuts for improved efficiency
 - 📱 **Mobile Optimization**: Perfect mobile device adaptation, touch optimized
+- 🔔 **Reminder Upgrade**: Choose 5/10/15 min lead time for browser notifications in preview; optional WebPush (requires VAPID)
+- 📊 **Monitoring Metrics**: `/metrics` JSON and `/metrics/prometheus` (Prometheus text) with p95/p99 and per-route stats
 - 🌍 **Internationalization**: Supports multiple languages (Chinese, English), easy to switch
 
 ### 🔐 Security & Compliance
@@ -244,12 +246,17 @@ Returns: Service status information for health checks
 | `HTTP_TIMEOUT_MS`          | 10000         | HTTP request timeout (milliseconds)                   |
 | `HTTP_RETRY_MAX`           | 2             | HTTP request max retry count                          |
 | `HTTP_RETRY_BASE_DELAY_MS` | 300           | HTTP retry base delay (milliseconds)                  |
+| `VAPID_PUBLIC_KEY`         | Empty         | Optional, WebPush public key                          |
+| `VAPID_PRIVATE_KEY`        | Empty         | Optional, WebPush private key                         |
+| `VAPID_SUBJECT`            | mailto:...    | Optional VAPID subject (from generator)               |
 
 ### Notes
 
 1. **Privacy Settings**: Your Bilibili anime list must be set to public to be accessible
 2. **Cookie Settings**: If encountering access frequency limits, set `BILIBILI_COOKIE` environment variable
 3. **Timezone Handling**: Service defaults to UTC+8 (Beijing Time), ensure deployment environment timezone is correct
+4. **Push Reminder (experimental)**: Run `node scripts/generate-vapid.js` to generate VAPID keys and set env vars, then click “Enable Push” on frontend; without config the button fails gracefully
+5. **Prometheus**: Use `/metrics/prometheus` or `/metrics` JSON; per-route stats are in-memory and reset on restart
 
 ---
 
