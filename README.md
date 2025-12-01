@@ -294,35 +294,57 @@ Bili-Calendar/
 │   │   ├── _error.scss    # 错误样式
 │   │   ├── _dark.scss     # 暗黑模式
 │   │   └── _history.scss  # 历史记录样式
-│   └── utils/             # 前端工具函数
+│   ├── utils/             # 前端工具函数
+│   └── assets/            # 前端资源文件
 ├── dist/                  # 构建产物目录（Vite 打包输出，不提交到 Git）
 │   ├── index.html         # 处理后的 HTML
 │   ├── assets/            # 打包后的 JS/CSS
-│   └── ...                # 其他静态资源
+│   └── .vite/             # Vite 元数据
+│       └── manifest.json  # 构建清单（Service Worker 需要）
 ├── public/                # 静态资源目录（直接复制到 dist/）
 │   ├── favicon.ico        # 网站图标
 │   ├── manifest.webmanifest # PWA 清单
 │   ├── sw.js              # Service Worker
+│   ├── CLAUDE.md          # 前端模块文档
 │   └── icons/             # 应用图标
 ├── netlify/
-│   └── functions/
-│       └── server.js      # Netlify Functions 入口（CJS）
+│   ├── functions/
+│   │   └── server.js      # Netlify Functions 入口（CJS）
+│   └── functions-build/   # Netlify 构建产物
 ├── utils/                 # 后端工具函数目录（CommonJS）
 │   ├── time.cjs           # 时间处理
 │   ├── ics.cjs            # ICS生成
 │   ├── http.cjs           # HTTP客户端
 │   ├── bangumi.cjs        # B站数据抓取
 │   ├── rate-limiter.cjs   # 请求速率限制
-│   └── request-dedup.cjs  # 请求去重
+│   ├── request-dedup.cjs  # 请求去重
+│   ├── constants.cjs      # 常量定义
+│   ├── ip.cjs             # IP 提取工具
+│   └── CLAUDE.md          # 工具模块文档
 ├── utils-es/              # 后端工具函数目录（ES Module，Netlify 专用）
 ├── scripts/               # 构建脚本
 │   ├── build-netlify.mjs
-│   └── update-readme-year.js
+│   ├── update-readme-year.js
+│   └── check-dist.js
+├── test/                  # 测试目录
+│   ├── utils.ics.test.js
+│   ├── utils.time.test.js
+│   ├── utils.rate-limiter.test.js
+│   ├── utils.request-dedup.test.js
+│   └── CLAUDE.md          # 测试模块文档
 ├── assets/                # 文档资源目录
-│   └── icons/             # PWA图标
+│   ├── light-mode.jpg
+│   ├── dark-mode.jpg
+│   ├── preview.jpg
+│   ├── mobile-view.jpg
+│   ├── calendar-view.jpg
+│   └── event-detail.jpg
 ├── Dockerfile             # Docker 镜像配置
 ├── docker-compose.yml     # Docker Compose 配置
-└── package.json           # Node.js 项目配置
+├── package.json           # Node.js 项目配置
+├── eslint.config.js       # ESLint 配置
+├── .prettierignore        # Prettier 忽略规则
+└── CLAUDE.md              # 项目指导文档
 ```
 
 ### 本地开发
@@ -334,8 +356,14 @@ npm install
 # 启动开发服务器（支持热重载）
 npm run dev
 
-# 构建并启动生产服务器
+# 构建前端资源
+npm run build
+
+# 启动生产服务器（需先构建）
 npm run start:prod
+
+# 或者一键构建并启动
+npm run build && npm run start:prod
 
 # 运行测试
 npm test

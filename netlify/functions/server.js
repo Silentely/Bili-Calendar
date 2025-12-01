@@ -70,17 +70,17 @@ const rateLimiterMiddleware = (req, res, next) => {
 };
 
 // 静态文件服务配置
-const PUBLIC_DIRS = [
-  path.join(__dirname, 'public'),
-  path.join(__dirname, '../public'),
-  path.join(__dirname, '../../public'),
-  path.join(process.cwd(), 'public'),
+const STATIC_DIRS = [
+  path.join(__dirname, 'dist'),
+  path.join(__dirname, '../dist'),
+  path.join(__dirname, '../../dist'),
+  path.join(process.cwd(), 'dist'),
 ];
 
 let staticDir = null;
 
 // 查找静态文件目录
-for (const candidate of PUBLIC_DIRS) {
+for (const candidate of STATIC_DIRS) {
   try {
     if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
       const indexPath = path.join(candidate, 'index.html');
@@ -95,7 +95,7 @@ for (const candidate of PUBLIC_DIRS) {
 }
 
 if (staticDir) {
-  app.use(express.static(staticDir));
+  app.use(express.static(staticDir, { dotfiles: 'allow' }));
 }
 
 // 请求ID & 日志中间件 (简化)
