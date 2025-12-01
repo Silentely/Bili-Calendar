@@ -15,6 +15,29 @@
   to = "/.netlify/functions/server"
   status = 200
 
+# Metrics
+[[redirects]]
+  from = "/metrics"
+  to = "/.netlify/functions/server"
+  status = 200
+
+[[redirects]]
+  from = "/metrics/prometheus"
+  to = "/.netlify/functions/server"
+  status = 200
+
+# Aggregate calendar
+[[redirects]]
+  from = "/aggregate/*"
+  to = "/.netlify/functions/server"
+  status = 200
+
+# Push endpoints
+[[redirects]]
+  from = "/push/*"
+  to = "/.netlify/functions/server"
+  status = 200
+
 # 日历订阅 (.ics) 重写到函数
 [[redirects]]
   from = "/:uid.ics"
