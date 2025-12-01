@@ -83,7 +83,55 @@ button:hover {
   padding: 12px;
   min-height: 120px;
   font-family: monospace;
-  white-space: pre-line;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 60px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.bar-label {
+  font-size: 13px;
+  color: #5b6b80;
+}
+
+.bar {
+  width: 100%;
+  height: 10px;
+  background: #e8eef7;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #00a1d6, #00c9ff);
+}
+
+.bar-fill.success {
+  background: linear-gradient(90deg, #2ecc71, #5ee8a2);
+}
+
+.bar-fill.warn {
+  background: linear-gradient(90deg, #f39c12, #f6c263);
+}
+
+.bar-fill.danger {
+  background: linear-gradient(90deg, #e74c3c, #f78a7b);
+}
+
+.bar-fill.secondary {
+  background: linear-gradient(90deg, #7f8c8d, #b0b9c2);
+}
+
+.bar-value {
+  font-size: 13px;
+  color: #5b6b80;
+  text-align: right;
 }
 
 .footer {
