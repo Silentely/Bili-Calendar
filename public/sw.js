@@ -3,28 +3,47 @@ const CACHE_NAME = 'bili-calendar-v1';
 const CORE_ASSETS = [
   '/',
   '/index.html',
-  '/styles.css',
-  '/styles-dark.css',
-  '/loading-animations.css',
-  '/error-guide.css',
-  '/anime-preview.css',
-  '/cache-history.css',
-  '/app.js',
-  '/error-handler.js',
-  '/anime-preview.js',
-  '/cache-manager.js',
   '/manifest.webmanifest',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
 ];
 
+async function loadViteAssets() {
+  try {
+    const resp = await fetch('/manifest.json', { cache: 'no-store' });
+    if (!resp.ok) throw new Error('manifest fetch failed: ' + resp.status);
+    const manifest = await resp.json();
+    const assets = new Set();
+
+    Object.values(manifest).forEach((entry) => {
+      if (entry.file) assets.add(withLeadingSlash(entry.file));
+      if (Array.isArray(entry.css)) entry.css.forEach((css) => assets.add(withLeadingSlash(css)));
+      if (Array.isArray(entry.assets))
+        entry.assets.forEach((asset) => assets.add(withLeadingSlash(asset)));
+    });
+
+    return Array.from(assets);
+  } catch (err) {
+    console.warn('[SW] 读取 Vite manifest 失败，离线预缓存将跳过构建资源:', err);
+    return [];
+  }
+}
+
+function withLeadingSlash(file) {
+  if (!file) return file;
+  return file.startsWith('/') ? file : '/' + file;
+}
+
 // 安装：预缓存核心资源
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => cache.addAll(CORE_ASSETS))
-      .then(() => self.skipWaiting())
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const viteAssets = await loadViteAssets();
+      const assetsToCache = [...new Set([...CORE_ASSETS, ...viteAssets])];
+      await cache.addAll(assetsToCache);
+      await self.skipWaiting();
+    })()
   );
 });
 

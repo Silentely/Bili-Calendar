@@ -1,38 +1,21 @@
-// 主题切换功能
-function toggleTheme() {
-  const body = document.body;
-  const themeIcon = document.getElementById('themeIcon');
-  const currentTheme = body.getAttribute('data-theme');
+import './styles/app.scss';
+import i18n from './services/i18n';
+import { errorHandler, userGuide } from './services/errorHandler';
+import cacheManager from './services/cacheManager';
+import animePreview from './components/AnimePreview';
+import { initPWA } from './services/pwa';
 
-  if (currentTheme === 'dark') {
-    body.setAttribute('data-theme', 'light');
-    themeIcon.classList.remove('fa-sun');
-    themeIcon.classList.add('fa-moon');
-    localStorage.setItem('theme', 'light');
-  } else {
-    body.setAttribute('data-theme', 'dark');
-    themeIcon.classList.remove('fa-moon');
-    themeIcon.classList.add('fa-sun');
-    localStorage.setItem('theme', 'dark');
-  }
-}
+// Initialize PWA
+initPWA();
 
-// 初始化主题
-function initTheme() {
-  const savedTheme = localStorage.getItem('theme') || 'light';
-  const body = document.body;
-  const themeIcon = document.getElementById('themeIcon');
+// Assign globals for legacy HTML compatibility and cross-module access
+window.i18n = i18n;
+window.errorHandler = errorHandler;
+window.userGuide = userGuide;
+window.cacheManager = cacheManager;
+window.animePreview = animePreview;
 
-  body.setAttribute('data-theme', savedTheme);
-
-  if (savedTheme === 'dark') {
-    themeIcon.classList.remove('fa-moon');
-    themeIcon.classList.add('fa-sun');
-  } else {
-    themeIcon.classList.remove('fa-sun');
-    themeIcon.classList.add('fa-moon');
-  }
-}
+// Helper Functions
 
 function toHalfWidth(str) {
   return str.replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
@@ -43,7 +26,7 @@ function isMobile() {
 }
 
 // 增强版Toast通知
-function showToast(message, type = 'info', duration = 3000) {
+export function showToast(message, type = 'info', duration = 3000) {
   const toast = document.createElement('div');
   toast.className = 'toast-notification-enhanced';
 
@@ -75,23 +58,57 @@ function showToast(message, type = 'info', duration = 3000) {
     }, 300);
   }, duration);
 }
+window.showToast = showToast; // Expose for other modules
 
-// 快速切换语言（循环切换已加载语言）
-function cycleLanguage() {
-  if (typeof i18n === 'undefined' || typeof i18n.setLanguage !== 'function') {
-    console.warn('⚠️ 语言模块尚未加载');
-    return;
+// 主题切换功能
+export function toggleTheme() {
+  const body = document.body;
+  const themeIcon = document.getElementById('themeIcon');
+  const currentTheme = body.getAttribute('data-theme');
+
+  if (currentTheme === 'dark') {
+    body.setAttribute('data-theme', 'light');
+    themeIcon.classList.remove('fa-sun');
+    themeIcon.classList.add('fa-moon');
+    localStorage.setItem('theme', 'light');
+  } else {
+    body.setAttribute('data-theme', 'dark');
+    themeIcon.classList.remove('fa-moon');
+    themeIcon.classList.add('fa-sun');
+    localStorage.setItem('theme', 'dark');
   }
+}
+window.toggleTheme = toggleTheme;
 
+// 初始化主题
+function initTheme() {
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  const body = document.body;
+  const themeIcon = document.getElementById('themeIcon');
+
+  body.setAttribute('data-theme', savedTheme);
+
+  if (savedTheme === 'dark') {
+    themeIcon.classList.remove('fa-moon');
+    themeIcon.classList.add('fa-sun');
+  } else {
+    themeIcon.classList.remove('fa-sun');
+    themeIcon.classList.add('fa-moon');
+  }
+}
+
+// 快速切换语言
+export function cycleLanguage() {
   const current = i18n.getLanguage();
   const next = current === 'zh-CN' ? 'en-US' : 'zh-CN';
   const changed = i18n.setLanguage(next);
 
-  if (changed && typeof showToast === 'function') {
+  if (changed) {
     const langName = i18n.t(next === 'zh-CN' ? 'language.zh' : 'language.en');
     showToast(i18n.t('toast.languageSwitched', { lang: langName }), 'success', 2000);
   }
 }
+window.cycleLanguage = cycleLanguage;
 
 // 显示进度条
 function showProgressBar() {
@@ -109,11 +126,6 @@ function showProgressBar() {
   };
 }
 
-/**
- * 开始进度条模拟
- * @param {HTMLElement} progressFill - 进度条元素
- * @returns {number} 定时器ID
- */
 function startProgressSimulation(progressFill) {
   let progress = 0;
   return setInterval(() => {
@@ -125,12 +137,6 @@ function startProgressSimulation(progressFill) {
   }, 300);
 }
 
-/**
- * 完成进度条显示
- * @param {HTMLElement} progressFill - 进度条填充元素
- * @param {HTMLElement} progressBar - 进度条容器
- * @param {number} intervalId - 定时器ID
- */
 function completeProgressBar(progressFill, progressBar, intervalId) {
   clearInterval(intervalId);
   progressFill.style.width = '100%';
@@ -139,11 +145,6 @@ function completeProgressBar(progressFill, progressBar, intervalId) {
   }, 500);
 }
 
-/**
- * 错误进度条显示
- * @param {HTMLElement} progressBar - 进度条容器
- * @param {number} intervalId - 定时器ID
- */
 function errorProgressBar(progressBar, intervalId) {
   clearInterval(intervalId);
   progressBar.classList.remove('active');
@@ -182,7 +183,7 @@ function showResultAnimation(success = true) {
   }, 1500);
 }
 
-function copyToClipboard() {
+export function copyToClipboard() {
   const url = document.getElementById('subscribeUrl').textContent;
   if (!url) return;
   // 先尝试异步剪贴板
@@ -200,6 +201,7 @@ function copyToClipboard() {
     fallbackCopy(url);
   }
 }
+window.copyToClipboard = copyToClipboard;
 
 function fallbackCopy(text) {
   try {
@@ -217,14 +219,12 @@ function fallbackCopy(text) {
   }
 }
 
-async function precheckRate(uid) {
+export async function precheckRate(uid) {
   // 先检查缓存
-  if (window.cacheManager) {
-    const cachedData = cacheManager.getFromCache('bangumi', uid);
-    if (cachedData) {
-      console.log('使用缓存数据');
-      return { ...cachedData, fromCache: true };
-    }
+  const cachedData = cacheManager.getFromCache('bangumi', uid);
+  if (cachedData) {
+    console.log('使用缓存数据');
+    return { ...cachedData, fromCache: true };
   }
 
   // 可选：向后端预检，读取频控响应头
@@ -245,37 +245,35 @@ async function precheckRate(uid) {
     if (!resp.ok) {
       // 透传一些常见错误
       if (resp.status === 400) {
-        if (window.errorHandler) errorHandler.showErrorModal('INVALID_UID');
+        errorHandler.showErrorModal('INVALID_UID');
         throw new Error(i18n.t('error.invalidUid.message'));
       }
       if (resp.status === 403 || body.code === 53013) {
-        if (window.errorHandler) errorHandler.showErrorModal('PRIVACY_PROTECTED');
+        errorHandler.showErrorModal('PRIVACY_PROTECTED');
         throw new Error(i18n.t('error.privacy.message'));
       }
       if (resp.status === 404) {
-        if (window.errorHandler) errorHandler.showErrorModal('USER_NOT_FOUND');
+        errorHandler.showErrorModal('USER_NOT_FOUND');
         throw new Error(i18n.t('error.userNotFound.message'));
       }
       if (resp.status === 429) {
-        if (window.errorHandler) errorHandler.showErrorModal('RATE_LIMITED');
+        errorHandler.showErrorModal('RATE_LIMITED');
         throw new Error(i18n.t('error.rateLimit.message'));
       }
-      if (window.errorHandler) errorHandler.showErrorModal('SERVER_ERROR', body.message);
+      errorHandler.showErrorModal('SERVER_ERROR', body.message);
       throw new Error(body.message || i18n.t('error.server.message'));
     }
 
     // 检查是否有番剧数据
     if (body && body.data && body.data.list && body.data.list.length === 0) {
-      if (window.errorHandler) errorHandler.showErrorModal('NO_ANIME_FOUND');
+      errorHandler.showErrorModal('NO_ANIME_FOUND');
       return { ok: false, error: i18n.t('error.noAnime.message') };
     }
 
     const result = { limit, remaining, reset, ok: true, data: body.data };
 
     // 保存到缓存
-    if (window.cacheManager) {
-      cacheManager.saveToCache('bangumi', uid, result);
-    }
+    cacheManager.saveToCache('bangumi', uid, result);
 
     return result;
   } catch (e) {
@@ -290,15 +288,15 @@ async function precheckRate(uid) {
     const message = e && e.message ? e.message : '';
 
     if (!knownErrorMessages.some((msg) => message && message.includes(msg))) {
-      if (window.errorHandler) errorHandler.showErrorModal('NETWORK_ERROR');
+      errorHandler.showErrorModal('NETWORK_ERROR');
     }
 
     return { ok: false, error: message || i18n.t('error.precheckFailed') };
   }
 }
+window.precheckRate = precheckRate;
 
-// 处理番剧预览
-async function handlePreview() {
+export async function handlePreview() {
   const input = document.getElementById('uidInput') || document.getElementById('uid');
   if (!input) {
     console.error('未找到输入框');
@@ -310,7 +308,7 @@ async function handlePreview() {
 
   if (!uid || !/^[0-9]+$/.test(uid)) {
     showToast(i18n.t('toast.invalidUid'), 'warning');
-    if (window.errorHandler) errorHandler.showErrorModal('INVALID_UID');
+    errorHandler.showErrorModal('INVALID_UID');
     return;
   }
 
@@ -320,25 +318,19 @@ async function handlePreview() {
     let animeData = null;
 
     // 先检查缓存
-    if (window.cacheManager) {
-      animeData = cacheManager.getFromCache('anime_list', uid);
-      if (animeData) {
-        console.log('使用缓存的番剧列表');
-        showToast(i18n.t('toast.cacheLoaded'), 'info');
-      }
+    animeData = cacheManager.getFromCache('anime_list', uid);
+    if (animeData) {
+      console.log('使用缓存的番剧列表');
+      showToast(i18n.t('toast.cacheLoaded'), 'info');
     }
 
     if (!animeData) {
       // 获取番剧数据
-      if (window.animePreview) {
-        animeData = await animePreview.fetchAnimeData(uid);
+      animeData = await animePreview.fetchAnimeData(uid);
 
-        // 保存到缓存
-        if (window.cacheManager && animeData && animeData.length > 0) {
-          cacheManager.saveToCache('anime_list', uid, animeData);
-        }
-      } else {
-        throw new Error(i18n.t('error.previewModuleNotLoaded'));
+      // 保存到缓存
+      if (animeData && animeData.length > 0) {
+        cacheManager.saveToCache('anime_list', uid, animeData);
       }
     }
 
@@ -346,9 +338,7 @@ async function handlePreview() {
       loadingOverlay.hide();
 
       // 显示预览
-      if (window.animePreview) {
-        animePreview.showPreview(animeData);
-      }
+      animePreview.showPreview(animeData);
 
       // 设置生成订阅的回调
       window.currentGenerateCallback = () => {
@@ -358,7 +348,7 @@ async function handlePreview() {
       showToast(i18n.t('toast.animeCount', { count: animeData.length }), 'success');
     } else {
       loadingOverlay.hide();
-      if (window.errorHandler) errorHandler.showErrorModal('NO_ANIME_FOUND');
+      errorHandler.showErrorModal('NO_ANIME_FOUND');
     }
   } catch (error) {
     loadingOverlay.hide();
@@ -366,8 +356,9 @@ async function handlePreview() {
     showToast(i18n.t('toast.fetchFailed'), 'error');
   }
 }
+window.handlePreview = handlePreview;
 
-async function handleSubscribe() {
+export async function handleSubscribe() {
   const input = document.getElementById('uidInput') || document.getElementById('uid');
   const loading = document.getElementById('loadingIndicator');
   const resultBox = document.getElementById('resultBox');
@@ -384,14 +375,12 @@ async function handleSubscribe() {
 
   if (!uid || !/^[0-9]+$/.test(uid)) {
     showToast(i18n.t('toast.invalidUid'), 'warning');
-    if (window.errorHandler) errorHandler.showErrorModal('INVALID_UID');
+    errorHandler.showErrorModal('INVALID_UID');
     return;
   }
 
-  // 保存到历史记录（使用缓存管理器）
-  if (window.cacheManager) {
-    cacheManager.saveUidHistory(uid);
-  }
+  // 保存到历史记录
+  cacheManager.saveUidHistory(uid);
 
   // 显示加载动画
   const progressBar = showProgressBar();
@@ -400,7 +389,6 @@ async function handleSubscribe() {
   resultBox.style.display = 'none';
 
   try {
-    // 如果是直接生成订阅链接，不需要预检
     // 直接生成链接
     const url = window.location.origin + '/' + uid + '.ics';
 
@@ -450,11 +438,16 @@ async function handleSubscribe() {
     showResultAnimation(false);
   }
 }
+window.handleSubscribe = handleSubscribe;
 
 // 页面加载动画和事件绑定
 document.addEventListener('DOMContentLoaded', function () {
   // 初始化主题
   initTheme();
+  
+  // Initialize Modules
+  // i18n.updatePageContent(); // Handled in constructor? No, let's ensure it runs.
+  i18n.updatePageContent();
 
   // 绑定主题切换按钮
   const themeSwitcher = document.getElementById('themeSwitcher');
@@ -490,8 +483,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const helpBtn = document.getElementById('helpBtn');
   if (helpBtn) {
     helpBtn.addEventListener('click', () => {
-      if (window.userGuide && typeof window.userGuide.startTour === 'function') {
-        window.userGuide.startTour();
+      if (userGuide && typeof userGuide.startTour === 'function') {
+        userGuide.startTour();
       }
     });
   }
@@ -500,23 +493,16 @@ document.addEventListener('DOMContentLoaded', function () {
   const historyBtn = document.getElementById('historyBtn');
   if (historyBtn) {
     historyBtn.addEventListener('click', () => {
-      if (window.cacheManager && typeof window.cacheManager.showHistoryPanel === 'function') {
-        window.cacheManager.showHistoryPanel();
+      if (cacheManager && typeof cacheManager.showHistoryPanel === 'function') {
+        cacheManager.showHistoryPanel();
       }
     });
   }
 
   // 初始化缓存管理器的自动建议
-  if (window.cacheManager) {
+  if (cacheManager) {
     cacheManager.initAutoSuggest();
   }
-
-  // 定期清理过期缓存
-  setInterval(() => {
-    if (window.cacheManager) {
-      cacheManager.cleanExpiredCache();
-    }
-  }, 600000); // 每10分钟清理一次
 
   const container = document.querySelector('.main-container');
   if (container) {
@@ -571,11 +557,3 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   } catch {}
 });
-
-// 导出函数供外部脚本调用
-window.toggleTheme = toggleTheme;
-window.cycleLanguage = cycleLanguage;
-window.handleSubscribe = handleSubscribe;
-window.handlePreview = handlePreview;
-window.copyToClipboard = copyToClipboard;
-window.precheckRate = precheckRate;

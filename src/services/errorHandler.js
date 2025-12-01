@@ -55,7 +55,7 @@ const ERROR_CODES = {
 };
 
 // 错误处理器类
-class ErrorHandler {
+export class ErrorHandler {
   constructor() {
     this.errorHistory = [];
     this.maxHistorySize = 10;
@@ -199,7 +199,7 @@ class ErrorHandler {
 }
 
 // 用户引导系统
-class UserGuide {
+export class UserGuide {
   constructor() {
     this.currentStep = 0;
     this.steps = [];
@@ -222,7 +222,39 @@ class UserGuide {
         position: 'top',
       },
       {
-        element: 'button[onclick="handleSubscribe()"]',
+        element: 'button[onclick="handleSubscribe()"]', // This selector might fail if handleSubscribe is not global.
+        // But wait, I don't use onclick in HTML for generateBtn. I use id="generateBtn".
+        // So I should update this selector.
+        title: '生成订阅',
+        content: '点击这个按钮生成您的追番日历订阅链接',
+        position: 'left',
+      },
+      {
+        element: '.theme-switcher',
+        title: '主题切换',
+        content: '点击这里可以切换亮色/暗色主题',
+        position: 'bottom-left',
+      },
+    ];
+  }
+  
+  // Override initTour to use correct selector for generateBtn
+  initTourV2() {
+      this.steps = [
+      {
+        element: '#uidInput',
+        title: '输入UID',
+        content: '在这里输入您的B站用户ID（UID）',
+        position: 'bottom',
+      },
+      {
+        element: '.help-text',
+        title: '查找UID',
+        content: 'UID可以在您的B站个人空间网址中找到',
+        position: 'top',
+      },
+      {
+        element: '#generateBtn', // Use ID instead of onclick selector
         title: '生成订阅',
         content: '点击这个按钮生成您的追番日历订阅链接',
         position: 'left',
@@ -239,6 +271,9 @@ class UserGuide {
   // 开始引导
   startTour() {
     if (this.isActive) return;
+    
+    // Re-init steps if needed (call V2)
+    this.initTourV2();
 
     this.isActive = true;
     this.currentStep = 0;
@@ -395,19 +430,4 @@ class UserGuide {
 const errorHandler = new ErrorHandler();
 const userGuide = new UserGuide();
 
-// 初始化
-document.addEventListener('DOMContentLoaded', () => {
-  errorHandler.loadFromLocalStorage();
-  userGuide.initTour();
-
-  // 如果是新用户，5秒后自动开始引导
-  if (userGuide.shouldShowTour()) {
-    setTimeout(() => {
-      userGuide.startTour();
-    }, 5000);
-  }
-});
-
-// 导出给其他模块使用
-window.errorHandler = errorHandler;
-window.userGuide = userGuide;
+export { errorHandler, userGuide };

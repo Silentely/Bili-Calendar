@@ -31,7 +31,7 @@ async function main() {
 
   const targets = [
     ['netlify/functions/server.js', 'server.js'],
-    ['public', 'public'],
+    ['dist', 'dist'],
     ['utils', 'utils'],
     ['utils-es', 'utils-es'],
   ];

@@ -1,54 +1,65 @@
 # Public 模块文档
 
-> **导航**: [← 返回根目录](../CLAUDE.md) | **模块**: 前端应用层
+> **导航**: [根目录](../CLAUDE.md) > **public (前端应用层)**
 
 ---
 
-## 📋 模块概览
+## 变更记录 (Changelog)
+
+### 2025-11-30
+- **[导航增强]** 添加面包屑导航，便于模块间跳转
+- **[索引更新]** 更新模块索引，与根文档保持一致
+
+### 2025-11-22
+- 初始文档创建，详细记录前端架构与功能实现
+
+---
+
+## 模块概览
 
 **Public** 模块是 Bili-Calendar 的前端应用层，负责用户界面展示、交互逻辑、PWA 支持和多语言国际化。采用 Vanilla JavaScript 实现，无框架依赖，轻量高效。
 
 ### 核心职责
 
-- 🎨 用户界面渲染与交互
-- 🌐 多语言支持 (中文/英文)
-- 💾 本地缓存与历史记录管理
-- 📱 PWA 支持与离线访问
-- 🌙 暗黑模式切换
-- 👁️ 番剧预览功能
-- ⚠️ 错误处理与用户引导
+- 用户界面渲染与交互
+- 多语言支持 (中文/英文)
+- 本地缓存与历史记录管理
+- PWA 支持与离线访问
+- 暗黑模式切换
+- 番剧预览功能
+- 错误处理与用户引导
 
 ---
 
-## 📁 文件结构
+## 文件结构
 
 ```
 public/
-├── 📄 index.html                # 主页面 (HTML 结构)
-├── 📄 app.js                    # 主应用逻辑 (核心控制器)
-├── 📄 i18n.js                   # 国际化支持 (中英文切换)
-├── 📄 cache-manager.js          # 缓存管理 (LocalStorage)
-├── 📄 error-handler.js          # 错误处理 (友好提示)
-├── 📄 anime-preview.js          # 番剧预览 (模态框)
-├── 📄 sw.js                     # Service Worker (PWA)
-├── 📄 pwa-init.js               # PWA 初始化
-├── 📄 styles.css                # 主样式 (浅色模式)
-├── 📄 styles-dark.css           # 暗黑模式样式
-├── 📄 loading-animations.css    # 加载动画
-├── 📄 anime-preview.css         # 番剧预览样式
-├── 📄 cache-history.css         # 缓存历史样式
-├── 📄 error-guide.css           # 错误引导样式
-├── 📄 mobile-enhancements.css   # 移动端优化
-├── 📄 manifest.webmanifest      # PWA 清单
-├── 📄 favicon.ico               # 网站图标
-└── 📂 icons/                    # PWA 应用图标
+├── index.html                # 主页面 (HTML 结构)
+├── app.js                    # 主应用逻辑 (核心控制器)
+├── i18n.js                   # 国际化支持 (中英文切换)
+├── cache-manager.js          # 缓存管理 (LocalStorage)
+├── error-handler.js          # 错误处理 (友好提示)
+├── anime-preview.js          # 番剧预览 (模态框)
+├── sw.js                     # Service Worker (PWA)
+├── pwa-init.js               # PWA 初始化
+├── styles.css                # 主样式 (浅色模式)
+├── styles-dark.css           # 暗黑模式样式
+├── loading-animations.css    # 加载动画
+├── anime-preview.css         # 番剧预览样式
+├── cache-history.css         # 缓存历史样式
+├── error-guide.css           # 错误引导样式
+├── mobile-enhancements.css   # 移动端优化
+├── manifest.webmanifest      # PWA 清单
+├── favicon.ico               # 网站图标
+└── icons/                    # PWA 应用图标
     ├── icon-192x192.png
     └── icon-512x512.png
 ```
 
 ---
 
-## 🔑 核心文件详解
+## 核心文件详解
 
 ### 1. `index.html` - 主页面
 
@@ -413,10 +424,10 @@ function showErrorMessage(errorType) {
 **职责**: 番剧列表预览模态框
 
 **功能特性**:
-- 📋 显示所有追番列表
-- 🕒 显示更新时间与状态
-- 🔍 支持搜索与筛选
-- 📱 响应式布局
+- 显示所有追番列表
+- 显示更新时间与状态
+- 支持搜索与筛选
+- 响应式布局
 
 **API 调用**:
 ```javascript
@@ -515,7 +526,7 @@ self.addEventListener('activate', (event) => {
 
 ---
 
-## 🎨 样式系统
+## 样式系统
 
 ### 主题变量
 
@@ -570,7 +581,7 @@ self.addEventListener('activate', (event) => {
 
 ---
 
-## 🔧 配置与常量
+## 配置与常量
 
 ### PWA 配置 (`manifest.webmanifest`)
 
@@ -600,7 +611,7 @@ self.addEventListener('activate', (event) => {
 
 ---
 
-## 📊 性能优化
+## 性能优化
 
 ### 1. 资源加载优化
 - 使用 `defer` 加载非关键 JS
@@ -619,7 +630,7 @@ self.addEventListener('activate', (event) => {
 
 ---
 
-## 🧪 测试建议
+## 测试建议
 
 ### 功能测试
 - [ ] UID 输入验证
@@ -638,12 +649,12 @@ self.addEventListener('activate', (event) => {
 
 ---
 
-## 🔗 相关链接
+## 相关链接
 
-- [← 返回根目录](../CLAUDE.md)
+- [根目录](../CLAUDE.md)
 - [工具模块文档](../utils/CLAUDE.md)
 - [测试文档](../test/CLAUDE.md)
 
 ---
 
-**最后更新**: 2025-11-22 15:49:27 UTC
+**最后更新**: 2025-11-30

@@ -79,7 +79,7 @@ app.use((req, res, next) => {
 // 提供静态文件服务
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'dist')));
 
 // 请求ID & 日志中间件
 app.use((req, res, next) => {
@@ -187,9 +187,9 @@ function formatUptime(seconds) {
   return parts.join(' ');
 }
 
-// 根路径返回前端页面
+// 根路径返回前端页面（Vite 构建产物）
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 // 获取 B站追番数据

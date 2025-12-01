@@ -1,6 +1,6 @@
 [build]
   command = "npm run build"
-  publish = "public"
+  publish = "dist"
   functions = "netlify/functions-build"
 
 # API 请求交给函数处理

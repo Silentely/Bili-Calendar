@@ -1,8 +1,30 @@
 # Bili-Calendar 项目指导文件
 
-> **最后更新**: 2025-11-23
-> **版本**: v1.1.7
-> **项目类型**: Node.js Web 应用 (Express + Vanilla JS)
+> **最后更新**: 2025-12-01
+> **版本**: v1.2.0
+> **项目类型**: Node.js Web 应用 (Express + Vite + Vanilla JS)
+
+---
+
+## 变更记录 (Changelog)
+
+### 2025-12-01
+- **[架构重构]** 从传统静态文件迁移到 Vite 构建系统
+- **[前端工程化]** 引入 ES Module、SCSS、组件化开发
+- **[构建优化]** 添加 Vite 7.x 构建工具，支持热重载和代码分割
+- **[部署修复]** 更新 Dockerfile 和 netlify.toml 配置
+- **[文档更新]** 同步更新项目架构文档，反映新的目录结构
+
+### 2025-11-30
+- **[架构师初始化]** 自动生成项目索引与模块结构图
+- **[文档增强]** 添加 Mermaid 模块可视化图表
+- **[元数据]** 生成 `.claude/index.json` 项目索引文件
+- **[导航优化]** 为各模块文档添加面包屑导航
+
+### 2025-11-23
+- 重构项目文档结构，统一命名规范
+- 移除 Mermaid 图表和 emoji 装饰
+- 更新代码规范、日志规范、异常处理指南
 
 ---
 
@@ -23,11 +45,12 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        客户端 (public/)                          │
+│                    客户端 (Vite 开发/构建)                        │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
-│  │ app.js   │  │ i18n.js  │  │ cache-   │  │ error-   │        │
-│  │ (核心)    │  │ (多语言) │  │ manager  │  │ handler  │        │
+│  │ main.js  │  │ i18n.js  │  │ cache    │  │ error    │        │
+│  │ (入口)    │  │ (多语言) │  │ Manager  │  │ Handler  │        │
 │  └────┬─────┘  └──────────┘  └──────────┘  └──────────┘        │
+│       │ Vite Build → dist/                                      │
 └───────┼─────────────────────────────────────────────────────────┘
         │ HTTP Request
         ▼
@@ -40,7 +63,7 @@
 │          ▼                                                      │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐      │
 │  │ /api/:uid    │    │ /preview/:uid│    │ 静态文件服务  │      │
-│  │ (ICS生成)    │    │ (番剧预览)   │    │              │      │
+│  │ (ICS生成)    │    │ (番剧预览)   │    │ (dist/)      │      │
 │  └──────┬───────┘    └──────────────┘    └──────────────┘      │
 └─────────┼───────────────────────────────────────────────────────┘
           │
@@ -63,7 +86,9 @@
 | **运行时** | Node.js | >= 18.0.0 |
 | **后端框架** | Express.js | ^4.18.2 |
 | **HTTP 客户端** | Axios | ^1.12.0 |
-| **前端** | Vanilla JavaScript | ES2022+ |
+| **前端框架** | Vanilla JavaScript | ES2022+ |
+| **构建工具** | Vite | ^7.2.4 |
+| **样式预处理** | SCSS/Sass | ^1.94.2 |
 | **部署** | Docker / Netlify Functions | - |
 | **测试** | Node.js 内置测试框架 | - |
 | **代码检查** | ESLint + Prettier | ESLint 9.x |
@@ -78,19 +103,39 @@
 Bili-Calendar/
 ├── server.js                    # [入口] Express 主服务器
 ├── package.json                 # 项目配置与依赖
+├── vite.config.js               # Vite 构建配置
+├── index.html                   # 前端入口 HTML
 │
-├── public/                      # [前端] 静态资源
-│   ├── index.html               # 主页面
-│   ├── app.js                   # 主应用逻辑
-│   ├── i18n.js                  # 国际化支持
-│   ├── cache-manager.js         # 缓存管理
-│   ├── error-handler.js         # 错误处理
-│   ├── anime-preview.js         # 番剧预览
+├── src/                         # [前端] 源代码目录
+│   ├── main.js                  # 前端入口文件
+│   ├── components/              # 组件目录
+│   │   └── AnimePreview.js      # 番剧预览组件
+│   ├── services/                # 服务模块
+│   │   ├── i18n.js              # 国际化支持
+│   │   ├── cacheManager.js      # 缓存管理
+│   │   ├── errorHandler.js      # 错误处理
+│   │   └── pwa.js               # PWA 初始化
+│   ├── styles/                  # 样式目录 (SCSS)
+│   │   ├── app.scss             # 主样式入口
+│   │   ├── _modules.scss        # 模块化样式
+│   │   ├── _preview.scss        # 预览样式
+│   │   ├── _loading.scss        # 加载动画
+│   │   ├── _error.scss          # 错误样式
+│   │   ├── _dark.scss           # 暗黑模式
+│   │   └── _history.scss        # 历史记录样式
+│   └── utils/                   # 前端工具函数
+│
+├── dist/                        # [构建产物] Vite 打包输出 (不提交到 Git)
+│   ├── index.html               # 处理后的 HTML
+│   ├── assets/                  # 打包后的 JS/CSS
+│   └── ...                      # 其他静态资源
+│
+├── public/                      # [静态资源] 直接复制到 dist/
+│   ├── favicon.ico              # 网站图标
+│   ├── manifest.webmanifest     # PWA 清单
 │   ├── sw.js                    # Service Worker
-│   ├── pwa-init.js              # PWA 初始化
-│   ├── styles.css               # 主样式
-│   ├── styles-dark.css          # 暗黑模式
-│   └── manifest.webmanifest     # PWA 清单
+│   ├── icons/                   # 应用图标
+│   └── CLAUDE.md                # 前端模块文档
 │
 ├── utils/                       # [后端] 工具模块 (CommonJS)
 │   ├── bangumi.cjs              # B站番剧数据获取
@@ -122,6 +167,65 @@ Bili-Calendar/
 │
 └── assets/                      # [文档] 文档资源
 ```
+
+---
+
+## 模块结构可视化
+
+```mermaid
+graph TD
+    Root["根目录<br/>Bili-Calendar"] --> Src["src/<br/>前端源代码"]
+    Root --> Public["public/<br/>静态资源"]
+    Root --> Dist["dist/<br/>构建产物 (不提交)"]
+    Root --> Utils["utils/<br/>后端工具层 (CommonJS)"]
+    Root --> UtilsES["utils-es/<br/>后端工具层 (ES Module)"]
+    Root --> Test["test/<br/>测试套件"]
+    Root --> Netlify["netlify/<br/>Serverless 部署"]
+    Root --> Scripts["scripts/<br/>构建脚本"]
+    Root --> ViteConfig["vite.config.js<br/>Vite 配置"]
+
+    Src --> SrcMain["main.js"]
+    Src --> SrcComponents["components/"]
+    Src --> SrcServices["services/"]
+    Src --> SrcStyles["styles/ (SCSS)"]
+
+    Public --> PublicCLAUDE["CLAUDE.md"]
+    Utils --> UtilsCLAUDE["CLAUDE.md"]
+    Test --> TestCLAUDE["CLAUDE.md"]
+
+    PublicCLAUDE -.->|"查看文档"| PublicLink["./public/CLAUDE.md"]
+    UtilsCLAUDE -.->|"查看文档"| UtilsLink["./utils/CLAUDE.md"]
+    TestCLAUDE -.->|"查看文档"| TestLink["./test/CLAUDE.md"]
+
+    ViteConfig -.->|"构建"| Dist
+
+    style Root fill:#e3f2fd
+    style Src fill:#fff3e0
+    style Public fill:#e8f5e9
+    style Dist fill:#ffebee
+    style Utils fill:#f3e5f5
+    style Test fill:#e8f5e9
+    style ViteConfig fill:#fce4ec
+    style PublicCLAUDE fill:#ffccbc
+    style UtilsCLAUDE fill:#ffccbc
+    style TestCLAUDE fill:#ffccbc
+```
+
+---
+
+## 模块索引
+
+| 模块名称 | 路径 | 职责描述 | 文档链接 |
+|---------|------|---------|---------|
+| **前端源代码** | `src/` | 用户界面、交互逻辑、组件、样式（Vite 构建） | - |
+| **静态资源** | `public/` | 直接复制到构建产物的资源（图标、PWA） | [查看文档](./public/CLAUDE.md) |
+| **构建产物** | `dist/` | Vite 打包输出（不提交到 Git） | - |
+| **后端工具层 (CommonJS)** | `utils/` | B站API、ICS生成、限流、去重、时间处理 | [查看文档](./utils/CLAUDE.md) |
+| **后端工具层 (ES Module)** | `utils-es/` | Netlify Serverless 环境专用 | - |
+| **测试套件** | `test/` | 单元测试、集成测试 | [查看文档](./test/CLAUDE.md) |
+| **Serverless 部署** | `netlify/` | Netlify Functions 配置与构建产物 | - |
+| **构建脚本** | `scripts/` | Netlify 构建、README 更新脚本 | - |
+| **Vite 配置** | `vite.config.js` | 前端构建与开发服务器配置 | - |
 
 ---
 

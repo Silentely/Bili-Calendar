@@ -1,6 +1,6 @@
 // i18n.js - Internationalization Module
 
-class I18n {
+export class I18n {
   constructor() {
     this.translations = {
       'zh-CN': {
@@ -417,42 +417,21 @@ class I18n {
       element.setAttribute('aria-label', this.t(key));
     });
 
-    updateLanguageToggleLabel();
+    this.updateLanguageToggleLabel();
+  }
+
+  updateLanguageToggleLabel() {
+    const label = document.getElementById('languageToggleLabel');
+    if (!label) return;
+
+    const current = this.getLanguage();
+    const target = current === 'zh-CN' ? 'en-US' : 'zh-CN';
+    const textKey = target === 'zh-CN' ? 'language.zh' : 'language.en';
+    label.textContent = this.t(textKey);
   }
 }
 
 // Create global instance
 const i18n = new I18n();
 
-// Initialize on DOM ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    i18n.updatePageContent();
-    setupLanguageSwitcher();
-  });
-} else {
-  i18n.updatePageContent();
-  setTimeout(() => setupLanguageSwitcher(), 0);
-}
-
-// Setup language switcher
-function setupLanguageSwitcher() {
-  updateLanguageToggleLabel();
-}
-
-function updateLanguageToggleLabel() {
-  const label = document.getElementById('languageToggleLabel');
-  if (!label) return;
-
-  const current = i18n.getLanguage();
-  const target = current === 'zh-CN' ? 'en-US' : 'zh-CN';
-  const textKey = target === 'zh-CN' ? 'language.zh' : 'language.en';
-  label.textContent = i18n.t(textKey);
-}
-
-window.addEventListener('languageChanged', updateLanguageToggleLabel);
-
-// Export for ES modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = i18n;
-}
+export default i18n;

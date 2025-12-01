@@ -16,11 +16,17 @@ RUN apk add --no-cache wget
 # 复制package.json和package-lock.json（如果存在）
 COPY package*.json ./
 
-# 安装依赖，使用生产模式
-RUN npm install --omit=dev
+# 先安装所有依赖（包括devDependencies，用于构建）
+RUN npm ci
 
 # 复制应用程序代码
 COPY . .
+
+# 执行前端构建（生成 dist/ 目录）
+RUN npm run build
+
+# 清理devDependencies，只保留生产依赖
+RUN npm prune --omit=dev
 
 # 暴露端口
 EXPOSE 3000

@@ -1,6 +1,6 @@
 // 本地缓存和历史记录管理模块
 
-class CacheManager {
+export class CacheManager {
   constructor() {
     this.cachePrefix = 'bili_calendar_';
     this.maxCacheAge = 3600000; // 1小时缓存有效期
@@ -104,7 +104,7 @@ class CacheManager {
           localStorage.removeItem(key);
         }
       });
-      showToast('缓存已清理', 'success');
+      if (window.showToast) window.showToast('缓存已清理', 'success');
     } catch (e) {
       console.error('清除缓存失败:', e);
     }
@@ -219,7 +219,7 @@ class CacheManager {
   clearHistory() {
     try {
       localStorage.removeItem('uid_history');
-      showToast('历史记录已清除', 'success');
+      if (window.showToast) window.showToast('历史记录已清除', 'success');
       return true;
     } catch (e) {
       console.error('清除历史记录失败:', e);
@@ -341,9 +341,9 @@ class CacheManager {
       input.value = uid;
       this.closeHistoryPanel();
 
-      // 自动触发生成
-      if (typeof handleSubscribe === 'function') {
-        handleSubscribe();
+      // 自动触发生成 - 使用 window.handleSubscribe
+      if (typeof window.handleSubscribe === 'function') {
+        window.handleSubscribe();
       }
     }
   }
@@ -353,7 +353,7 @@ class CacheManager {
     if (this.removeHistoryItem(uid)) {
       // 刷新面板
       this.showHistoryPanel();
-      showToast('已删除历史记录', 'success');
+      if (window.showToast) window.showToast('已删除历史记录', 'success');
     }
   }
 
@@ -497,15 +497,4 @@ class CacheManager {
 // 创建全局实例
 const cacheManager = new CacheManager();
 
-// 初始化
-document.addEventListener('DOMContentLoaded', () => {
-  cacheManager.initAutoSuggest();
-
-  // 定期清理过期缓存
-  setInterval(() => {
-    cacheManager.cleanExpiredCache();
-  }, 600000); // 每10分钟清理一次
-});
-
-// 导出给其他模块使用
-window.cacheManager = cacheManager;
+export default cacheManager;

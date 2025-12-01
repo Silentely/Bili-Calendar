@@ -6,9 +6,10 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "NODE_ENV=development node --watch server.js",
+    "dev": "concurrently -k \"npm:server:dev\" \"vite\"",
+    "server:dev": "NODE_ENV=development node --watch server.js",
     "start:prod": "NODE_ENV=production node server.js",
-    "build": "node scripts/update-readme-year.js && node scripts/build-netlify.mjs",
+    "build": "vite build && node scripts/update-readme-year.js && node scripts/build-netlify.mjs",
     "lint": "eslint .",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
@@ -30,9 +31,12 @@
     "serverless-http": "^3.2.0"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "eslint": "^9.32.0",
     "globals": "^15.11.0",
-    "prettier": "^3.3.3"
+    "prettier": "^3.3.3",
+    "sass": "^1.94.2",
+    "vite": "^7.2.4"
   },
   "engines": {
     "node": ">=18.0.0"

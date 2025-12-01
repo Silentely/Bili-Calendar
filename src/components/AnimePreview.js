@@ -1,6 +1,6 @@
 // 番剧预览功能模块
 
-class AnimePreview {
+export class AnimePreview {
   constructor() {
     this.animeData = [];
     this.modalId = 'animePreviewModal';
@@ -389,6 +389,7 @@ class AnimePreview {
     if (!anime) return;
 
     // 这里可以显示更详细的信息
+    // Use window.showToast which will be exposed in main.js
     if (window.showToast) {
       window.showToast(
         `《${anime.title}》\n状态：${anime.status.text}\n进度：${anime.currentEpisode}/${anime.episodes}`,
@@ -422,5 +423,4 @@ class AnimePreview {
 // 创建全局实例
 const animePreview = new AnimePreview();
 
-// 导出给其他模块使用
-window.animePreview = animePreview;
+export default animePreview;
