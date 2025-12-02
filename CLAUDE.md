@@ -194,7 +194,7 @@ graph TD
     Utils --> UtilsCLAUDE["CLAUDE.md"]
     Test --> TestCLAUDE["CLAUDE.md"]
 
-    PublicCLAUDE -.->|"查看文档"| PublicLink["./public/CLAUDE.md"]
+    PublicCLAUDE -.->|"查看文档"| PublicLink["./docs/frontend.md"]
     UtilsCLAUDE -.->|"查看文档"| UtilsLink["./utils/CLAUDE.md"]
     TestCLAUDE -.->|"查看文档"| TestLink["./test/CLAUDE.md"]
 
@@ -219,7 +219,7 @@ graph TD
 | 模块名称 | 路径 | 职责描述 | 文档链接 |
 |---------|------|---------|---------|
 | **前端源代码** | `src/` | 用户界面、交互逻辑、组件、样式（Vite 构建） | - |
-| **静态资源** | `public/` | 直接复制到构建产物的资源（图标、PWA） | [查看文档](./public/CLAUDE.md) |
+| **静态资源** | `public/` | 直接复制到构建产物的资源（图标、PWA） | [查看文档](./docs/frontend.md) |
 | **构建产物** | `dist/` | Vite 打包输出（不提交到 Git） | - |
 | **后端工具层 (CommonJS)** | `utils/` | B站API、ICS生成、限流、去重、时间处理 | [查看文档](./utils/CLAUDE.md) |
 | **后端工具层 (ES Module)** | `utils-es/` | Netlify Serverless 环境专用 | - |
@@ -644,7 +644,7 @@ Closes #123
 | 文档 | 路径 | 说明 |
 |------|------|------|
 | **项目指导** | `/CLAUDE.md` | 项目整体架构与规范（本文件） |
-| **前端模块** | `/public/CLAUDE.md` | 前端应用层详细文档 |
+| **前端模块** | `/docs/frontend.md` | 前端应用层详细文档 |
 | **工具模块** | `/utils/CLAUDE.md` | 后端工具层详细文档 |
 | **测试模块** | `/test/CLAUDE.md` | 测试套件详细文档 |
 | **用户文档** | `/README.md` | 面向用户的使用说明 |
