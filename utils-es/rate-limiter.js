@@ -1,5 +1,5 @@
 // utils-es/rate-limiter.js
-const DEFAULT_MAX_REQUESTS = 3;
+const DEFAULT_MAX_REQUESTS = 100;
 const DEFAULT_TIME_WINDOW = 60 * 60 * 1000;
 
 function parseIntEnv(name, def, min = 1, max = Number.MAX_SAFE_INTEGER) {

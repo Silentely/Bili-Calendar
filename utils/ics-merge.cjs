@@ -2,6 +2,8 @@
 // 多源 ICS 合并与冲突检测工具 (CommonJS)
 
 const axios = require('axios');
+const dns = require('node:dns');
+const { isPrivateIPAddress } = require('./security.cjs');
 const {
   parseBroadcastTime,
   parseNewEpTime,
@@ -15,12 +17,41 @@ const ONE_HOUR_MS = 60 * 60 * 1000;
 const ONE_DAY_MS = 24 * ONE_HOUR_MS;
 
 /**
+ * 安全的 DNS lookup 函数，防止 DNS 重绑定攻击
+ * 在 DNS 解析后立即检查 IP 是否为私有地址
+ */
+const safeLookup = (hostname, options, callback) => {
+  // 处理可选的 options 参数
+  if (typeof options === 'function') {
+    callback = options;
+    options = {};
+  }
+
+  dns.lookup(hostname, options, (err, address, family) => {
+    if (err) {
+      return callback(err, address, family);
+    }
+
+    // DNS 解析后立即检查 IP 地址
+    if (isPrivateIPAddress(address)) {
+      const ssrfError = new Error(
+        `SSRF attempt blocked: request to private IP ${address} for hostname ${hostname}`
+      );
+      ssrfError.code = 'ERR_SSRF_BLOCKED';
+      return callback(ssrfError);
+    }
+
+    callback(null, address, family);
+  });
+};
+
+/**
  * 将番剧列表转换为通用事件对象
  * @param {Array} bangumis
  * @param {string} uid
  * @returns {Array<{uid:string,summary:string,description:string,start:Date,end:Date,isAllDay:boolean,source:string,url?:string,rrule?:string,rawStart?:string}>}
  */
-function buildBangumiEvents(bangumis, uid) {
+function buildBangumiEvents(bangumis, _uid) {
   const nowIso = new Date().toISOString().replace(/[-:.]/g, '').substring(0, 15) + 'Z';
   const events = [];
 
@@ -367,18 +398,43 @@ function generateMergedICS(bangumis, uid, externalCalendars = []) {
 }
 
 async function fetchExternalICS(urls = []) {
-  const results = [];
-  for (const url of urls) {
+  if (!Array.isArray(urls) || urls.length === 0) return [];
+
+  const tasks = urls.map((url) => {
+    let parsed;
     try {
-      const res = await axios.get(url, { timeout: 8000, responseType: 'text' });
-      if (typeof res.data === 'string') {
-        results.push({ url, ics: res.data });
-      }
-    } catch (err) {
-      console.warn(`⚠️ 获取外部 ICS 失败: ${url} - ${err.message}`);
+      parsed = new URL(url);
+    } catch {
+      console.warn(`⚠️ 跳过无效的URL: ${url}`);
+      return Promise.resolve(null);
     }
-  }
-  return results;
+
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      console.warn(`⚠️ 跳过不支持的协议: ${url}`);
+      return Promise.resolve(null);
+    }
+
+    return axios
+      .get(url, { timeout: 8000, responseType: 'text', lookup: safeLookup })
+      .then((res) => {
+        if (typeof res.data === 'string') {
+          return { url, ics: res.data };
+        }
+        console.warn(`⚠️ 外部 ICS 响应非文本: ${url}`);
+        return null;
+      })
+      .catch((err) => {
+        if (err.code === 'ERR_SSRF_BLOCKED') {
+          console.warn(`🚫 [SSRF] Blocked request to ${url}: ${err.message}`);
+        } else {
+          console.warn(`⚠️ 获取外部 ICS 失败: ${url} - ${err.message}`);
+        }
+        return null;
+      });
+  });
+
+  const settled = await Promise.all(tasks);
+  return settled.filter(Boolean);
 }
 
 module.exports = {
