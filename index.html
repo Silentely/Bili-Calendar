@@ -106,13 +106,30 @@
             <span data-i18n="input.preview">预览番剧</span>
           </button>
         </div>
-        <div class="help-text">
-          <i class="fas fa-info-circle"></i>
-          <span data-i18n-html="input.help">
-            UID可在B站个人空间网址中找到，例如：https://space.bilibili.com/<strong>614500</strong>
-          </span>
-        </div>
+      <div class="help-text">
+        <i class="fas fa-info-circle"></i>
+        <span data-i18n-html="input.help">
+          UID可在B站个人空间网址中找到，例如：https://space.bilibili.com/<strong>614500</strong>
+        </span>
       </div>
+
+      <div class="aggregate-options">
+        <div class="aggregate-options-header">
+          <span class="beta-badge" data-i18n="aggregate.badge">Beta</span>
+          <span data-i18n="aggregate.title">外部 ICS 聚合（可选）</span>
+        </div>
+        <textarea
+          id="sourcesInput"
+          class="form-control aggregate-textarea"
+          rows="3"
+          data-i18n-placeholder="aggregate.placeholder"
+          placeholder="每行或使用逗号分隔多个 https://example.com/work.ics"
+        ></textarea>
+        <p class="aggregate-hint" data-i18n="aggregate.hint">
+          可一次性合并最多 5 个 http/https 外部 ICS 链接，将自动生成 /aggregate/:uid.ics?sources= 订阅地址。
+        </p>
+      </div>
+    </div>
 
       <div class="loading" id="loadingIndicator">
         <span class="spinner"></span>

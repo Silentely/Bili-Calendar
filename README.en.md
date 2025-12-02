@@ -445,6 +445,7 @@ The project automatically filters out finished anime and anime without clear bro
 ### v1.1.8 (2025-12-02)
 
 - 🔀 Documented `/aggregate/:uid.ics?sources=` usage; merge up to 5 external ICS feeds
+- 🧷 UI now exposes an “External ICS Merge” textarea so you can paste optional feeds before generating the subscription link
 - 🛠️ Netlify Functions now bundles `utils/**` and `utils-es/**` to avoid missing `rate-limiter.cjs`
 - 🧩 Serverless entry explicitly `require('axios')`, fixing aggregation failures caused by missing dependency
 - 📄 README & README.en updated to highlight the above fixes

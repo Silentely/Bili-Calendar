@@ -685,6 +685,7 @@ API响应包含以下速率限制相关头部信息：
 ### v1.1.8 (2025-12-02)
 
 - 🔀 README 新增 `/aggregate/:uid.ics?sources=` 使用指南，可一次合并最多 5 个外部 ICS
+- 🧷 前端新增“外部 ICS 聚合”输入框，支持直接在网页输入额外 ICS 链接后生成聚合订阅
 - 🛠️ Netlify Functions 构建默认打包 `utils/**` 与 `utils-es/**`，修复 `rate-limiter.cjs` 缺失
 - 🧩 函数入口显式 `require('axios')`，避免聚合端点拉取外部 ICS 时的 `Cannot find module 'axios'`
 - 📄 文档同步记录本次修复，方便追踪发布内容
