@@ -10,7 +10,7 @@ const require = createRequire(import.meta.url);
 const { getBangumiData } = require('./utils/bangumi.cjs');
 const { createRateLimiter } = require('./utils/rate-limiter.cjs');
 const { extractClientIP, generateRequestId } = require('./utils/ip.cjs');
-const { validateUID, validateExternalSource } = require('./utils/security.cjs');
+const { validateUID } = require('./utils/security.cjs');
 const metrics = require('./utils/metrics.cjs');
 const createPushStore = require('./utils/push-store.cjs');
 const pushStore = createPushStore(process.env.PUSH_STORE_FILE);
@@ -349,11 +349,11 @@ app.get('/', (req, res) => {
 app.get('/api/bangumi/:uid', rateLimiterMiddleware, async (req, res, next) => {
   const { uid } = req.params;
 
-  if (!/^\d+$/.test(uid)) {
+  if (!validateUID(uid)) {
     console.warn(`⚠️ 无效的UID格式: ${uid}`);
     return res.status(400).json({
       error: 'Invalid UID',
-      message: 'UID必须是纯数字',
+      message: 'UID必须是1-20位纯数字',
     });
   }
 
@@ -454,28 +454,40 @@ const handleAggregate = async (req, res, next) => {
     });
   }
 
-  const sourcesParam = req.query.sources || '';
-  const sourceList = sourcesParam
-    .split(',')
-    .map((s) => decodeURIComponent(s.trim()))
+  // 健壮的源列表解析：处理数组参数和非法编码
+  const rawSources = req.query.sources;
+  const sourceItems = Array.isArray(rawSources)
+    ? rawSources
+    : rawSources
+    ? [rawSources]
+    : [];
+  let hasInvalidSourceEncoding = false;
+  const sourceList = sourceItems
+    .flatMap((s) => String(s).split(','))
+    .map((s) => {
+      const trimmed = s.trim();
+      if (!trimmed) return null;
+      try {
+        return decodeURIComponent(trimmed);
+      } catch {
+        hasInvalidSourceEncoding = true;
+        console.warn(`⚠️ 无效的 URL 编码参数: ${trimmed}`);
+        return null;
+      }
+    })
     .filter(Boolean);
+
+  if (hasInvalidSourceEncoding) {
+    return res.status(400).json({
+      error: 'Invalid source',
+      message: 'sources 参数包含无效的编码',
+    });
+  }
 
   if (sourceList.length > 5) {
     return res
       .status(400)
       .json({ error: 'Too many sources', message: '最多支持 5 个外部 ICS 链接' });
-  }
-
-  // 增强 URL 验证，防止 SSRF 攻击
-  for (const source of sourceList) {
-    const validationError = validateExternalSource(source);
-    if (validationError) {
-      return res.status(400).json({
-        error: 'Invalid source',
-        message: `URL验证失败: ${validationError}`,
-        source,
-      });
-    }
   }
 
   try {

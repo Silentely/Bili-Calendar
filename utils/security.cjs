@@ -1,31 +1,61 @@
 // utils/security.cjs
 // 输入校验与安全相关的通用工具函数
 
+const net = require('node:net');
+
 function validateUID(uid) {
   return /^\d{1,20}$/.test(String(uid || '').trim());
 }
 
+/**
+ * 检测给定的主机名或IP地址是否为私有/本地地址
+ * 
+ * @param {string} hostname - 主机名或IP地址
+ * @returns {boolean} true表示私有/本地地址，false表示公网地址
+ */
 function isPrivateIPAddress(hostname) {
   if (!hostname) return true;
-  const lower = hostname.toLowerCase();
-  if (lower === 'localhost' || lower === '0.0.0.0' || lower === '::1') return true;
-  if (lower.endsWith('.local')) return true;
-  const ipv4Match = lower.match(/^\d{1,3}(?:\.\d{1,3}){3}$/);
-  if (ipv4Match) {
-    const parts = lower.split('.').map((n) => Number.parseInt(n, 10));
-    if (parts.some((n) => Number.isNaN(n) || n < 0 || n > 255)) return true;
-    if (parts[0] === 10) return true;
-    if (parts[0] === 127) return true;
-    if (parts[0] === 192 && parts[1] === 168) return true;
-    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
-    if (parts[0] === 169 && parts[1] === 254) return true;
-    if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true;
+
+  const ipVersion = net.isIP(hostname);
+
+  // 不是有效 IP，可能是域名
+  if (ipVersion === 0) {
+    const lower = hostname.toLowerCase();
+    // 只处理已知的本地主机名
+    if (lower === 'localhost' || lower.endsWith('.local')) {
+      return true;
+    }
+    // 对于其他域名，检查应该在 DNS 解析后进行
+    // 这里假设是公网域名
     return false;
   }
-  if (lower.includes('::')) {
-    // 粗略阻止 IPv6 本地/链路地址
-    return lower.startsWith('fe80') || lower.startsWith('fc') || lower.startsWith('fd') || lower === '::1';
+
+  // 检查 IPv4 私有地址范围
+  if (ipVersion === 4) {
+    const parts = hostname.split('.').map(Number);
+    return (
+      parts[0] === 10 || // 10.0.0.0/8
+      parts[0] === 127 || // 127.0.0.0/8 (loopback)
+      (parts[0] === 192 && parts[1] === 168) || // 192.168.0.0/16
+      (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) || // 172.16.0.0/12
+      (parts[0] === 169 && parts[1] === 254) || // 169.254.0.0/16 (link-local)
+      (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) || // 100.64.0.0/10 (CGNAT)
+      parts[0] === 0 // 0.0.0.0/8
+    );
   }
+
+  // 检查 IPv6 私有/本地地址范围
+  if (ipVersion === 6) {
+    const lower = hostname.toLowerCase();
+    return (
+      lower === '::1' || // Loopback
+      lower.startsWith('fe80:') || // Link-local
+      lower.startsWith('fc00:') || // Unique local
+      lower.startsWith('fd00:') || // Unique local
+      lower === '::' // Unspecified
+    );
+  }
+
   return false;
 }
 

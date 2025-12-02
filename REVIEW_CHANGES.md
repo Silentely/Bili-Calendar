@@ -24,13 +24,13 @@
 - `utils/metrics.cjs`
 
 **提交信息：**
-```
+```text
 fix(metrics): 限制路由统计数量防止内存泄漏
 
 - 添加 maxRoutes 限制（默认 1000）
 - 实现 FIFO 清理策略
 - 防止长期运行时内存无限增长
-```
+```text
 
 ---
 
@@ -47,12 +47,12 @@ fix(metrics): 限制路由统计数量防止内存泄漏
 - `server.js` (第563-566行)
 
 **提交信息：**
-```
+```text
 fix(security): 为所有 ICS 端点添加限流保护
 
 - 在 /:uid.ics 和 /:uid 路由上启用限流
 - 统一限流策略，防止滥用
-```
+```text
 
 ---
 
@@ -70,13 +70,13 @@ fix(security): 为所有 ICS 端点添加限流保护
 - `utils/rate-limiter.cjs`
 
 **提交信息：**
-```
+```text
 fix(rate-limiter): 将默认限流从3次/小时提升到100次/小时
 
 - 旧值: DEFAULT_MAX_REQUESTS = 3
 - 新值: DEFAULT_MAX_REQUESTS = 100
 - 更符合实际使用场景，减少误判
-```
+```text
 
 ---
 
@@ -107,14 +107,14 @@ fix(rate-limiter): 将默认限流从3次/小时提升到100次/小时
 - 新增 `test/utils.ip-validation.test.js`
 
 **提交信息：**
-```
+```text
 fix(security): 防止 SSRF 攻击，阻止访问私有 IP
 
 - 新增 security.cjs 安全工具模块
 - 实现私有 IP 地址检测
 - 聚合功能严格验证外部 URL
 - 添加完整的单元测试
-```
+```text
 
 ---
 
@@ -134,13 +134,13 @@ fix(security): 防止 SSRF 攻击，阻止访问私有 IP
 - `server.js` (handleCalendar, handleAggregate)
 
 **提交信息：**
-```
+```text
 fix(validation): 为所有端点添加 UID 格式验证
 
 - 提取 validateUID 到 security 模块
 - 在 handleCalendar 和 handleAggregate 中启用
 - 统一错误响应格式
-```
+```text
 
 ---
 
@@ -162,13 +162,13 @@ fix(validation): 为所有端点添加 UID 格式验证
 - `server.js` (handleCalendar, handleAggregate)
 
 **提交信息：**
-```
+```text
 fix(error-handling): 改进 API 错误处理和用户反馈
 
 - 正确处理网络错误和业务错误
 - 返回更友好的错误信息
 - 使用适当的 HTTP 状态码
-```
+```text
 
 ---
 
@@ -186,13 +186,13 @@ fix(error-handling): 改进 API 错误处理和用户反馈
 - `utils/ics-merge.cjs`
 
 **提交信息：**
-```
+```text
 perf(ics-merge): 并行获取外部 ICS 提升性能
 
 - 从串行改为并行请求
 - 使用 Promise.all 优化等待时间
 - 错误隔离，部分失败不影响整体
-```
+```text
 
 ---
 
@@ -204,11 +204,11 @@ perf(ics-merge): 并行获取外部 ICS 提升性能
   - 覆盖私有 IP 检测、URL 验证等场景
 
 ### 测试结果
-```
+```text
 ✔ 33 tests passed
 ✔ 0 tests failed
 ✔ 所有模块测试通过
-```
+```text
 
 ---
 

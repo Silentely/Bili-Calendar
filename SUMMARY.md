@@ -10,17 +10,19 @@
 
 ---
 
-## ✅ 已完成的修复（7项）
+## ✅ 已完成的修复（10项）
 
 ### 1. 🔒 安全修复
-- **SSRF 漏洞防护** - 新增 `utils/security.cjs` 模块，阻止访问私有 IP
-- **输入验证统一** - 所有端点添加 UID 格式验证
-- **限流保护增强** - 为 ICS 生成端点添加限流中间件
+- **SSRF TOCTOU 漏洞修复** - 实现 DNS 重绑定防护，使用安全的 `safeLookup` 在解析后立即检查 IP
+- **IP 检测健壮性** - 使用 `net.isIP()` 准确判断 IPv4/IPv6，支持更多私有地址范围（如 0.0.0.0/8）
+- **输入验证统一** - 所有端点添加 UID 格式验证（1-20位纯数字）
+- **限流保护增强** - 为所有 ICS 生成端点添加限流中间件
+- **查询参数健壮性** - 处理数组参数和非法 URL 编码，避免 500 错误
 
 ### 2. 🚀 性能优化
 - **并行外部请求** - `fetchExternalICS` 从串行改为并行，性能提升 5 倍
 - **内存泄漏修复** - Metrics 路由统计添加上限（1000个），防止无限增长
-- **限流配置优化** - 默认值从 3次/小时提升到 100次/小时
+- **限流配置优化** - 默认值从 3次/小时提升到 100次/小时（同时更新 utils-es 版本）
 
 ### 3. 🐛 错误处理改进
 - **网络错误处理** - 正确处理 `bangumi.cjs` 返回的错误对象
@@ -30,7 +32,7 @@
 
 ## 📊 测试结果
 
-```
+```bash
 ✅ 33 个测试全部通过
 ✅ 新增 8 个安全测试用例
 ✅ 0 个失败
@@ -129,8 +131,8 @@
 
 ## 📧 联系
 
-- GitHub Issues: https://github.com/Silentely/Bili-Calendar/issues
-- 项目主页: https://calendar.cosr.eu.org
+- [GitHub Issues](https://github.com/Silentely/Bili-Calendar/issues)
+- [项目主页](https://calendar.cosr.eu.org)
 
 ---
 
