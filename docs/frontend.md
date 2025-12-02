@@ -469,7 +469,7 @@ function renderAnimeList(animeList) {
 
 **缓存策略**:
 ```javascript
-const CACHE_NAME = 'bili-calendar-v1.1.7';
+const CACHE_NAME = 'bili-calendar-v1.1.8';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

@@ -1,5 +1,5 @@
 /* 简易PWA Service Worker，缓存关键静态资源与离线回退 */
-const VERSION = '1.1.7';
+const VERSION = '1.1.8';
 const CACHE_NAME = `bili-calendar-v${VERSION}`;
 const CORE_ASSETS = [
   '/',

@@ -488,7 +488,7 @@ function getNextBroadcastDate(dayOfWeek, time) {
 {
   timeout: 10000,              // 超时时间: 10 秒
   headers: {
-    'User-Agent': 'BiliCalendar/1.1.7',
+    'User-Agent': 'BiliCalendar/1.1.8',
     'Referer': 'https://www.bilibili.com'
   },
   validateStatus: (status) => status < 500  // 4xx 不抛出异常

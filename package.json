@@ -1,6 +1,6 @@
 {
   "name": "bili-calendar",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "description": "将B站追番列表转换为日历订阅，支持 iCal/ICS 格式",
   "main": "server.js",
   "type": "module",
