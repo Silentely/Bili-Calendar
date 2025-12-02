@@ -49,6 +49,7 @@
 - 🔔 **Reminder Upgrade**: Choose 5/10/15 min lead time for browser notifications in preview; optional WebPush (requires VAPID)
 - 📊 **Monitoring Metrics**: `/metrics` JSON and `/metrics/prometheus` (Prometheus text) with p95/p99 and per-route stats
 - 🌍 **Internationalization**: Supports multiple languages (Chinese, English), easy to switch
+- 🔀 **External Calendar Merge** (v1.1.8+): `/aggregate/:uid.ics?sources=` merges up to 5 external ICS feeds into one subscription
 
 ### 🔐 Security & Compliance
 
@@ -211,6 +212,32 @@ Parameters:
 Returns: Bilibili anime list JSON data
 
 > **Rate Limit**: To prevent abuse, direct API access is limited to 3 times per IP per hour. Internal project calls are not subject to this limit. API response headers include `X-RateLimit-*` fields to understand current usage.
+
+### Aggregated Subscription (experimental)
+
+```
+GET /aggregate/:uid.ics?sources=<url1>,<url2>
+```
+
+Parameters:
+
+- `uid`: Bilibili user UID
+- `sources`: optional extra ICS links, URL encoded
+  - Accepts repeated `sources` params or comma-separated list
+  - Only `http://` and `https://` are allowed
+  - Up to 5 external sources, exceeding returns `400`
+
+Returns: ICS that merges Bilibili anime with external calendars. Each imported event contains `X-BC-SOURCE` to indicate origin, making it easy to filter in calendar apps.
+
+Example:
+
+```
+curl -G "https://calendar.cosr.eu.org/aggregate/614500.ics" \
+  --data-urlencode "sources=https://example.com/work.ics" \
+  --data-urlencode "sources=https://example.com/travel.ics"
+```
+
+> ⚠️ **Heads-up**: The aggregation endpoint still depends on the Bilibili API. If the upstream is temporarily unavailable it returns 502. Calendar clients usually retry & cache results; when testing in browser simply retry later.
 
 ### Frontend Page
 
@@ -414,6 +441,13 @@ The project automatically filters out finished anime and anime without clear bro
 ---
 
 ## 📝 Changelog
+
+### v1.1.8 (2025-12-02)
+
+- 🔀 Documented `/aggregate/:uid.ics?sources=` usage; merge up to 5 external ICS feeds
+- 🛠️ Netlify Functions now bundles `utils/**` and `utils-es/**` to avoid missing `rate-limiter.cjs`
+- 🧩 Serverless entry explicitly `require('axios')`, fixing aggregation failures caused by missing dependency
+- 📄 README & README.en updated to highlight the above fixes
 
 ### v1.1.7 (2025-11-02)
 

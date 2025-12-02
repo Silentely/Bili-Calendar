@@ -49,6 +49,7 @@
 - 📱 **移动优化**：完美适配移动设备，触摸优化
 - 🔔 **提醒升级**：预览面板可选择提前 5/10/15 分钟推送浏览器通知；可选启用 WebPush（需配置 VAPID）
 - 📊 **监控指标**：新增 `/metrics` JSON 与 `/metrics/prometheus` (Prometheus 文本)；含 p95/p99 与路由级统计
+- 🔀 **外部日历聚合**（v1.1.8+）：通过 `/aggregate/:uid.ics?sources=` 合并最多 5 个外部 ICS 链接
 
 ### 🔐 安全与合规（新增）
 
@@ -214,6 +215,32 @@ GET /api/bangumi/:uid
 > **速率限制**：为防止滥用，API直接访问限制为每个IP每小时3次。项目内部调用不受此限制。API响应头中包含 `X-RateLimit-*` 系列字段，用于了解当前使用情况。
 >
 > **注意**：Netlify Serverless 部署环境下，由于函数实例无状态特性，速率限制可能在冷启动或横向扩容时重置。建议自行部署或使用 Docker 版本以获得更可靠的速率限制。
+
+### 聚合订阅（实验）
+
+```
+GET /aggregate/:uid.ics?sources=<url1>,<url2>
+```
+
+参数：
+
+- `uid`：B站用户 UID
+- `sources`：可选，额外外部 ICS 链接，需 URL 编码
+  - 支持重复 `sources` 参数或使用半角逗号分隔多个链接
+  - 仅接受 `http://`、`https://` 协议
+  - 最多 5 个外部源，超出会返回 `400`
+
+返回：合并 B站追番与外部 ICS 的日历文件。外部事件的 `X-BC-SOURCE` 字段会标注原始来源，方便在日历客户端筛选。
+
+示例：
+
+```
+curl -G "https://calendar.cosr.eu.org/aggregate/614500.ics" \
+  --data-urlencode "sources=https://example.com/work.ics" \
+  --data-urlencode "sources=https://example.com/travel.ics"
+```
+
+> ⚠️ **提示**：聚合端点同样依赖 B站 API。如果 upstream 暂时不可用，会返回 502。日历应用通常会自动重试并缓存成功结果，直接在浏览器访问时可稍候再试。
 
 ### 前端页面
 
@@ -654,6 +681,13 @@ API响应包含以下速率限制相关头部信息：
 ---
 
 ## 📝 更新日志
+
+### v1.1.8 (2025-12-02)
+
+- 🔀 README 新增 `/aggregate/:uid.ics?sources=` 使用指南，可一次合并最多 5 个外部 ICS
+- 🛠️ Netlify Functions 构建默认打包 `utils/**` 与 `utils-es/**`，修复 `rate-limiter.cjs` 缺失
+- 🧩 函数入口显式 `require('axios')`，避免聚合端点拉取外部 ICS 时的 `Cannot find module 'axios'`
+- 📄 文档同步记录本次修复，方便追踪发布内容
 
 ### v1.1.7 (2025-11-02)
 
