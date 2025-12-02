@@ -117,6 +117,53 @@ function evaluateAggregateInput(enabled, rawValue = '') {
   return { enabled: true, sources: parsed.sources };
 }
 
+function getAggregateElements() {
+  return {
+    container: document.getElementById('aggregateOptions'),
+    toggle: document.getElementById('aggregateToggle'),
+    input: document.getElementById('sourcesInput'),
+  };
+}
+
+function getAggregateConfig() {
+  const { toggle, input } = getAggregateElements();
+  return {
+    enabled: !!(toggle && toggle.checked),
+    rawSources: input ? input.value : '',
+  };
+}
+
+function applyAggregateConfig({ enabled, rawSources } = {}) {
+  const { toggle, input } = getAggregateElements();
+
+  if (toggle && typeof enabled === 'boolean') {
+    toggle.checked = enabled;
+    localStorage.setItem(AGG_TOGGLE_STORAGE_KEY, String(enabled));
+  }
+
+  if (input && typeof rawSources === 'string') {
+    input.value = rawSources;
+    if (rawSources.trim()) {
+      localStorage.setItem(AGG_SOURCES_STORAGE_KEY, rawSources);
+    } else {
+      localStorage.removeItem(AGG_SOURCES_STORAGE_KEY);
+    }
+  }
+
+  const currentToggle = toggle ? toggle.checked : false;
+  const currentRaw = input ? input.value.trim() : '';
+  const result = evaluateAggregateInput(currentToggle, currentRaw);
+  if (!currentToggle && input) {
+    input.classList.remove('input-error');
+  }
+  return result;
+}
+
+window.aggregateConfig = {
+  get: getAggregateConfig,
+  apply: applyAggregateConfig,
+};
+
 // 增强版Toast通知
 export function showToast(message, type = 'info', duration = 3000) {
   const toast = document.createElement('div');
@@ -643,47 +690,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const sourcesInput = document.getElementById('sourcesInput');
   const aggregateToggle = document.getElementById('aggregateToggle');
-  let savedSources = '';
-  if (sourcesInput) {
-    savedSources = localStorage.getItem(AGG_SOURCES_STORAGE_KEY) || '';
-    if (savedSources) {
-      sourcesInput.value = savedSources;
-    }
-  }
+  const savedSources = localStorage.getItem(AGG_SOURCES_STORAGE_KEY) || '';
+  const savedToggle = localStorage.getItem(AGG_TOGGLE_STORAGE_KEY);
+  const initialEnabled = savedToggle === 'true';
 
-  let initialAggregateEnabled = false;
-  if (aggregateToggle) {
-    const savedToggle = localStorage.getItem(AGG_TOGGLE_STORAGE_KEY);
-    initialAggregateEnabled = savedToggle === 'true';
-    aggregateToggle.checked = initialAggregateEnabled;
-  }
-
-  evaluateAggregateInput(initialAggregateEnabled, savedSources.trim());
+  applyAggregateConfig({ enabled: initialEnabled, rawSources: savedSources });
 
   if (aggregateToggle) {
     aggregateToggle.addEventListener('change', () => {
-      const enabled = aggregateToggle.checked;
-      localStorage.setItem(AGG_TOGGLE_STORAGE_KEY, enabled);
-      evaluateAggregateInput(enabled, sourcesInput ? sourcesInput.value.trim() : '');
-      if (!enabled && sourcesInput) {
-        sourcesInput.classList.remove('input-error');
-      }
+      applyAggregateConfig({ enabled: aggregateToggle.checked });
     });
   }
 
   if (sourcesInput) {
     sourcesInput.addEventListener('input', () => {
-      const value = sourcesInput.value;
-      if (value.trim()) {
-        localStorage.setItem(AGG_SOURCES_STORAGE_KEY, value);
-      } else {
-        localStorage.removeItem(AGG_SOURCES_STORAGE_KEY);
-      }
-      if (aggregateToggle && aggregateToggle.checked) {
-        evaluateAggregateInput(true, value.trim());
-      } else {
-        evaluateAggregateInput(false, '');
-      }
+      applyAggregateConfig({ rawSources: sourcesInput.value });
     });
   }
 

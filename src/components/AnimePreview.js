@@ -9,6 +9,7 @@ const STATUS_COLORS = {
 };
 
 const WEEK_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const PREVIEW_MAX_EXTERNAL_SOURCES = 5;
 
 function escapeHtml(value = '') {
   return String(value)
@@ -219,6 +220,7 @@ export class AnimePreview {
     const leadPrefix = escapeHtml(i18n.t('preview.actions.reminderLeadPrefix'));
     const leadSuffix = escapeHtml(i18n.t('preview.actions.reminderLeadSuffix'));
     const reminderHint = escapeHtml(i18n.t('preview.reminder.hint'));
+    const aggregatePanel = this.renderAggregatePanel();
     const filterAll = escapeHtml(i18n.t('preview.filter.all'));
     const filterWatching = escapeHtml(i18n.t('preview.filter.watching'));
     const filterFinished = escapeHtml(i18n.t('preview.filter.finished'));
@@ -265,6 +267,7 @@ export class AnimePreview {
           <div class="anime-stats">
             ${this.renderStats()}
           </div>
+          ${aggregatePanel}
           <div class="reminder-hint">${reminderHint}</div>
           <div class="preview-actions">
             <label class="lead-select">
@@ -301,6 +304,7 @@ export class AnimePreview {
     this.bindFilterEvents(modal);
     this.setupListDelegation(modal);
     this.enableFocusTrap(modal);
+    this.setupAggregatePreview(modal);
   }
 
   bindModalEvents(modal) {
@@ -574,6 +578,198 @@ export class AnimePreview {
         </div>
       </div>
     `;
+  }
+
+  renderAggregatePanel() {
+    if (
+      typeof window === 'undefined' ||
+      !window.aggregateConfig ||
+      typeof window.aggregateConfig.get !== 'function'
+    ) {
+      return '';
+    }
+
+    const config = window.aggregateConfig.get() || {};
+    const enabled = !!config.enabled;
+    const rawSources = config.rawSources || '';
+    const title = escapeHtml(i18n.t('preview.aggregate.title'));
+    const desc = escapeHtml(i18n.t('preview.aggregate.desc'));
+    const applyText = escapeHtml(i18n.t('preview.aggregate.apply'));
+    const sampleText = escapeHtml(i18n.t('preview.aggregate.sample'));
+    const toggleLabel = escapeHtml(i18n.t('aggregate.enable'));
+    const placeholder = escapeHtml(i18n.t('aggregate.placeholder'));
+    const badge = escapeHtml(i18n.t('aggregate.badge'));
+    const statusText = escapeHtml(this.describeAggregateStatus(enabled, rawSources));
+    const toggleChecked = enabled ? 'checked' : '';
+    const rawEscaped = escapeHtml(rawSources);
+
+    return `
+      <div class="preview-aggregate-panel" id="previewAggregatePanel">
+        <div class="preview-aggregate-header">
+          <div class="preview-aggregate-title">
+            <span class="beta-badge">${badge}</span>
+            <span>${title}</span>
+          </div>
+          <label class="aggregate-toggle">
+            <input type="checkbox" id="previewAggregateToggle" ${toggleChecked} />
+            <span class="aggregate-toggle-slider"></span>
+            <span class="aggregate-toggle-text">${toggleLabel}</span>
+          </label>
+        </div>
+        <p class="preview-aggregate-desc">${desc}</p>
+        <textarea
+          id="previewAggregateSources"
+          class="aggregate-textarea"
+          rows="3"
+          placeholder="${placeholder}"
+        >${rawEscaped}</textarea>
+        <div class="preview-aggregate-actions">
+          <button type="button" class="btn-ghost" data-action="aggregate-sample">
+            <i class="fas fa-magic"></i>
+            ${sampleText}
+          </button>
+          <button type="button" class="btn-primary" data-action="aggregate-apply">
+            <i class="fas fa-sync"></i>
+            ${applyText}
+          </button>
+        </div>
+        <div class="preview-aggregate-status muted" id="previewAggregateStatus">${statusText}</div>
+      </div>
+    `;
+  }
+
+  setupAggregatePreview(modal) {
+    const panel = modal.querySelector('#previewAggregatePanel');
+    if (!panel || !window.aggregateConfig) return;
+    const toggle = panel.querySelector('#previewAggregateToggle');
+    const textarea = panel.querySelector('#previewAggregateSources');
+    const statusEl = panel.querySelector('#previewAggregateStatus');
+    const sampleBtn = panel.querySelector('[data-action="aggregate-sample"]');
+    const applyBtn = panel.querySelector('[data-action="aggregate-apply"]');
+    const sampleTemplate = i18n.t('aggregate.sampleTemplate');
+
+    const updateStatus = () => {
+      const enabled = toggle ? toggle.checked : false;
+      const value = textarea ? textarea.value : '';
+      const desc = this.describeAggregateStatus(enabled, value);
+      if (statusEl) {
+        statusEl.textContent = desc;
+        statusEl.classList.remove('success', 'error', 'muted');
+        if (!enabled) {
+          statusEl.classList.add('muted');
+        } else {
+          const parsed = this.parseAggregateSources(value);
+          if (parsed.error) {
+            statusEl.classList.add('error');
+            if (textarea) textarea.classList.add('input-error');
+          } else if (parsed.sources.length > 0) {
+            statusEl.classList.add('success');
+            if (textarea) textarea.classList.remove('input-error');
+          } else {
+            statusEl.classList.add('muted');
+            if (textarea) textarea.classList.remove('input-error');
+          }
+        }
+      }
+      if (!enabled && textarea) {
+        textarea.classList.remove('input-error');
+      }
+    };
+
+    if (toggle) {
+      toggle.addEventListener('change', () => {
+        updateStatus();
+      });
+    }
+
+    if (textarea) {
+      textarea.addEventListener('input', () => {
+        updateStatus();
+      });
+    }
+
+    if (sampleBtn && textarea) {
+      sampleBtn.addEventListener('click', () => {
+        textarea.value = sampleTemplate;
+        updateStatus();
+      });
+    }
+
+    if (applyBtn) {
+      applyBtn.addEventListener('click', () => {
+        if (!window.aggregateConfig || typeof window.aggregateConfig.apply !== 'function') {
+          window.showToast?.(i18n.t('error.server.message'), 'warning');
+          return;
+        }
+        const enabled = toggle ? toggle.checked : false;
+        const rawSources = textarea ? textarea.value : '';
+        const parsed = this.parseAggregateSources(rawSources);
+        if (enabled && parsed.error) {
+          updateStatus();
+          window.showToast?.(parsed.error, 'warning');
+          return;
+        }
+        const result = window.aggregateConfig.apply({ enabled, rawSources });
+        if (result && result.error) {
+          updateStatus();
+          window.showToast?.(result.error, 'warning');
+          return;
+        }
+        window.showToast?.(i18n.t('preview.aggregate.toastSuccess'), 'success');
+        updateStatus();
+      });
+    }
+
+    updateStatus();
+  }
+
+  parseAggregateSources(rawValue = '') {
+    if (!rawValue) {
+      return { sources: [] };
+    }
+
+    const tokens = rawValue
+      .split(/[\n,]/)
+      .map((token) => token.trim())
+      .filter(Boolean);
+
+    if (tokens.length === 0) {
+      return { sources: [] };
+    }
+
+    if (tokens.length > PREVIEW_MAX_EXTERNAL_SOURCES) {
+      return { error: i18n.t('aggregate.errorTooMany', { count: PREVIEW_MAX_EXTERNAL_SOURCES }) };
+    }
+
+    const normalized = [];
+    for (const token of tokens) {
+      let parsed;
+      try {
+        parsed = new URL(token);
+      } catch (err) {
+        return { error: i18n.t('aggregate.errorInvalid', { url: token }) };
+      }
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return { error: i18n.t('aggregate.errorProtocol', { url: token }) };
+      }
+      normalized.push(parsed.toString());
+    }
+
+    return { sources: normalized };
+  }
+
+  describeAggregateStatus(enabled, rawValue = '') {
+    if (!enabled) {
+      return i18n.t('aggregate.feedbackDisabled');
+    }
+    if (!rawValue.trim()) {
+      return i18n.t('aggregate.feedbackEmpty');
+    }
+    const parsed = this.parseAggregateSources(rawValue);
+    if (parsed.error) {
+      return parsed.error;
+    }
+    return i18n.t('aggregate.feedbackCount', { count: parsed.sources.length });
   }
 
   computeStats() {

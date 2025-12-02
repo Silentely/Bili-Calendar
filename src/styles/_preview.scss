@@ -387,8 +387,8 @@
 /* 预览底部 */
 .anime-preview-footer {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 12px;
   padding: 20px;
   border-top: 1px solid #e0e0e0;
 }
@@ -543,6 +543,8 @@
   gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  width: 100%;
+  align-self: flex-end;
 }
 
 .reminder-hint {
@@ -553,6 +555,100 @@
 
 [data-theme='dark'] .reminder-hint {
   color: #b0b9c9;
+}
+
+.preview-aggregate-panel {
+  border: 1px dashed rgba(0, 161, 214, 0.4);
+  border-radius: 12px;
+  padding: 16px;
+  background: rgba(0, 161, 214, 0.05);
+}
+
+[data-theme='dark'] .preview-aggregate-panel {
+  border-color: rgba(0, 212, 255, 0.4);
+  background: rgba(0, 212, 255, 0.08);
+}
+
+.preview-aggregate-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.preview-aggregate-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #0b74e5;
+}
+
+[data-theme='dark'] .preview-aggregate-title {
+  color: #7cb4ff;
+}
+
+.preview-aggregate-desc {
+  font-size: 13px;
+  color: #6b7383;
+  margin: 10px 0;
+}
+
+[data-theme='dark'] .preview-aggregate-desc {
+  color: #aeb5c6;
+}
+
+.preview-aggregate-panel textarea {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 161, 214, 0.35);
+  background: white;
+  padding: 10px;
+  font-size: 14px;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+[data-theme='dark'] .preview-aggregate-panel textarea {
+  background: #1e1f26;
+  border-color: rgba(124, 180, 255, 0.4);
+  color: #e0e0e0;
+}
+
+.preview-aggregate-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  gap: 10px;
+}
+
+.preview-aggregate-actions .btn-primary {
+  background: var(--secondary, #00a1d6);
+  color: white;
+  border: none;
+}
+
+.preview-aggregate-actions .btn-primary:hover {
+  opacity: 0.9;
+}
+
+.preview-aggregate-status {
+  font-size: 13px;
+  margin-top: 8px;
+  color: #6b7383;
+}
+
+.preview-aggregate-status.success {
+  color: #2eae63;
+}
+
+.preview-aggregate-status.error {
+  color: #f56c6c;
+}
+
+.preview-aggregate-status.muted {
+  color: #9da5b8;
 }
 
 .lead-select {
