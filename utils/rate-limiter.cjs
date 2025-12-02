@@ -9,7 +9,7 @@
  * 在生产环境中建议使用Redis等持久化存储。
  *
  * 环境变量配置:
- * - API_RATE_LIMIT: 时间窗口内允许的最大请求次数（默认: 3）
+ * - API_RATE_LIMIT: 时间窗口内允许的最大请求次数（默认: 100）
  * - API_RATE_WINDOW: 时间窗口大小，单位毫秒（默认: 3600000 = 1小时）
  * - ENABLE_RATE_LIMIT: 是否启用限流（默认: true，设为'false'禁用）
  *
@@ -26,7 +26,7 @@
  * }
  */
 
-const DEFAULT_MAX_REQUESTS = 3;
+const DEFAULT_MAX_REQUESTS = 100;
 const DEFAULT_TIME_WINDOW = 60 * 60 * 1000;
 
 /**
@@ -47,7 +47,7 @@ function createRateLimiter() {
     store: {},
 
     // 环境变量控制限制
-    MAX_REQUESTS: parseIntEnv('API_RATE_LIMIT', DEFAULT_MAX_REQUESTS), // 默认每小时3次
+    MAX_REQUESTS: parseIntEnv('API_RATE_LIMIT', DEFAULT_MAX_REQUESTS), // 默认每小时100次
     TIME_WINDOW: parseIntEnv('API_RATE_WINDOW', DEFAULT_TIME_WINDOW), // 默认1小时(毫秒)
     ENABLED: process.env.ENABLE_RATE_LIMIT !== 'false', // 默认启用
 

@@ -17,6 +17,7 @@ class Metrics {
     this.apiLatencyMax = 0;
     this.apiLatencyBuffer = [];
     this.maxBuffer = 200;
+    this.maxRoutes = 1000; // 限制路由数量，防止内存泄漏
     this.routeStats = new Map();
   }
 
@@ -83,6 +84,12 @@ class Metrics {
 
   ensureRoute(route) {
     if (!this.routeStats.has(route)) {
+      if (this.routeStats.size >= this.maxRoutes) {
+        const oldestKey = this.routeStats.keys().next().value;
+        if (oldestKey) {
+          this.routeStats.delete(oldestKey);
+        }
+      }
       this.routeStats.set(route, {
         total: 0,
         success: 0,

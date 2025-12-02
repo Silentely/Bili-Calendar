@@ -20,7 +20,7 @@ const ONE_DAY_MS = 24 * ONE_HOUR_MS;
  * @param {string} uid
  * @returns {Array<{uid:string,summary:string,description:string,start:Date,end:Date,isAllDay:boolean,source:string,url?:string,rrule?:string,rawStart?:string}>}
  */
-function buildBangumiEvents(bangumis, uid) {
+function buildBangumiEvents(bangumis, _uid) {
   const nowIso = new Date().toISOString().replace(/[-:.]/g, '').substring(0, 15) + 'Z';
   const events = [];
 
@@ -367,18 +367,26 @@ function generateMergedICS(bangumis, uid, externalCalendars = []) {
 }
 
 async function fetchExternalICS(urls = []) {
-  const results = [];
-  for (const url of urls) {
-    try {
-      const res = await axios.get(url, { timeout: 8000, responseType: 'text' });
-      if (typeof res.data === 'string') {
-        results.push({ url, ics: res.data });
-      }
-    } catch (err) {
-      console.warn(`⚠️ 获取外部 ICS 失败: ${url} - ${err.message}`);
-    }
-  }
-  return results;
+  if (!Array.isArray(urls) || urls.length === 0) return [];
+
+  const tasks = urls.map((url) =>
+    axios
+      .get(url, { timeout: 8000, responseType: 'text' })
+      .then((res) => {
+        if (typeof res.data === 'string') {
+          return { url, ics: res.data };
+        }
+        console.warn(`⚠️ 外部 ICS 响应非文本: ${url}`);
+        return null;
+      })
+      .catch((err) => {
+        console.warn(`⚠️ 获取外部 ICS 失败: ${url} - ${err.message}`);
+        return null;
+      })
+  );
+
+  const settled = await Promise.all(tasks);
+  return settled.filter(Boolean);
 }
 
 module.exports = {

@@ -10,6 +10,7 @@ const require = createRequire(import.meta.url);
 const { getBangumiData } = require('./utils/bangumi.cjs');
 const { createRateLimiter } = require('./utils/rate-limiter.cjs');
 const { extractClientIP, generateRequestId } = require('./utils/ip.cjs');
+const { validateUID, validateExternalSource } = require('./utils/security.cjs');
 const metrics = require('./utils/metrics.cjs');
 const createPushStore = require('./utils/push-store.cjs');
 const pushStore = createPushStore(process.env.PUSH_STORE_FILE);
@@ -387,6 +388,12 @@ const handleCalendar = async (req, res, next) => {
   const raw = req.params.uid;
   const cleanUid = raw.replace('.ics', '');
 
+  // 验证 UID 格式
+  if (!validateUID(cleanUid)) {
+    console.warn(`⚠️ 无效的UID格式: ${cleanUid}`);
+    return respondWithEmptyCalendar(res, cleanUid || 'invalid', 'UID必须是1-20位纯数字');
+  }
+
   try {
     console.log(`🔍 处理UID: ${cleanUid}`);
 
@@ -395,7 +402,17 @@ const handleCalendar = async (req, res, next) => {
     const data = await getBangumiData(cleanUid);
     metrics.onApiCall(Date.now() - apiStart, data && data.code === 0);
     if (!data) {
-      return res.status(500).send('获取数据失败');
+      console.error(`❌ getBangumiData 返回 null: ${cleanUid}`);
+      return respondWithEmptyCalendar(res, cleanUid, '获取数据失败，请稍后重试');
+    }
+
+    if (data.error) {
+      console.error(`❌ B站API错误: ${data.message || data.error}`);
+      return respondWithEmptyCalendar(
+        res,
+        cleanUid,
+        `${data.error}: ${data.message || '请稍后重试'}`
+      );
     }
 
     // 检查API返回错误
@@ -428,6 +445,15 @@ const handleAggregate = async (req, res, next) => {
   const raw = req.params.uid;
   const cleanUid = raw.replace('.ics', '');
 
+  // 验证 UID 格式
+  if (!validateUID(cleanUid)) {
+    console.warn(`⚠️ 无效的UID格式: ${cleanUid}`);
+    return res.status(400).json({
+      error: 'Invalid UID',
+      message: 'UID必须是1-20位纯数字',
+    });
+  }
+
   const sourcesParam = req.query.sources || '';
   const sourceList = sourcesParam
     .split(',')
@@ -440,9 +466,16 @@ const handleAggregate = async (req, res, next) => {
       .json({ error: 'Too many sources', message: '最多支持 5 个外部 ICS 链接' });
   }
 
-  const invalid = sourceList.find((s) => !/^https?:\/\//i.test(s));
-  if (invalid) {
-    return res.status(400).json({ error: 'Invalid source', message: '仅支持 http/https 链接' });
+  // 增强 URL 验证，防止 SSRF 攻击
+  for (const source of sourceList) {
+    const validationError = validateExternalSource(source);
+    if (validationError) {
+      return res.status(400).json({
+        error: 'Invalid source',
+        message: `URL验证失败: ${validationError}`,
+        source,
+      });
+    }
   }
 
   try {
@@ -452,7 +485,15 @@ const handleAggregate = async (req, res, next) => {
     const data = await getBangumiData(cleanUid);
     metrics.onApiCall(Date.now() - apiStart, data && data.code === 0);
     if (!data) {
-      return res.status(500).send('获取数据失败');
+      return res.status(500).json({ error: 'Internal Error', message: '获取数据失败，请稍后重试' });
+    }
+
+    if (data.error) {
+      return res.status(502).json({
+        error: data.error,
+        message: data.message || '获取番剧数据失败',
+        code: data.code,
+      });
     }
 
     const errorResponse = processBangumiApiError(res, data, cleanUid);
@@ -498,8 +539,8 @@ function processBangumiApiError(res, data, uid) {
   return undefined;
 }
 
-app.get('/:uid(\\d+)\\.ics', handleCalendar);
-app.get('/:uid(\\d+)', handleCalendar);
+app.get('/:uid(\\d+)\\.ics', rateLimiterMiddleware, handleCalendar);
+app.get('/:uid(\\d+)', rateLimiterMiddleware, handleCalendar);
 app.get('/aggregate/:uid(\\d+)\\.ics', rateLimiterMiddleware, handleAggregate);
 app.get('/aggregate/:uid(\\d+)', rateLimiterMiddleware, handleAggregate);
 
