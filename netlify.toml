@@ -3,6 +3,12 @@
   publish = "dist"
   functions = "netlify/functions-build"
 
+[functions]
+  included_files = [
+    "utils/**",
+    "utils-es/**"
+  ]
+
 # API 请求交给函数处理
 [[redirects]]
   from = "/api/*"
