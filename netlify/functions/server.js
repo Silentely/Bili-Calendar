@@ -5,6 +5,8 @@ const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+// 让 Netlify bundler 显式包含 axios，供 utils/* 动态依赖
+require('axios');
 
 const { createRequire } = require('module');
 const requireFromRoot = createRequire(path.join(__dirname, '../../package.json'));
