@@ -26,6 +26,7 @@ Thumbs.db
 # Build outputs
 dist/
 build/
+.vite/
 
 # Netlify build directory
 netlify/functions-build/

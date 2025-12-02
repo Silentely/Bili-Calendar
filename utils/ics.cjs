@@ -22,7 +22,7 @@ END:VTIMEZONE`;
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//BiliCalendar//EN',
+    'PRODID:-//Bili-Calendar//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:B站追番 (UID: ${uid})`,
@@ -130,7 +130,7 @@ function respondWithEmptyCalendar(res, uid, reason) {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//BiliCalendarGenerator//CFW//EN',
+    'PRODID:-//Bili-Calendar//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'X-WR-CALNAME:B站追番（无内容）',

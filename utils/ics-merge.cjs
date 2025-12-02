@@ -290,7 +290,7 @@ END:VTIMEZONE`;
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//BiliCalendar//EN',
+    'PRODID:-//Bili-Calendar//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${title || `B站追番聚合 (UID: ${uid})`}`,
