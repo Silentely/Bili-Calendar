@@ -113,21 +113,31 @@
         </span>
       </div>
 
-      <div class="aggregate-options">
+      <div class="aggregate-options" id="aggregateOptions">
         <div class="aggregate-options-header">
-          <span class="beta-badge" data-i18n="aggregate.badge">Beta</span>
-          <span data-i18n="aggregate.title">外部 ICS 聚合（可选）</span>
+          <div class="aggregate-title">
+            <span class="beta-badge" data-i18n="aggregate.badge">Beta</span>
+            <span data-i18n="aggregate.title">外部 ICS 聚合（可选）</span>
+          </div>
+          <label class="aggregate-toggle" data-i18n-title="aggregate.toggleTooltip" title="启用/关闭外部聚合">
+            <input type="checkbox" id="aggregateToggle" />
+            <span class="aggregate-toggle-slider"></span>
+            <span class="aggregate-toggle-text" data-i18n="aggregate.enable">启用</span>
+          </label>
         </div>
-        <textarea
-          id="sourcesInput"
-          class="form-control aggregate-textarea"
-          rows="3"
-          data-i18n-placeholder="aggregate.placeholder"
-          placeholder="每行或使用逗号分隔多个 https://example.com/work.ics"
-        ></textarea>
-        <p class="aggregate-hint" data-i18n="aggregate.hint">
-          可一次性合并最多 5 个 http/https 外部 ICS 链接，将自动生成 /aggregate/:uid.ics?sources= 订阅地址。
-        </p>
+        <div class="aggregate-body">
+          <textarea
+            id="sourcesInput"
+            class="form-control aggregate-textarea"
+            rows="3"
+            data-i18n-placeholder="aggregate.placeholder"
+            placeholder="每行或使用逗号分隔多个 https://example.com/work.ics"
+          ></textarea>
+          <p class="aggregate-hint" data-i18n="aggregate.hint">
+            可一次性合并最多 5 个 http/https 外部 ICS 链接，将自动生成 /aggregate/:uid.ics?sources= 订阅地址。
+          </p>
+          <p class="aggregate-feedback" id="aggregateFeedback"></p>
+        </div>
       </div>
     </div>
 

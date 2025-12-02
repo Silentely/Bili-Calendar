@@ -27,10 +27,15 @@ export class I18n {
         'input.help':
           'UID可在B站个人空间网址中找到，例如：https://space.bilibili.com/<strong>614500</strong>',
         'aggregate.title': '外部 ICS 聚合（可选）',
+        'aggregate.enable': '启用',
         'aggregate.placeholder': '每行一个或使用逗号分隔多个 https://example.com/work.ics',
         'aggregate.hint':
           '可追加最多 5 个 http/https 链接，生成 /aggregate/:uid.ics?sources= 订阅链接，便于合并自定义日程。',
         'aggregate.badge': 'Beta',
+        'aggregate.toggleTooltip': '启用或关闭外部聚合',
+        'aggregate.feedbackDisabled': '未启用聚合，将生成基础 UID 订阅。',
+        'aggregate.feedbackEmpty': '已启用聚合，但尚未添加外部链接。',
+        'aggregate.feedbackCount': '已附加 {count} 个外部 ICS 链接。',
         'aggregate.errorTooMany': '外部 ICS 最多支持 {count} 个链接',
         'aggregate.errorInvalid': '无法解析外部链接：{url}',
         'aggregate.errorProtocol': '仅支持 http/https 链接：{url}',
@@ -230,10 +235,15 @@ export class I18n {
         'input.help':
           'Find your UID in your Bilibili profile URL, e.g., https://space.bilibili.com/<strong>614500</strong>',
         'aggregate.title': 'External ICS Merge (optional)',
+        'aggregate.enable': 'Enable',
         'aggregate.placeholder': 'One URL per line or comma separated, e.g. https://example.com/work.ics',
         'aggregate.hint':
           'Merge up to 5 http/https ICS feeds. The link will use /aggregate/:uid.ics?sources= to include them.',
         'aggregate.badge': 'Beta',
+        'aggregate.toggleTooltip': 'Toggle merging external ICS feeds',
+        'aggregate.feedbackDisabled': 'Aggregation disabled. A single UID subscription will be generated.',
+        'aggregate.feedbackEmpty': 'Aggregation enabled, but no external links are provided yet.',
+        'aggregate.feedbackCount': '{count} external ICS feeds attached.',
         'aggregate.errorTooMany': 'You can add at most {count} external ICS links',
         'aggregate.errorInvalid': 'Unable to parse external link: {url}',
         'aggregate.errorProtocol': 'Only http/https links are supported: {url}',

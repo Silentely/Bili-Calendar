@@ -31,6 +31,7 @@ function isMobile() {
 
 const MAX_EXTERNAL_SOURCES = 5;
 const AGG_SOURCES_STORAGE_KEY = 'aggregateSources';
+const AGG_TOGGLE_STORAGE_KEY = 'aggregateToggleEnabled';
 
 function parseAggregateSources(rawValue = '') {
   if (!rawValue) {
@@ -67,6 +68,53 @@ function parseAggregateSources(rawValue = '') {
   }
 
   return { sources: normalized };
+}
+
+function setAggregateFeedback(message = '', type = 'info') {
+  const feedbackEl = document.getElementById('aggregateFeedback');
+  if (!feedbackEl) return;
+  feedbackEl.textContent = message || '';
+  feedbackEl.classList.remove('success', 'error', 'muted');
+  if (type === 'success' || type === 'error' || type === 'muted') {
+    feedbackEl.classList.add(type);
+  }
+}
+
+function updateAggregateContainerState(enabled) {
+  const container = document.getElementById('aggregateOptions');
+  if (container) {
+    container.classList.toggle('active', !!enabled);
+  }
+}
+
+function evaluateAggregateInput(enabled, rawValue = '') {
+  updateAggregateContainerState(enabled);
+  const inputEl = document.getElementById('sourcesInput');
+  if (inputEl) {
+    inputEl.classList.remove('input-error');
+  }
+
+  if (!enabled) {
+    setAggregateFeedback(i18n.t('aggregate.feedbackDisabled'), 'muted');
+    return { enabled: false, sources: [] };
+  }
+
+  const parsed = parseAggregateSources(rawValue);
+  if (parsed.error) {
+    if (inputEl) {
+      inputEl.classList.add('input-error');
+    }
+    setAggregateFeedback(parsed.error, 'error');
+    return { enabled: true, error: parsed.error };
+  }
+
+  if (parsed.sources.length > 0) {
+    setAggregateFeedback(i18n.t('aggregate.feedbackCount', { count: parsed.sources.length }), 'success');
+  } else {
+    setAggregateFeedback(i18n.t('aggregate.feedbackEmpty'), 'muted');
+  }
+
+  return { enabled: true, sources: parsed.sources };
 }
 
 // 增强版Toast通知
@@ -447,6 +495,8 @@ export async function handleSubscribe() {
   const resultBox = document.getElementById('resultBox');
   const subscribeUrl = document.getElementById('subscribeUrl');
   const subscribeLink = document.getElementById('subscribeLink');
+  const sourcesInput = document.getElementById('sourcesInput');
+  const aggregateToggle = document.getElementById('aggregateToggle');
 
   if (!input) {
     console.error('未找到输入框');
@@ -472,24 +522,20 @@ export async function handleSubscribe() {
   resultBox.style.display = 'none';
 
   try {
-    const sourcesInput = document.getElementById('sourcesInput');
+    const aggregateEnabled = aggregateToggle ? aggregateToggle.checked : false;
     const rawSources = sourcesInput ? sourcesInput.value.trim() : '';
-    const parsedSources = parseAggregateSources(rawSources);
+    const aggregateState = evaluateAggregateInput(aggregateEnabled, rawSources);
 
-    if (parsedSources.error) {
-      if (sourcesInput) {
-        sourcesInput.classList.add('input-error');
-      }
+    if (aggregateState.error) {
       progressBar.error();
       loadingOverlay.hide();
       loading.style.display = 'none';
       showResultAnimation(false);
-      showToast(parsedSources.error, 'warning');
+      showToast(aggregateState.error, 'warning');
       return;
     }
 
-    if (sourcesInput) {
-      sourcesInput.classList.remove('input-error');
+    if (aggregateEnabled && sourcesInput) {
       if (rawSources) {
         localStorage.setItem(AGG_SOURCES_STORAGE_KEY, rawSources);
       } else {
@@ -497,9 +543,9 @@ export async function handleSubscribe() {
       }
     }
 
-    const sources = parsedSources.sources || [];
+    const sources = aggregateState.sources || [];
     let url;
-    if (sources.length > 0) {
+    if (aggregateEnabled && sources.length > 0) {
       const query = sources.map((src) => `sources=${encodeURIComponent(src)}`).join('&');
       url = `${window.location.origin}/aggregate/${uid}.ics`;
       if (query) {
@@ -596,13 +642,48 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   const sourcesInput = document.getElementById('sourcesInput');
+  const aggregateToggle = document.getElementById('aggregateToggle');
+  let savedSources = '';
   if (sourcesInput) {
-    const savedSources = localStorage.getItem(AGG_SOURCES_STORAGE_KEY);
+    savedSources = localStorage.getItem(AGG_SOURCES_STORAGE_KEY) || '';
     if (savedSources) {
       sourcesInput.value = savedSources;
     }
+  }
+
+  let initialAggregateEnabled = false;
+  if (aggregateToggle) {
+    const savedToggle = localStorage.getItem(AGG_TOGGLE_STORAGE_KEY);
+    initialAggregateEnabled = savedToggle === 'true';
+    aggregateToggle.checked = initialAggregateEnabled;
+  }
+
+  evaluateAggregateInput(initialAggregateEnabled, savedSources.trim());
+
+  if (aggregateToggle) {
+    aggregateToggle.addEventListener('change', () => {
+      const enabled = aggregateToggle.checked;
+      localStorage.setItem(AGG_TOGGLE_STORAGE_KEY, enabled);
+      evaluateAggregateInput(enabled, sourcesInput ? sourcesInput.value.trim() : '');
+      if (!enabled && sourcesInput) {
+        sourcesInput.classList.remove('input-error');
+      }
+    });
+  }
+
+  if (sourcesInput) {
     sourcesInput.addEventListener('input', () => {
-      sourcesInput.classList.remove('input-error');
+      const value = sourcesInput.value;
+      if (value.trim()) {
+        localStorage.setItem(AGG_SOURCES_STORAGE_KEY, value);
+      } else {
+        localStorage.removeItem(AGG_SOURCES_STORAGE_KEY);
+      }
+      if (aggregateToggle && aggregateToggle.checked) {
+        evaluateAggregateInput(true, value.trim());
+      } else {
+        evaluateAggregateInput(false, '');
+      }
     });
   }
 
