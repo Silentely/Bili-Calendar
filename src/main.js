@@ -29,6 +29,46 @@ function isMobile() {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
+const MAX_EXTERNAL_SOURCES = 5;
+const AGG_SOURCES_STORAGE_KEY = 'aggregateSources';
+
+function parseAggregateSources(rawValue = '') {
+  if (!rawValue) {
+    return { sources: [] };
+  }
+
+  const tokens = rawValue
+    .split(/[\n,]/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+
+  if (tokens.length === 0) {
+    return { sources: [] };
+  }
+
+  if (tokens.length > MAX_EXTERNAL_SOURCES) {
+    return { error: i18n.t('aggregate.errorTooMany', { count: MAX_EXTERNAL_SOURCES }) };
+  }
+
+  const normalized = [];
+  for (const token of tokens) {
+    let parsed;
+    try {
+      parsed = new URL(token);
+    } catch (err) {
+      return { error: i18n.t('aggregate.errorInvalid', { url: token }) };
+    }
+
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return { error: i18n.t('aggregate.errorProtocol', { url: token }) };
+    }
+
+    normalized.push(parsed.toString());
+  }
+
+  return { sources: normalized };
+}
+
 // 增强版Toast通知
 export function showToast(message, type = 'info', duration = 3000) {
   const toast = document.createElement('div');
@@ -432,8 +472,42 @@ export async function handleSubscribe() {
   resultBox.style.display = 'none';
 
   try {
-    // 直接生成链接
-    const url = window.location.origin + '/' + uid + '.ics';
+    const sourcesInput = document.getElementById('sourcesInput');
+    const rawSources = sourcesInput ? sourcesInput.value.trim() : '';
+    const parsedSources = parseAggregateSources(rawSources);
+
+    if (parsedSources.error) {
+      if (sourcesInput) {
+        sourcesInput.classList.add('input-error');
+      }
+      progressBar.error();
+      loadingOverlay.hide();
+      loading.style.display = 'none';
+      showResultAnimation(false);
+      showToast(parsedSources.error, 'warning');
+      return;
+    }
+
+    if (sourcesInput) {
+      sourcesInput.classList.remove('input-error');
+      if (rawSources) {
+        localStorage.setItem(AGG_SOURCES_STORAGE_KEY, rawSources);
+      } else {
+        localStorage.removeItem(AGG_SOURCES_STORAGE_KEY);
+      }
+    }
+
+    const sources = parsedSources.sources || [];
+    let url;
+    if (sources.length > 0) {
+      const query = sources.map((src) => `sources=${encodeURIComponent(src)}`).join('&');
+      url = `${window.location.origin}/aggregate/${uid}.ics`;
+      if (query) {
+        url += `?${query}`;
+      }
+    } else {
+      url = `${window.location.origin}/${uid}.ics`;
+    }
 
     // 模拟短暂处理时间
     await new Promise((resolve) => setTimeout(resolve, 800));
@@ -519,6 +593,17 @@ document.addEventListener('DOMContentLoaded', function () {
   const languageBtn = document.getElementById('languageBtn');
   if (languageBtn) {
     languageBtn.addEventListener('click', cycleLanguage);
+  }
+
+  const sourcesInput = document.getElementById('sourcesInput');
+  if (sourcesInput) {
+    const savedSources = localStorage.getItem(AGG_SOURCES_STORAGE_KEY);
+    if (savedSources) {
+      sourcesInput.value = savedSources;
+    }
+    sourcesInput.addEventListener('input', () => {
+      sourcesInput.classList.remove('input-error');
+    });
   }
 
   // 绑定生成订阅按钮

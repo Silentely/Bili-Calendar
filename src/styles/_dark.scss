@@ -80,6 +80,27 @@
   color: var(--text-secondary);
 }
 
+[data-theme='dark'] .aggregate-options {
+  background: rgba(0, 212, 255, 0.08);
+  border-color: rgba(0, 212, 255, 0.5);
+}
+
+[data-theme='dark'] .aggregate-options textarea {
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+
+[data-theme='dark'] .beta-badge {
+  border-color: rgba(0, 212, 255, 0.5);
+  color: var(--secondary);
+  background: rgba(0, 212, 255, 0.15);
+}
+
+[data-theme='dark'] .aggregate-hint {
+  color: var(--text-secondary);
+}
+
 [data-theme='dark'] .help-text strong {
   color: var(--primary);
 }

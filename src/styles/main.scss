@@ -201,6 +201,77 @@ html {
   position: relative;
 }
 
+.aggregate-options {
+  width: 100%;
+  margin-top: 18px;
+  text-align: left;
+  border: 1px dashed rgba(0, 161, 214, 0.3);
+  border-radius: 14px;
+  padding: 16px;
+  background: rgba(0, 161, 214, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.aggregate-options:hover {
+  border-color: rgba(0, 161, 214, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 161, 214, 0.08);
+}
+
+.aggregate-options-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: var(--secondary);
+  margin-bottom: 8px;
+}
+
+.beta-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 10px;
+  font-size: 12px;
+  line-height: 1;
+  text-transform: uppercase;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 161, 214, 0.4);
+  background: rgba(0, 161, 214, 0.12);
+  color: var(--secondary);
+  font-weight: 600;
+}
+
+.aggregate-options textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 96px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 161, 214, 0.4);
+  background: #fff;
+  padding: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.aggregate-options textarea:focus {
+  outline: none;
+  border-color: var(--secondary);
+  box-shadow: 0 0 0 3px rgba(0, 161, 214, 0.15);
+}
+
+.aggregate-options textarea.input-error {
+  border-color: var(--error);
+  box-shadow: 0 0 0 3px rgba(255, 77, 79, 0.2);
+}
+
+.aggregate-hint {
+  font-size: 13px;
+  margin-top: 8px;
+  color: var(--gray);
+  line-height: 1.6;
+}
+
 /* 添加装饰图标 */
 .input-group::before {
   content: '🔍';
