@@ -1,6 +1,7 @@
 // netlify/functions/server.js
 const serverless = require('serverless-http');
 const express = require('express');
+const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -22,6 +23,22 @@ const pushSubscriptions = new Set();
 const app = express();
 app.use(express.json({ limit: '1mb' }));
 
+// 启用 gzip/brotli 压缩
+app.use(
+  compression({
+    threshold: 1024, // 仅压缩大于 1KB 的响应
+    level: 6, // 压缩级别 (0-9)
+    filter: (req, res) => {
+      // 不压缩已经压缩的内容
+      if (res.getHeader('Content-Encoding')) {
+        return false;
+      }
+      // 使用compression的默认过滤器
+      return compression.filter(req, res);
+    },
+  })
+);
+
 // 创建速率限制器实例
 const rateLimiter = createRateLimiter();
 const requirePushAuth = (req, res) => {
@@ -42,16 +59,18 @@ app.use((req, res, next) => {
   const CORS_HEADERS = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
   };
-  // 安全头
+  // 基础安全头
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline'; connect-src 'self' https://api.bilibili.com; font-src 'self' data: https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; manifest-src 'self'"
+    "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; form-action 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'self'; connect-src 'self' https://api.bilibili.com; font-src 'self' data: https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; manifest-src 'self'"
   );
+  // CORS
   Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
@@ -64,6 +83,9 @@ const rateLimiterMiddleware = (req, res, next) => {
   // 应用限流（所有请求）
   if (!rateLimiter.check(ip)) {
     const resetTime = new Date(rateLimiter.getResetTime(ip)).toISOString();
+
+    // 记录限流事件到 metrics
+    metrics.onRateLimited();
 
     // 设置速率限制响应头
     res.setHeader('X-RateLimit-Limit', rateLimiter.MAX_REQUESTS);

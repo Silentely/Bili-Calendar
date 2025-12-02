@@ -203,7 +203,7 @@ export class I18n {
         'page.title': 'Bilibili Anime Calendar Subscription',
 
         // Header
-        'app.title': 'Bili Calendar',
+        'app.title': 'Bili-Calendar',
         'app.subtitle': 'Enter your Bilibili UID to get anime calendar subscription',
         'app.github': 'GitHub',
         'app.githubAria': 'Open GitHub repository in new window',
