@@ -18,11 +18,28 @@ const { generateMergedICS, fetchExternalICS } = requireFromRoot('./utils/ics-mer
 const { getBangumiData } = requireFromRoot('./utils/bangumi.cjs');
 const metrics = requireFromRoot('./utils/metrics.cjs');
 const PUSH_ADMIN_TOKEN = process.env.PUSH_ADMIN_TOKEN || '';
+const IS_DEV = (process.env.NODE_ENV || 'development') === 'development';
 let webpush = null;
 const pushSubscriptions = new Set();
 
+function resolveTrustProxySetting(rawValue) {
+  if (rawValue == null) return undefined;
+  const trimmed = String(rawValue).trim();
+  if (!trimmed) return undefined;
+  const lowered = trimmed.toLowerCase();
+  if (lowered === 'true') return true;
+  if (lowered === 'false') return false;
+  const numeric = Number(trimmed);
+  if (!Number.isNaN(numeric)) return numeric;
+  return trimmed;
+}
+
 // 导入主应用逻辑
 const app = express();
+const trustProxySetting = resolveTrustProxySetting(process.env.TRUST_PROXY);
+if (trustProxySetting !== undefined) {
+  app.set('trust proxy', trustProxySetting);
+}
 app.use(express.json({ limit: '1mb' }));
 
 // 启用 gzip/brotli 压缩
@@ -470,33 +487,35 @@ app.post('/push/subscribe', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.post('/push/test', async (req, res) => {
-  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
-    return res.status(501).json({ error: 'push not configured' });
-  }
-  if (!requirePushAuth(req, res)) return;
-  try {
-    if (!webpush) {
-      webpush = requireFromRoot('web-push');
-      webpush.setVapidDetails(
-        process.env.VAPID_SUBJECT || 'mailto:admin@example.com',
-        process.env.VAPID_PUBLIC_KEY,
-        process.env.VAPID_PRIVATE_KEY
-      );
+if (IS_DEV) {
+  app.post('/push/test', async (req, res) => {
+    if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+      return res.status(501).json({ error: 'push not configured' });
     }
-  } catch (err) {
-    return res.status(501).json({ error: 'web-push module missing', detail: err.message });
-  }
+    if (!requirePushAuth(req, res)) return;
+    try {
+      if (!webpush) {
+        webpush = requireFromRoot('web-push');
+        webpush.setVapidDetails(
+          process.env.VAPID_SUBJECT || 'mailto:admin@example.com',
+          process.env.VAPID_PUBLIC_KEY,
+          process.env.VAPID_PRIVATE_KEY
+        );
+      }
+    } catch (err) {
+      return res.status(501).json({ error: 'web-push module missing', detail: err.message });
+    }
 
-  const payload = JSON.stringify({ title: 'Bili-Calendar 推送测试', body: '推送配置已生效' });
-  const promises = Array.from(pushSubscriptions).map((sub) =>
-    webpush.sendNotification(sub, payload).catch((err) => {
-      console.warn('push send failed', err?.statusCode || err?.message);
-    })
-  );
-  await Promise.all(promises);
-  res.json({ status: 'sent', count: pushSubscriptions.size });
-});
+    const payload = JSON.stringify({ title: 'Bili-Calendar 推送测试', body: '推送配置已生效' });
+    const promises = Array.from(pushSubscriptions).map((sub) =>
+      webpush.sendNotification(sub, payload).catch((err) => {
+        console.warn('push send failed', err?.statusCode || err?.message);
+      })
+    );
+    await Promise.all(promises);
+    res.json({ status: 'sent', count: pushSubscriptions.size });
+  });
+}
 
 // 处理404错误 - 为浏览器请求返回HTML页面
 app.use((req, res) => {

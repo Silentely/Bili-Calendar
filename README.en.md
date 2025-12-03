@@ -225,6 +225,7 @@ Parameters:
 - `sources`: optional extra ICS links, URL encoded
   - Accepts repeated `sources` params or comma-separated list
   - Only `http://` and `https://` are allowed
+  - Links pointing to private/local addresses are rejected automatically to mitigate SSRF
   - Up to 5 external sources, exceeding returns `400`
 
 Returns: ICS that merges Bilibili anime with external calendars. Each imported event contains `X-BC-SOURCE` to indicate origin, making it easy to filter in calendar apps.
@@ -278,6 +279,7 @@ Returns: Service status information for health checks
 | `VAPID_SUBJECT`            | mailto:...    | Optional VAPID subject (from generator)               |
 | `PUSH_STORE_FILE`          | ./data/push-subscriptions.json | Optional, persistent subscription file (server deployment) |
 | `PUSH_ADMIN_TOKEN`         | Empty         | Optional token protecting `/push/test` admin endpoint |
+| `TRUST_PROXY`              | disabled      | Optional Express `trust proxy` config (`true`/`false`/hops/IP). Only enable behind trusted proxies |
 
 ### Notes
 
@@ -286,8 +288,9 @@ Returns: Service status information for health checks
 3. **Timezone Handling**: Service defaults to UTC+8 (Beijing Time), ensure deployment environment timezone is correct
 4. **Push Reminder (experimental)**: Run `node scripts/generate-vapid.js` to generate VAPID keys and set env vars, then click “Enable Push” on frontend; without config the button fails gracefully
 5. **Push Storage**: By default subscriptions are saved to `./data/push-subscriptions.json` (configurable via `PUSH_STORE_FILE`). Netlify/serverless builds fall back to in-memory storage only
-6. **Push Security**: Set `PUSH_ADMIN_TOKEN` so `/push/test` (and other admin endpoints) require `Authorization: Bearer <token>` or `?token=...` query. Recommended for production
-7. **Prometheus**: Use `/metrics/prometheus` or `/metrics` JSON; per-route stats are in-memory and reset on restart
+6. **Push Security**: `/push/test` is only registered when `NODE_ENV=development`. For local testing provide `PUSH_ADMIN_TOKEN` and send `Authorization: Bearer <token>` (or `?token=`). Production builds keep it disabled by default
+7. **Proxy Trust**: By default Express ignores `X-Forwarded-*`. If you deploy behind a trusted proxy/CDN, set `TRUST_PROXY` (e.g. `true`, `1`, or a subnet) and pair it with proxy-side IP filtering
+8. **Prometheus**: Use `/metrics/prometheus` or `/metrics` JSON; per-route stats are in-memory and reset on restart
 
 ---
 

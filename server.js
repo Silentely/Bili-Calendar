@@ -15,13 +15,31 @@ const metrics = require('./utils/metrics.cjs');
 const createPushStore = require('./utils/push-store.cjs');
 const pushStore = createPushStore(process.env.PUSH_STORE_FILE);
 const PUSH_ADMIN_TOKEN = process.env.PUSH_ADMIN_TOKEN || '';
+const IS_DEV = (process.env.NODE_ENV || 'development') === 'development';
 let webpushInstance = null;
+
+function resolveTrustProxySetting(rawValue) {
+  if (rawValue == null) return undefined;
+  const trimmed = String(rawValue).trim();
+  if (!trimmed) return undefined;
+  const lowered = trimmed.toLowerCase();
+  if (lowered === 'true') return true;
+  if (lowered === 'false') return false;
+  const numeric = Number(trimmed);
+  if (!Number.isNaN(numeric)) return numeric;
+  return trimmed;
+}
 
 // 抽离的通用工具（使用 CJS 版本）
 const { generateICS, respondWithICS, respondWithEmptyCalendar } = require('./utils/ics.cjs');
 const { generateMergedICS, fetchExternalICS } = require('./utils/ics-merge.cjs');
 
 const app = express();
+
+const trustProxySetting = resolveTrustProxySetting(process.env.TRUST_PROXY);
+if (trustProxySetting !== undefined) {
+  app.set('trust proxy', trustProxySetting);
+}
 
 // JSON 解析
 app.use(express.json({ limit: '1mb' }));
@@ -299,26 +317,28 @@ app.post('/push/subscribe', (req, res) => {
   res.json({ status: 'ok', stored: pushStore.list().length });
 });
 
-app.post('/push/test', async (req, res) => {
-  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
-    return res.status(501).json({ error: 'push not configured' });
-  }
-  if (!requirePushAuth(req, res)) return;
-  try {
-    const webpush = await getWebpush();
-    const payload = JSON.stringify({ title: 'Bili-Calendar 推送测试', body: '推送配置已生效' });
-    const subs = pushStore.list();
-    const promises = subs.map((sub) =>
-      webpush.sendNotification(sub, payload).catch((err) => {
-        console.warn('push send failed', err?.statusCode || err?.message);
-      })
-    );
-    await Promise.all(promises);
-    res.json({ status: 'sent', count: subs.length });
-  } catch (err) {
-    res.status(501).json({ error: 'web-push module missing', detail: err.message });
-  }
-});
+if (IS_DEV) {
+  app.post('/push/test', async (req, res) => {
+    if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+      return res.status(501).json({ error: 'push not configured' });
+    }
+    if (!requirePushAuth(req, res)) return;
+    try {
+      const webpush = await getWebpush();
+      const payload = JSON.stringify({ title: 'Bili-Calendar 推送测试', body: '推送配置已生效' });
+      const subs = pushStore.list();
+      const promises = subs.map((sub) =>
+        webpush.sendNotification(sub, payload).catch((err) => {
+          console.warn('push send failed', err?.statusCode || err?.message);
+        })
+      );
+      await Promise.all(promises);
+      res.json({ status: 'sent', count: subs.length });
+    } catch (err) {
+      res.status(501).json({ error: 'web-push module missing', detail: err.message });
+    }
+  });
+}
 
 /**
  * 将秒数转换为人类可读的运行时间字符串

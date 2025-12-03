@@ -2,6 +2,7 @@
 // 输入校验与安全相关的通用工具函数
 
 const net = require('node:net');
+const { normalizeIPAddress } = require('./ip.cjs');
 
 function validateUID(uid) {
   return /^\d{1,20}$/.test(String(uid || '').trim());
@@ -16,7 +17,8 @@ function validateUID(uid) {
 function isPrivateIPAddress(hostname) {
   if (!hostname) return true;
 
-  const ipVersion = net.isIP(hostname);
+  const normalized = normalizeIPAddress(hostname);
+  const ipVersion = net.isIP(normalized);
 
   // 不是有效 IP，可能是域名
   if (ipVersion === 0) {
@@ -32,7 +34,7 @@ function isPrivateIPAddress(hostname) {
 
   // 检查 IPv4 私有地址范围
   if (ipVersion === 4) {
-    const parts = hostname.split('.').map(Number);
+    const parts = normalized.split('.').map(Number);
     return (
       parts[0] === 10 || // 10.0.0.0/8
       parts[0] === 127 || // 127.0.0.0/8 (loopback)
@@ -46,7 +48,7 @@ function isPrivateIPAddress(hostname) {
 
   // 检查 IPv6 私有/本地地址范围
   if (ipVersion === 6) {
-    const lower = hostname.toLowerCase();
+    const lower = normalized.toLowerCase();
     return (
       lower === '::1' || // Loopback
       lower.startsWith('fe80:') || // Link-local
@@ -78,4 +80,5 @@ module.exports = {
   validateUID,
   isPrivateIPAddress,
   validateExternalSource,
+  normalizeIPAddress,
 };
