@@ -414,6 +414,11 @@ async function fetchExternalICS(urls = []) {
       return Promise.resolve(null);
     }
 
+    if (isPrivateIPAddress(parsed.hostname)) {
+      console.warn(`🚫 [SSRF] 阻止访问私有地址: ${url}`);
+      return Promise.resolve(null);
+    }
+
     return axios
       .get(url, { timeout: 8000, responseType: 'text', lookup: safeLookup })
       .then((res) => {

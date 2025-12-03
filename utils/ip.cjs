@@ -2,29 +2,64 @@
 // IP 地址解析和清理工具 (CommonJS)
 
 /**
- * 从请求对象中提取并清理客户端IP地址
- * 处理代理转发和IPv6地址格式
+ * 统一清理 IP 表示，剔除 IPv6 zone-id、IPv4-mapped 前缀等噪声
+ * @param {string} value
+ * @returns {string}
+ */
+function normalizeIPAddress(value = '') {
+  let ip = String(value || '').trim();
+  if (!ip) return '';
+
+  const zoneIndex = ip.indexOf('%');
+  if (zoneIndex >= 0) {
+    ip = ip.slice(0, zoneIndex);
+  }
+
+  if (ip.startsWith('[') && ip.endsWith(']')) {
+    ip = ip.slice(1, -1);
+  }
+
+  ip = ip.replace(/^::ffff:/i, '');
+
+  return ip;
+}
+
+/**
+ * 从请求对象中提取并清理客户端IP地址，遵循 Express trust proxy 配置
  * @param {Object} req - Express 请求对象
  * @returns {string} 清理后的IP地址
  */
 function extractClientIP(req) {
-  // 优先从 x-forwarded-for 获取IP (处理代理情况)
-  let ip =
-    req.headers['x-forwarded-for'] ||
-    req.connection?.remoteAddress ||
-    req.socket?.remoteAddress ||
-    req.connection?.socket?.remoteAddress ||
-    '';
+  if (!req) return '';
 
-  // 转换为字符串并处理多IP情况 (x-forwarded-for 可能包含多个IP)
-  ip = ip.toString().split(',')[0].trim();
+  const candidates = [];
 
-  // 移除IPv6前缀 (例如：::ffff:127.0.0.1 -> 127.0.0.1)
-  if (ip.includes('::ffff:')) {
-    ip = ip.replace('::ffff:', '');
+  if (Array.isArray(req.ips) && req.ips.length > 0) {
+    candidates.push(...req.ips);
   }
 
-  return ip;
+  if (req.ip) {
+    candidates.push(req.ip);
+  }
+
+  const directAddress =
+    req.connection?.remoteAddress ||
+    req.socket?.remoteAddress ||
+    req.connection?.socket?.remoteAddress;
+
+  if (directAddress) {
+    candidates.push(directAddress);
+  }
+
+  const fallback = req.headers?.['remote-addr'];
+  if (fallback) {
+    candidates.push(fallback);
+  }
+
+  const ip =
+    candidates.find((item) => item && item !== '::1' && item !== '::') || candidates[0] || '';
+
+  return normalizeIPAddress(ip);
 }
 
 /**
@@ -46,4 +81,5 @@ function generateRequestId(req) {
 module.exports = {
   extractClientIP,
   generateRequestId,
+  normalizeIPAddress,
 };
