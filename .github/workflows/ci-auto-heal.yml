@@ -74,7 +74,7 @@ jobs:
         if: steps.failure_info.outputs.need_heal == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: 重新安装依赖
