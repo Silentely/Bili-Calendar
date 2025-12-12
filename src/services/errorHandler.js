@@ -1,6 +1,26 @@
-// 错误处理和用户引导系统
+// @ts-check
+/**
+ * 错误处理和用户引导系统
+ * 提供统一的错误展示、历史记录和新手引导功能
+ */
 
-// 错误代码映射
+import { escapeHtml } from '../utils/stringUtils.js';
+
+/**
+ * 错误信息定义
+ * @typedef {Object} ErrorInfo
+ * @property {string} title - 错误标题
+ * @property {string} message - 错误消息
+ * @property {string} solution - 解决方案建议
+ * @property {string} icon - FontAwesome 图标类名
+ * @property {'warning'|'error'|'info'} type - 错误类型
+ * @property {string} [helpLink] - 可选的帮助链接
+ */
+
+/**
+ * 错误代码映射表
+ * @type {Object.<string, ErrorInfo>}
+ */
 const ERROR_CODES = {
   INVALID_UID: {
     title: 'UID格式错误',
@@ -54,14 +74,55 @@ const ERROR_CODES = {
   },
 };
 
-// 错误处理器类
+/**
+ * 错误历史记录
+ * @typedef {Object} ErrorHistoryItem
+ * @property {string} code - 错误代码
+ * @property {string|null} message - 自定义错误消息
+ * @property {Date} timestamp - 发生时间
+ * @property {boolean} resolved - 是否已解决
+ */
+
+/**
+ * 错误处理器类
+ * 负责显示错误弹窗、记录错误历史和分析错误模式
+ *
+ * @example
+ * import { errorHandler } from './services/errorHandler.js'
+ *
+ * errorHandler.showErrorModal('INVALID_UID')
+ * errorHandler.showErrorModal('NETWORK_ERROR', '连接超时')
+ */
 export class ErrorHandler {
+  /**
+   * 创建错误处理器实例
+   */
   constructor() {
+    /**
+     * 错误历史记录
+     * @type {ErrorHistoryItem[]}
+     */
     this.errorHistory = [];
+
+    /**
+     * 最大历史记录数
+     * @type {number}
+     */
     this.maxHistorySize = 10;
   }
 
-  // 显示错误弹窗
+  /**
+   * 显示错误弹窗
+   * 根据错误代码自动显示相应的错误信息和解决方案
+   *
+   * @param {string} errorCode - 错误代码（来自 ERROR_CODES）
+   * @param {string|null} [customMessage=null] - 可选的自定义错误消息
+   * @returns {void}
+   *
+   * @example
+   * errorHandler.showErrorModal('INVALID_UID')
+   * errorHandler.showErrorModal('NETWORK_ERROR', '连接超时，请稍后再试')
+   */
   showErrorModal(errorCode, customMessage = null) {
     const error = ERROR_CODES[errorCode] || ERROR_CODES.SERVER_ERROR;
     const modalId = 'errorModal-' + Date.now();
@@ -76,16 +137,16 @@ export class ErrorHandler {
       <div class="error-modal-content">
         <div class="error-modal-header ${error.type}">
           <i class="fas ${error.icon}"></i>
-          <h3>${error.title}</h3>
+          <h3>${escapeHtml(error.title)}</h3>
           <button class="error-modal-close" onclick="errorHandler.closeModal('${modalId}')">
             <i class="fas fa-times"></i>
           </button>
         </div>
         <div class="error-modal-body">
-          <p class="error-message">${customMessage || error.message}</p>
+          <p class="error-message">${escapeHtml(customMessage || error.message)}</p>
           <div class="error-solution">
             <i class="fas fa-lightbulb"></i>
-            <span>${error.solution}</span>
+            <span>${escapeHtml(error.solution)}</span>
           </div>
           ${
             error.helpLink
@@ -116,7 +177,16 @@ export class ErrorHandler {
     }, 10);
   }
 
-  // 关闭模态框
+  /**
+   * 关闭错误弹窗
+   * 带动画效果地移除指定的错误弹窗
+   *
+   * @param {string} modalId - 弹窗的 DOM ID
+   * @returns {void}
+   *
+   * @example
+   * errorHandler.closeModal('errorModal-1234567890')
+   */
   closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -129,7 +199,17 @@ export class ErrorHandler {
 
   // 已删除重试操作，现在只保留关闭功能
 
-  // 添加到错误历史
+  /**
+   * 添加错误到历史记录
+   * 将错误记录添加到历史数组并保存到 localStorage
+   *
+   * @param {string} errorCode - 错误代码
+   * @param {string|null} message - 自定义错误消息
+   * @returns {void}
+   *
+   * @example
+   * errorHandler.addToHistory('INVALID_UID', null)
+   */
   addToHistory(errorCode, message) {
     this.errorHistory.unshift({
       code: errorCode,
@@ -145,7 +225,15 @@ export class ErrorHandler {
     this.saveToLocalStorage();
   }
 
-  // 保存到本地存储
+  /**
+   * 保存错误历史到 localStorage
+   * 将错误历史记录持久化存储
+   *
+   * @returns {void}
+   *
+   * @example
+   * errorHandler.saveToLocalStorage()
+   */
   saveToLocalStorage() {
     try {
       localStorage.setItem('errorHistory', JSON.stringify(this.errorHistory));
@@ -154,7 +242,15 @@ export class ErrorHandler {
     }
   }
 
-  // 从本地存储加载
+  /**
+   * 从 localStorage 加载错误历史
+   * 恢复之前保存的错误记录
+   *
+   * @returns {void}
+   *
+   * @example
+   * errorHandler.loadFromLocalStorage()
+   */
   loadFromLocalStorage() {
     try {
       const saved = localStorage.getItem('errorHistory');
@@ -166,7 +262,18 @@ export class ErrorHandler {
     }
   }
 
-  // 分析错误模式
+  /**
+   * 分析错误模式
+   * 检测最近是否有相同错误频繁出现
+   *
+   * @returns {string|null} 返回模式建议或 null
+   *
+   * @example
+   * const advice = errorHandler.analyzeErrorPattern()
+   * if (advice) {
+   *   console.log('建议:', advice)
+   * }
+   */
   analyzeErrorPattern() {
     const recentErrors = this.errorHistory.slice(0, 5);
     const errorCounts = {};
@@ -185,7 +292,17 @@ export class ErrorHandler {
     return null;
   }
 
-  // 获取错误模式建议
+  /**
+   * 获取错误模式建议
+   * 根据频繁出现的错误代码提供针对性建议
+   *
+   * @param {string} errorCode - 错误代码
+   * @returns {string|null} 返回建议文本或 null
+   *
+   * @example
+   * const advice = errorHandler.getPatternAdvice('RATE_LIMITED')
+   * console.log(advice) // => '您的请求过于频繁...'
+   */
   getPatternAdvice(errorCode) {
     const advice = {
       RATE_LIMITED: '您的请求过于频繁，建议降低请求频率或联系管理员增加限额',
@@ -198,15 +315,55 @@ export class ErrorHandler {
   }
 }
 
-// 用户引导系统
+/**
+ * 引导步骤定义
+ * @typedef {Object} GuideStep
+ * @property {string} element - 目标元素的选择器
+ * @property {string} title - 步骤标题
+ * @property {string} content - 步骤说明内容
+ * @property {'top'|'bottom'|'left'|'right'|'bottom-left'} position - 提示框位置
+ */
+
+/**
+ * 用户引导系统类
+ * 提供新手引导功能，帮助用户了解应用的使用方法
+ *
+ * @example
+ * import { userGuide } from './services/errorHandler.js'
+ *
+ * if (userGuide.shouldShowTour()) {
+ *   userGuide.startTour()
+ * }
+ */
 export class UserGuide {
+  /**
+   * 创建用户引导实例
+   */
   constructor() {
+    /**
+     * 当前步骤索引
+     * @type {number}
+     */
     this.currentStep = 0;
+
+    /**
+     * 引导步骤数组
+     * @type {GuideStep[]}
+     */
     this.steps = [];
+
+    /**
+     * 引导是否激活
+     * @type {boolean}
+     */
     this.isActive = false;
   }
 
-  // 初始化新手引导
+  /**
+   * 初始化引导步骤（旧版本）
+   * @deprecated 使用 initTourV2 代替
+   * @returns {void}
+   */
   initTour() {
     this.steps = [
       {
@@ -237,8 +394,16 @@ export class UserGuide {
       },
     ];
   }
-  
-  // Override initTour to use correct selector for generateBtn
+
+  /**
+   * 初始化引导步骤（推荐版本）
+   * 使用正确的选择器初始化引导流程
+   *
+   * @returns {void}
+   *
+   * @example
+   * userGuide.initTourV2()
+   */
   initTourV2() {
       this.steps = [
       {
@@ -268,10 +433,18 @@ export class UserGuide {
     ];
   }
 
-  // 开始引导
+  /**
+   * 开始引导流程
+   * 显示第一个引导步骤并添加遮罩层
+   *
+   * @returns {void}
+   *
+   * @example
+   * userGuide.startTour()
+   */
   startTour() {
     if (this.isActive) return;
-    
+
     // Re-init steps if needed (call V2)
     this.initTourV2();
 
@@ -286,7 +459,15 @@ export class UserGuide {
     document.body.appendChild(overlay);
   }
 
-  // 显示步骤
+  /**
+   * 显示当前步骤
+   * 高亮目标元素并显示提示框
+   *
+   * @returns {void}
+   *
+   * @example
+   * userGuide.showStep()
+   */
   showStep() {
     if (this.currentStep >= this.steps.length) {
       this.endTour();
@@ -317,8 +498,8 @@ export class UserGuide {
         </button>
       </div>
       <div class="guide-tooltip-content">
-        <h4>${step.title}</h4>
-        <p>${step.content}</p>
+        <h4>${escapeHtml(step.title)}</h4>
+        <p>${escapeHtml(step.content)}</p>
       </div>
       <div class="guide-tooltip-footer">
         ${this.currentStep > 0 ? '<button class="guide-prev" onclick="userGuide.prevStep()">上一步</button>' : ''}
@@ -336,7 +517,18 @@ export class UserGuide {
     this.positionTooltip(element, tooltip, step.position);
   }
 
-  // 定位提示框
+  /**
+   * 定位提示框位置
+   * 根据目标元素和指定位置计算提示框坐标
+   *
+   * @param {Element} element - 目标元素
+   * @param {Element} tooltip - 提示框元素
+   * @param {'top'|'bottom'|'left'|'right'|'bottom-left'} position - 提示框位置
+   * @returns {void}
+   *
+   * @example
+   * userGuide.positionTooltip(targetElement, tooltipElement, 'bottom')
+   */
   positionTooltip(element, tooltip, position) {
     const rect = element.getBoundingClientRect();
     const tooltipRect = tooltip.getBoundingClientRect();
@@ -377,21 +569,45 @@ export class UserGuide {
     tooltip.style.left = `${left}px`;
   }
 
-  // 下一步
+  /**
+   * 显示下一个步骤
+   * 清除当前步骤并显示下一个
+   *
+   * @returns {void}
+   *
+   * @example
+   * userGuide.nextStep()
+   */
   nextStep() {
     this.clearStep();
     this.currentStep++;
     this.showStep();
   }
 
-  // 上一步
+  /**
+   * 显示上一个步骤
+   * 清除当前步骤并显示上一个
+   *
+   * @returns {void}
+   *
+   * @example
+   * userGuide.prevStep()
+   */
   prevStep() {
     this.clearStep();
     this.currentStep--;
     this.showStep();
   }
 
-  // 清除当前步骤
+  /**
+   * 清除当前步骤的UI元素
+   * 移除高亮和提示框
+   *
+   * @returns {void}
+   *
+   * @example
+   * userGuide.clearStep()
+   */
   clearStep() {
     // 移除高亮
     document.querySelectorAll('.guide-highlight').forEach((el) => {
@@ -405,7 +621,15 @@ export class UserGuide {
     }
   }
 
-  // 结束引导
+  /**
+   * 结束引导流程
+   * 清除所有UI元素并标记引导为已完成
+   *
+   * @returns {void}
+   *
+   * @example
+   * userGuide.endTour()
+   */
   endTour() {
     this.clearStep();
     this.isActive = false;
@@ -420,7 +644,17 @@ export class UserGuide {
     localStorage.setItem('tourCompleted', 'true');
   }
 
-  // 检查是否需要显示引导
+  /**
+   * 检查是否需要显示引导
+   * 基于 localStorage 判断用户是否已完成引导
+   *
+   * @returns {boolean} 需要显示返回 true，否则返回 false
+   *
+   * @example
+   * if (userGuide.shouldShowTour()) {
+   *   userGuide.startTour()
+   * }
+   */
   shouldShowTour() {
     return !localStorage.getItem('tourCompleted');
   }
