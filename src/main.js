@@ -7,6 +7,16 @@ import { initPWA } from './services/pwa';
 import notifier from './services/notifier';
 import pushService from './services/push';
 
+// 导入新提取的模块
+import { toHalfWidth } from './utils/stringUtils';
+import { isMobile } from './utils/deviceDetector';
+import { showToast } from './services/toastService';
+import { toggleTheme, initTheme } from './services/themeService';
+import { showProgressBar } from './services/progressService';
+import { showLoadingOverlay } from './services/loadingService';
+import { showResultAnimation } from './services/animationService';
+import { copyFromElement } from './services/clipboardService';
+
 // Initialize PWA
 initPWA();
 
@@ -19,15 +29,11 @@ window.animePreview = animePreview;
 window.notifier = notifier;
 window.pushService = pushService;
 
-// Helper Functions
+// 导出新模块到 window (为了向后兼容)
+window.showToast = showToast;
+window.toggleTheme = toggleTheme;
 
-function toHalfWidth(str) {
-  return str.replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
-}
-
-function isMobile() {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-}
+// ==================== 聚合配置管理 ====================
 
 const MAX_EXTERNAL_SOURCES = 5;
 const AGG_SOURCES_STORAGE_KEY = 'aggregateSources';
@@ -164,79 +170,8 @@ window.aggregateConfig = {
   apply: applyAggregateConfig,
 };
 
-// 增强版Toast通知
-export function showToast(message, type = 'info', duration = 3000) {
-  const toast = document.createElement('div');
-  toast.className = 'toast-notification-enhanced';
+// ==================== 语言切换 ====================
 
-  const icons = {
-    success: 'fa-check-circle',
-    error: 'fa-times-circle',
-    warning: 'fa-exclamation-triangle',
-    info: 'fa-info-circle',
-  };
-
-  toast.innerHTML = `
-    <div class="toast-content-enhanced ${type}">
-      <i class="fas ${icons[type]} toast-icon"></i>
-      <span class="toast-message">${message}</span>
-      <i class="fas fa-times toast-close" onclick="this.closest('.toast-notification-enhanced').remove()"></i>
-    </div>
-  `;
-
-  document.body.appendChild(toast);
-
-  setTimeout(() => {
-    toast.classList.add('show');
-  }, 10);
-
-  setTimeout(() => {
-    toast.classList.remove('show');
-    setTimeout(() => {
-      if (toast.parentNode) document.body.removeChild(toast);
-    }, 300);
-  }, duration);
-}
-window.showToast = showToast; // Expose for other modules
-
-// 主题切换功能
-export function toggleTheme() {
-  const body = document.body;
-  const themeIcon = document.getElementById('themeIcon');
-  const currentTheme = body.getAttribute('data-theme');
-
-  if (currentTheme === 'dark') {
-    body.setAttribute('data-theme', 'light');
-    themeIcon.classList.remove('fa-sun');
-    themeIcon.classList.add('fa-moon');
-    localStorage.setItem('theme', 'light');
-  } else {
-    body.setAttribute('data-theme', 'dark');
-    themeIcon.classList.remove('fa-moon');
-    themeIcon.classList.add('fa-sun');
-    localStorage.setItem('theme', 'dark');
-  }
-}
-window.toggleTheme = toggleTheme;
-
-// 初始化主题
-function initTheme() {
-  const savedTheme = localStorage.getItem('theme') || 'light';
-  const body = document.body;
-  const themeIcon = document.getElementById('themeIcon');
-
-  body.setAttribute('data-theme', savedTheme);
-
-  if (savedTheme === 'dark') {
-    themeIcon.classList.remove('fa-moon');
-    themeIcon.classList.add('fa-sun');
-  } else {
-    themeIcon.classList.remove('fa-sun');
-    themeIcon.classList.add('fa-moon');
-  }
-}
-
-// 快速切换语言
 export function cycleLanguage() {
   const current = i18n.getLanguage();
   const next = current === 'zh-CN' ? 'en-US' : 'zh-CN';
@@ -249,114 +184,23 @@ export function cycleLanguage() {
 }
 window.cycleLanguage = cycleLanguage;
 
-// 显示进度条
-function showProgressBar() {
-  const progressBar = document.getElementById('progressBar');
-  const progressFill = progressBar.querySelector('.progress-bar');
-
-  progressBar.classList.add('active');
-  progressFill.style.width = '0%';
-
-  const interval = startProgressSimulation(progressFill);
-
-  return {
-    complete: () => completeProgressBar(progressFill, progressBar, interval),
-    error: () => errorProgressBar(progressBar, interval),
-  };
-}
-
-function startProgressSimulation(progressFill) {
-  let progress = 0;
-  return setInterval(() => {
-    progress += Math.random() * 30;
-    if (progress > 90) {
-      progress = 90;
-    }
-    progressFill.style.width = `${progress}%`;
-  }, 300);
-}
-
-function completeProgressBar(progressFill, progressBar, intervalId) {
-  clearInterval(intervalId);
-  progressFill.style.width = '100%';
-  setTimeout(() => {
-    progressBar.classList.remove('active');
-  }, 500);
-}
-
-function errorProgressBar(progressBar, intervalId) {
-  clearInterval(intervalId);
-  progressBar.classList.remove('active');
-}
-
-// 显示加载遮罩
-function showLoadingOverlay(text = i18n.t('loading.processing')) {
-  const overlay = document.getElementById('loadingOverlay');
-  const loadingText = overlay.querySelector('.loading-text');
-
-  loadingText.textContent = text;
-  overlay.classList.add('active');
-
-  return {
-    hide: () => {
-      overlay.classList.remove('active');
-    },
-    updateText: (newText) => {
-      loadingText.textContent = newText;
-    },
-  };
-}
-
-// 显示成功/失败动画
-function showResultAnimation(success = true) {
-  const animation = document.createElement('div');
-  animation.className = 'result-animation';
-  animation.innerHTML = success
-    ? '<div class="success-checkmark"></div>'
-    : '<div class="error-cross"></div>';
-
-  document.body.appendChild(animation);
-
-  setTimeout(() => {
-    animation.remove();
-  }, 1500);
-}
+// ==================== 剪贴板功能 ====================
 
 export function copyToClipboard() {
-  const url = document.getElementById('subscribeUrl').textContent;
-  if (!url) return;
-  // 先尝试异步剪贴板
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard
-      .writeText(url)
-      .then(() => {
-        showToast(i18n.t('toast.copied'), 'success');
-        showResultAnimation(true);
-      })
-      .catch(() => {
-        fallbackCopy(url);
-      });
-  } else {
-    fallbackCopy(url);
-  }
+  copyFromElement('subscribeUrl', {
+    onSuccess: () => {
+      showToast(i18n.t('toast.copied'), 'success');
+      showResultAnimation(true);
+    },
+    onError: () => {
+      showToast(i18n.t('toast.copyFailed'), 'error');
+      showResultAnimation(false);
+    },
+  });
 }
 window.copyToClipboard = copyToClipboard;
 
-function fallbackCopy(text) {
-  try {
-    const tmp = document.createElement('input');
-    tmp.value = text;
-    document.body.appendChild(tmp);
-    tmp.select();
-    document.execCommand('copy');
-    showToast(i18n.t('toast.copied'), 'success');
-    showResultAnimation(true);
-    document.body.removeChild(tmp);
-  } catch {
-    showToast(i18n.t('toast.copyFailed'), 'error');
-    showResultAnimation(false);
-  }
-}
+// ==================== 核心业务逻辑 ====================
 
 export async function precheckRate(uid) {
   // 先检查缓存
@@ -650,13 +494,13 @@ export async function handleSubscribe() {
 }
 window.handleSubscribe = handleSubscribe;
 
-// 页面加载动画和事件绑定
+// ==================== 页面初始化 ====================
+
 document.addEventListener('DOMContentLoaded', function () {
   // 初始化主题
   initTheme();
 
   // Initialize Modules
-  // i18n.updatePageContent(); // Handled in constructor? No, let's ensure it runs.
   i18n.updatePageContent();
 
   // 加载错误历史记录

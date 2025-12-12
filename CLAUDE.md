@@ -1,12 +1,19 @@
 # Bili-Calendar 项目指导文件
 
-> **最后更新**: 2025-12-01
-> **版本**: v1.2.0
+> **最后更新**: 2025-12-12
+> **版本**: v1.1.8
 > **项目类型**: Node.js Web 应用 (Express + Vite + Vanilla JS)
 
 ---
 
 ## 变更记录 (Changelog)
+
+### 2025-12-12
+- **[架构扫描]** 完成项目全仓扫描，生成 `.claude/index.json` 项目索引
+- **[覆盖率报告]** 整体覆盖率 78%，识别出 4 个主要缺口
+- **[模块映射]** 识别出 9 个主要模块，89 个源文件
+- **[依赖分析]** 完成模块依赖关系梳理
+- **[测试状态]** 确认 85% 测试覆盖率，待补充 Mock 测试
 
 ### 2025-12-01
 - **[架构重构]** 从传统静态文件迁移到 Vite 构建系统
@@ -39,6 +46,7 @@
 - 精确解析番剧更新时间，支持时区转换
 - 智能处理连载/完结番剧的重复规则
 - 隐私保护：服务端不存储用户数据
+- 外部ICS聚合：合并最多 5 个外部日历源
 
 ---
 
@@ -115,7 +123,15 @@ Bili-Calendar/
 │   │   ├── i18n.js              # 国际化支持
 │   │   ├── cacheManager.js      # 缓存管理
 │   │   ├── errorHandler.js      # 错误处理
-│   │   └── pwa.js               # PWA 初始化
+│   │   ├── pwa.js               # PWA 初始化
+│   │   ├── push.js              # 推送服务
+│   │   ├── notifier.js          # 通知管理
+│   │   ├── animationService.js  # 动画服务
+│   │   ├── clipboardService.js  # 剪贴板服务
+│   │   ├── loadingService.js    # 加载状态
+│   │   ├── progressService.js   # 进度条
+│   │   ├── themeService.js      # 主题切换
+│   │   └── toastService.js      # 提示消息
 │   ├── styles/                  # 样式目录 (SCSS)
 │   │   ├── app.scss             # 主样式入口
 │   │   ├── _modules.scss        # 模块化样式
@@ -125,6 +141,8 @@ Bili-Calendar/
 │   │   ├── _dark.scss           # 暗黑模式
 │   │   └── _history.scss        # 历史记录样式
 │   └── utils/                   # 前端工具函数
+│       ├── deviceDetector.js    # 设备检测
+│       └── stringUtils.js       # 字符串工具
 │
 ├── dist/                        # [构建产物] Vite 打包输出 (不提交到 Git)
 │   ├── index.html               # 处理后的 HTML
@@ -135,18 +153,23 @@ Bili-Calendar/
 │   ├── favicon.ico              # 网站图标
 │   ├── manifest.webmanifest     # PWA 清单
 │   ├── sw.js                    # Service Worker
-│   ├── icons/                   # 应用图标
-│   └── CLAUDE.md                # 前端模块文档
+│   └── icons/                   # 应用图标
 │
 ├── utils/                       # [后端] 工具模块 (CommonJS)
 │   ├── bangumi.cjs              # B站番剧数据获取
 │   ├── ics.cjs                  # ICS 日历文件生成
+│   ├── ics-merge.cjs            # 外部ICS聚合
 │   ├── rate-limiter.cjs         # 请求速率限制
 │   ├── request-dedup.cjs        # 请求去重
 │   ├── time.cjs                 # 时间处理工具
 │   ├── http.cjs                 # HTTP 请求工具
 │   ├── constants.cjs            # 常量定义
-│   └── ip.cjs                   # IP 提取工具
+│   ├── ip.cjs                   # IP 提取工具
+│   ├── security.cjs             # 安全校验
+│   ├── validation.cjs           # 参数验证
+│   ├── metrics.cjs              # 性能指标
+│   ├── push-store.cjs           # WebPush存储
+│   └── CLAUDE.md                # 工具模块文档
 │
 ├── utils-es/                    # [后端] ES Module 版本 (Netlify)
 │   └── ...                      # 与 utils/ 同构
@@ -157,16 +180,20 @@ Bili-Calendar/
 │   └── functions-build/         # 构建产物
 │
 ├── test/                        # [测试] 单元测试
-│   ├── utils.ics.test.js
-│   ├── utils.time.test.js
-│   ├── utils.rate-limiter.test.js
-│   └── utils.request-dedup.test.js
+│   ├── utils.*.test.js          # 工具层测试
+│   ├── services.*.test.js       # 服务层测试
+│   ├── ics-merge.test.js        # ICS聚合测试
+│   ├── metrics.test.js          # 指标测试
+│   └── CLAUDE.md                # 测试模块文档
 │
 ├── scripts/                     # [构建] 构建脚本
-│   ├── build-netlify.mjs
-│   └── update-readme-year.js
+│   ├── build-netlify.mjs        # Netlify构建
+│   ├── update-readme-year.js    # README年份更新
+│   ├── check-dist.js            # 构建产物检查
+│   └── generate-vapid.js        # VAPID密钥生成
 │
-└── assets/                      # [文档] 文档资源
+└── .claude/                     # [元数据] AI上下文索引
+    └── index.json               # 项目索引文件
 ```
 
 ---
@@ -175,39 +202,37 @@ Bili-Calendar/
 
 ```mermaid
 graph TD
-    Root["根目录<br/>Bili-Calendar"] --> Src["src/<br/>前端源代码"]
+    Root["(根) Bili-Calendar"] --> Server["server.js<br/>Express服务器"]
+    Root --> Src["src/<br/>前端源代码"]
     Root --> Public["public/<br/>静态资源"]
-    Root --> Dist["dist/<br/>构建产物 (不提交)"]
-    Root --> Utils["utils/<br/>后端工具层 (CommonJS)"]
-    Root --> UtilsES["utils-es/<br/>后端工具层 (ES Module)"]
+    Root --> Dist["dist/<br/>构建产物<br/>(不提交)"]
+    Root --> Utils["utils/<br/>后端工具层<br/>(CommonJS)"]
+    Root --> UtilsES["utils-es/<br/>后端工具层<br/>(ES Module)"]
     Root --> Test["test/<br/>测试套件"]
-    Root --> Netlify["netlify/<br/>Serverless 部署"]
+    Root --> Netlify["netlify/<br/>Serverless部署"]
     Root --> Scripts["scripts/<br/>构建脚本"]
-    Root --> ViteConfig["vite.config.js<br/>Vite 配置"]
+    Root --> Claude[".claude/<br/>AI索引"]
 
-    Src --> SrcMain["main.js"]
-    Src --> SrcComponents["components/"]
-    Src --> SrcServices["services/"]
-    Src --> SrcStyles["styles/ (SCSS)"]
+    Src --> SrcMain["main.js<br/>入口"]
+    Src --> SrcComponents["components/<br/>AnimePreview"]
+    Src --> SrcServices["services/<br/>12个服务模块"]
+    Src --> SrcStyles["styles/<br/>SCSS样式"]
+    Src --> SrcUtils["utils/<br/>工具函数"]
 
-    Public --> PublicCLAUDE["CLAUDE.md"]
     Utils --> UtilsCLAUDE["CLAUDE.md"]
     Test --> TestCLAUDE["CLAUDE.md"]
 
-    PublicCLAUDE -.->|"查看文档"| PublicLink["./docs/frontend.md"]
-    UtilsCLAUDE -.->|"查看文档"| UtilsLink["./utils/CLAUDE.md"]
-    TestCLAUDE -.->|"查看文档"| TestLink["./test/CLAUDE.md"]
-
-    ViteConfig -.->|"构建"| Dist
+    click UtilsCLAUDE "./utils/CLAUDE.md" "查看工具层文档"
+    click TestCLAUDE "./test/CLAUDE.md" "查看测试文档"
 
     style Root fill:#e3f2fd
+    style Server fill:#fff9c4
     style Src fill:#fff3e0
     style Public fill:#e8f5e9
     style Dist fill:#ffebee
     style Utils fill:#f3e5f5
     style Test fill:#e8f5e9
-    style ViteConfig fill:#fce4ec
-    style PublicCLAUDE fill:#ffccbc
+    style Claude fill:#e1f5fe
     style UtilsCLAUDE fill:#ffccbc
     style TestCLAUDE fill:#ffccbc
 ```
@@ -216,17 +241,18 @@ graph TD
 
 ## 模块索引
 
-| 模块名称 | 路径 | 职责描述 | 文档链接 |
-|---------|------|---------|---------|
-| **前端源代码** | `src/` | 用户界面、交互逻辑、组件、样式（Vite 构建） | - |
-| **静态资源** | `public/` | 直接复制到构建产物的资源（图标、PWA） | [查看文档](./docs/frontend.md) |
-| **构建产物** | `dist/` | Vite 打包输出（不提交到 Git） | - |
-| **后端工具层 (CommonJS)** | `utils/` | B站API、ICS生成、限流、去重、时间处理 | [查看文档](./utils/CLAUDE.md) |
-| **后端工具层 (ES Module)** | `utils-es/` | Netlify Serverless 环境专用 | - |
-| **测试套件** | `test/` | 单元测试、集成测试 | [查看文档](./test/CLAUDE.md) |
-| **Serverless 部署** | `netlify/` | Netlify Functions 配置与构建产物 | - |
-| **构建脚本** | `scripts/` | Netlify 构建、README 更新脚本 | - |
-| **Vite 配置** | `vite.config.js` | 前端构建与开发服务器配置 | - |
+| 模块名称 | 路径 | 职责描述 | 覆盖率 | 文档链接 |
+|---------|------|---------|--------|---------|
+| **服务器入口** | `server.js` | Express服务器、路由、中间件、API端点 | 95% | - |
+| **前端源代码** | `src/` | 用户界面、交互逻辑、组件、样式（Vite构建） | 85% | - |
+| **静态资源** | `public/` | 图标、PWA清单、Service Worker、管理后台 | 0% | - |
+| **构建产物** | `dist/` | Vite打包输出（不提交到Git） | N/A | - |
+| **后端工具层 (CommonJS)** | `utils/` | B站API、ICS生成、限流、去重、时间处理 | 80% | [查看文档](./utils/CLAUDE.md) |
+| **后端工具层 (ES Module)** | `utils-es/` | Netlify Serverless环境专用 | 70% | - |
+| **测试套件** | `test/` | 单元测试、集成测试 | 85% | [查看文档](./test/CLAUDE.md) |
+| **Serverless 部署** | `netlify/` | Netlify Functions配置与构建产物 | 60% | - |
+| **构建脚本** | `scripts/` | Netlify构建、README更新、VAPID生成 | 50% | - |
+| **Vite 配置** | `vite.config.js` | 前端构建与开发服务器配置 | 100% | - |
 
 ---
 
@@ -236,7 +262,7 @@ graph TD
 
 1. **订阅生成流程**
    - 用户输入 B站 UID
-   - 调用 `/api/:uid` 接口
+   - 调用 `/api/bangumi/:uid` 预检频控
    - 后端从 B站 API 获取追番数据
    - 过滤正在播出的番剧
    - 生成 ICS 日历文件
@@ -244,9 +270,17 @@ graph TD
 
 2. **番剧预览流程**
    - 用户点击预览按钮
-   - 调用 `/preview/:uid` 接口
-   - 返回番剧列表 JSON
-   - 前端渲染预览卡片
+   - 调用 `/api/bangumi/:uid` 获取数据
+   - 前端渲染预览弹窗
+   - 显示番剧卡片、更新状态、提醒设置
+
+3. **外部ICS聚合流程**
+   - 用户启用聚合功能
+   - 输入最多 5 个外部 ICS 链接
+   - 调用 `/aggregate/:uid.ics?sources=...`
+   - 后端并发拉取外部源
+   - 合并番剧事件与外部事件
+   - 返回聚合后的 ICS 文件
 
 ### 关键模块职责
 
@@ -254,9 +288,11 @@ graph TD
 |------|------|------|
 | **B站 API** | `utils/bangumi.cjs` | 获取用户追番列表，过滤连载番剧 |
 | **ICS 生成** | `utils/ics.cjs` | 将番剧数据转换为 ICS 格式 |
+| **ICS 聚合** | `utils/ics-merge.cjs` | 拉取并合并外部 ICS 源 |
 | **限流器** | `utils/rate-limiter.cjs` | 基于 IP 的请求速率限制 |
 | **去重器** | `utils/request-dedup.cjs` | 防止相同请求并发执行 |
 | **时间处理** | `utils/time.cjs` | 解析播出时间，计算下次更新 |
+| **性能指标** | `utils/metrics.cjs` | 收集性能数据，Prometheus导出 |
 
 ---
 
@@ -315,10 +351,12 @@ const { httpClient } = require('./http.cjs');
 const { parseBroadcastTime } = require('./time.cjs');
 ```
 
-**前端 (public/*.js) - ES Module**:
+**前端 (src/*.js) - ES Module**:
 ```javascript
-// 前端使用浏览器原生模块系统，无需 import 语句
-// 所有脚本通过 <script> 标签加载，共享全局作用域
+// ES Module 导入
+import './styles/app.scss';
+import i18n from './services/i18n';
+import { errorHandler } from './services/errorHandler';
 ```
 
 **服务器入口 (server.js) - ES Module + CommonJS 混合**:
@@ -431,7 +469,11 @@ async function generateSubscription(uid) {
 ```javascript
 // 纯数字，长度 1-20
 function validateUID(uid) {
-  return /^\d{1,20}$/.test(uid);
+  const trimmed = String(uid).trim();
+  if (!/^\d{1,20}$/.test(trimmed)) {
+    return { valid: false, error: 'UID必须是1-20位纯数字' };
+  }
+  return { valid: true, sanitized: trimmed };
 }
 ```
 
@@ -439,14 +481,17 @@ function validateUID(uid) {
 ```javascript
 app.get('/api/:uid', (req, res) => {
   const uid = req.params.uid;
+  const validation = validateUID(uid);
 
-  if (!validateUID(uid)) {
+  if (!validation.valid) {
     return res.status(400).json({
       error: 'Invalid UID',
-      message: 'UID 必须是纯数字'
+      message: validation.error
     });
   }
 
+  // 使用清理后的 UID
+  const cleanUid = validation.sanitized;
   // ...
 });
 ```
@@ -500,20 +545,29 @@ describe('utils/ics.cjs', () => {
 });
 ```
 
-**测试覆盖范围**:
-| 模块 | 覆盖率 | 文件 |
-|------|--------|------|
-| `ics.cjs` | ~85% | `utils.ics.test.js` |
-| `time.cjs` | ~90% | `utils.time.test.js` |
-| `rate-limiter.cjs` | ~95% | `utils.rate-limiter.test.js` |
-| `request-dedup.cjs` | ~95% | `utils.request-dedup.test.js` |
+### 测试覆盖范围
 
-### 集成测试
+| 模块 | 覆盖率 | 文件 | 状态 |
+|------|--------|------|------|
+| `ics.cjs` | 85% | `utils.ics.test.js` | ✅ 已测试 |
+| `time.cjs` | 90% | `utils.time.test.js` | ✅ 已测试 |
+| `rate-limiter.cjs` | 95% | `utils.rate-limiter.test.js` | ✅ 已测试 |
+| `request-dedup.cjs` | 95% | `utils.request-dedup.test.js` | ✅ 已测试 |
+| `ics-merge.cjs` | 80% | `ics-merge.test.js` | ✅ 已测试 |
+| `metrics.cjs` | 85% | `metrics.test.js` | ✅ 已测试 |
+| `validation.cjs` | 90% | `utils.validation.test.js` | ✅ 已测试 |
+| `security.cjs` | 90% | `utils.security.test.js` | ✅ 已测试 |
+| `bangumi.cjs` | 60% | - | ⚠️ 需要 Mock |
+| `http.cjs` | 50% | - | ⚠️ 需要集成测试 |
+| **前端服务** | 75% | `services.*.test.js` | 🔄 部分覆盖 |
 
-当前项目暂无集成测试，计划覆盖：
-- [ ] API 端点测试 (`/api/:uid`)
-- [ ] 错误场景测试 (隐私设置、无效 UID)
-- [ ] B站 API Mock 测试
+### 待补充测试
+
+- [ ] `bangumi.cjs` - B站 API 调用 (需要 Mock)
+- [ ] `http.cjs` - HTTP 客户端 (需要集成测试)
+- [ ] `netlify/functions/` - Serverless 函数测试
+- [ ] `scripts/` - 构建脚本测试
+- [ ] **E2E 测试** - 主要用户流程
 
 ---
 
@@ -525,6 +579,11 @@ describe('utils/ics.cjs', () => {
 |----------|------|--------|
 | `PORT` | 服务器端口 | `3000` |
 | `NODE_ENV` | 运行环境 (`development` / `production`) | `development` |
+| `TRUST_PROXY` | 代理信任设置 | `undefined` |
+| `VAPID_PUBLIC_KEY` | WebPush 公钥 | - |
+| `VAPID_PRIVATE_KEY` | WebPush 私钥 | - |
+| `VAPID_SUBJECT` | WebPush 联系邮箱 | `mailto:admin@example.com` |
+| `PUSH_ADMIN_TOKEN` | 推送管理令牌 | - |
 
 ### 常用命令
 
@@ -549,6 +608,12 @@ npm run format:write
 
 # 构建 Netlify Functions
 npm run build
+
+# 类型检查
+npm run type-check
+
+# 生成 VAPID 密钥
+node scripts/generate-vapid.js
 ```
 
 ### Docker 部署
@@ -619,6 +684,56 @@ Closes #123
 
 ---
 
+## 覆盖率报告
+
+### 整体统计
+
+- **总文件数**: 178
+- **已扫描文件**: 89 (50%)
+- **忽略文件**: 89 (node_modules, dist, .git 等)
+- **整体覆盖率**: 78%
+
+### 模块覆盖率
+
+| 模块 | 文件数 | 覆盖率 | 缺口 |
+|------|--------|--------|------|
+| `server.js` | 1 | 95% | - |
+| `src/` | 23 | 85% | 部分服务缺测试 |
+| `utils/` | 13 | 80% | bangumi.cjs, http.cjs |
+| `utils-es/` | 8 | 70% | 同 utils/ |
+| `test/` | 26 | 85% | 覆盖全面 |
+| `netlify/` | 1 | 60% | 缺少测试 |
+| `scripts/` | 4 | 50% | 缺少测试 |
+| `public/` | 8 | 0% | 静态资源 |
+| `dist/` | - | N/A | 构建产物 |
+
+### 主要缺口
+
+1. **utils/bangumi.cjs** - 需要 Mock B站 API 进行测试
+2. **utils/http.cjs** - 需要集成测试验证 HTTP 封装
+3. **scripts/** - 构建脚本缺少测试覆盖
+4. **netlify/functions/** - Serverless 函数缺少测试
+5. **前端 E2E** - 缺少端到端测试
+
+### 下一步建议
+
+**优先补扫**:
+1. `test/` 目录中未覆盖的服务测试
+2. `src/services/` 前端服务的单元测试
+
+**建议补扫**:
+1. `netlify/functions/` Serverless 函数
+2. `scripts/` 构建脚本详细逻辑
+3. `src/components/` 组件实现细节
+
+**长期规划**:
+1. 添加 E2E 测试覆盖主要用户流程
+2. 补充 B站 API Mock 测试
+3. 补充 HTTP 客户端集成测试
+4. 补充构建脚本测试
+
+---
+
 ## 文档目录
 
 ### 文档存储规范
@@ -629,14 +744,14 @@ Closes #123
 ├── README.md                    # 中文用户文档
 ├── README.en.md                 # 英文用户文档
 │
-├── public/
-│   └── CLAUDE.md                # 前端模块文档
-│
 ├── utils/
 │   └── CLAUDE.md                # 工具模块文档
 │
-└── test/
-    └── CLAUDE.md                # 测试模块文档
+├── test/
+│   └── CLAUDE.md                # 测试模块文档
+│
+└── .claude/
+    └── index.json               # AI上下文索引
 ```
 
 ### 文档索引
@@ -644,9 +759,9 @@ Closes #123
 | 文档 | 路径 | 说明 |
 |------|------|------|
 | **项目指导** | `/CLAUDE.md` | 项目整体架构与规范（本文件） |
-| **前端模块** | `/docs/frontend.md` | 前端应用层详细文档 |
 | **工具模块** | `/utils/CLAUDE.md` | 后端工具层详细文档 |
 | **测试模块** | `/test/CLAUDE.md` | 测试套件详细文档 |
+| **项目索引** | `/.claude/index.json` | AI上下文元数据 |
 | **用户文档** | `/README.md` | 面向用户的使用说明 |
 
 ### 文档维护规则

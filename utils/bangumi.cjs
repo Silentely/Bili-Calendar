@@ -6,6 +6,7 @@ const {
   BILIBILI_PRIVACY_ERROR_CODE,
 } = require('./constants.cjs');
 const { createRequestDedup } = require('./request-dedup.cjs');
+const { validateUID } = require('./validation.cjs');
 
 // 创建请求去重管理器实例
 const dedupManager = createRequestDedup();
@@ -30,11 +31,25 @@ const dedupManager = createRequestDedup();
  * }
  */
 async function getBangumiData(uid) {
+  // ==================== 参数校验 ====================
+  const validation = validateUID(uid);
+  if (!validation.valid) {
+    console.warn(`⚠️ UID 参数校验失败: ${validation.error}`);
+    return {
+      error: 'Invalid UID',
+      message: validation.error,
+      code: -400, // 自定义错误码（表示客户端参数错误）
+    };
+  }
+
+  // 使用清理后的 UID（已去除前后空格）
+  const sanitizedUID = validation.sanitized;
+
   // 使用请求去重，防止并发相同请求
-  return dedupManager.dedupe(`bangumi:${uid}`, async () => {
+  return dedupManager.dedupe(`bangumi:${sanitizedUID}`, async () => {
     try {
-      console.log(`🔍 获取用户 ${uid} 的追番数据`);
-      const url = `${BILIBILI_API_BASE_URL}/x/space/bangumi/follow/list?type=1&follow_status=0&vmid=${uid}&pn=1&ps=30`;
+      console.log(`🔍 获取用户 ${sanitizedUID} 的追番数据`);
+      const url = `${BILIBILI_API_BASE_URL}/x/space/bangumi/follow/list?type=1&follow_status=0&vmid=${sanitizedUID}&pn=1&ps=30`;
 
       const response = await httpClient.get(url);
 
@@ -72,7 +87,7 @@ async function getBangumiData(uid) {
 
         response.data.data.list = currentlyAiring;
         console.log(
-          `📊 [UID:${uid}] 总共 ${originalCount} 部番剧，过滤后 ${currentlyAiring.length} 部正在播出`
+          `📊 [UID:${sanitizedUID}] 总共 ${originalCount} 部番剧，过滤后 ${currentlyAiring.length} 部正在播出`
         );
         response.data.filtered = true;
         response.data.filtered_count = currentlyAiring.length;

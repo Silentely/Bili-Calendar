@@ -1,6 +1,31 @@
+// @ts-check
 // i18n.js - Internationalization Module
 
+/**
+ * 翻译字典结构
+ * @typedef {Object} TranslationDict
+ * @property {Object.<string, string>} zh-CN - 中文翻译
+ * @property {Object.<string, string>} en-US - 英文翻译
+ */
+
+/**
+ * 翻译参数对象
+ * @typedef {Object.<string, string|number>} TranslationParams
+ */
+
+/**
+ * 国际化管理类
+ * 提供多语言支持、自动检测语言、参数化翻译等功能
+ */
 export class I18n {
+  /**
+   * 构造国际化管理器
+   * 初始化翻译字典并检测当前语言
+   *
+   * @example
+   * const i18n = new I18n()
+   * console.log(i18n.currentLang) // => 'zh-CN'
+   */
   constructor() {
     this.translations = {
       'zh-CN': {
@@ -214,6 +239,14 @@ export class I18n {
         'history.confirmClear': '确定要清除所有历史记录吗？',
         'cache.cleared': '缓存已清除',
         'cache.loading': '使用缓存数据',
+
+        // Toast Messages (Additional)
+        'toast.historyCleared': '历史记录已清除',
+        'toast.historyItemDeleted': '已删除历史记录',
+
+        // Notifications
+        'notification.animeUpdateSoon': '番剧即将更新',
+        'notification.animeWillUpdate': '{title} 将在 {minutes} 分钟后更新',
 
         // Service Worker
         'sw.registered': 'Service Worker 注册失败:',
@@ -441,6 +474,14 @@ export class I18n {
         'cache.cleared': 'Cache cleared',
         'cache.loading': 'Using cached data',
 
+        // Toast Messages (Additional)
+        'toast.historyCleared': 'History cleared',
+        'toast.historyItemDeleted': 'History item deleted',
+
+        // Notifications
+        'notification.animeUpdateSoon': 'Anime update soon',
+        'notification.animeWillUpdate': '{title} will update in {minutes} minutes',
+
         // Service Worker
         'sw.registered': 'Service Worker registration failed:',
       },
@@ -448,6 +489,16 @@ export class I18n {
     this.currentLang = this.detectLanguage();
   }
 
+  /**
+   * 检测浏览器语言
+   * 优先使用本地存储的语言设置，然后检测浏览器语言，最后回退到中文
+   *
+   * @returns {string} 语言代码（如 'zh-CN', 'en-US'）
+   *
+   * @example
+   * const lang = i18n.detectLanguage()
+   * console.log(lang) // => 'zh-CN' 或 'en-US'
+   */
   // Detect browser language
   detectLanguage() {
     const saved = localStorage.getItem('language');
@@ -474,6 +525,18 @@ export class I18n {
     return 'zh-CN';
   }
 
+  /**
+   * 获取翻译文本
+   * 支持参数替换，使用 {paramName} 语法
+   *
+   * @param {string} key - 翻译键名（如 'app.title'）
+   * @param {TranslationParams} [params={}] - 参数对象，用于替换翻译文本中的占位符
+   * @returns {string} 翻译后的文本
+   *
+   * @example
+   * i18n.t('app.title') // => 'B站追番日历'
+   * i18n.t('toast.animeCount', { count: 5 }) // => '成功获取 5 部番剧'
+   */
   // Get translation
   t(key, params = {}) {
     const lang = this.translations[this.currentLang];
@@ -487,6 +550,19 @@ export class I18n {
     return text;
   }
 
+  /**
+   * 设置当前语言
+   * 更新当前语言设置并刷新页面内容
+   *
+   * @param {string} lang - 语言代码（如 'zh-CN', 'en-US'）
+   * @returns {boolean} 设置成功返回 true，失败返回 false
+   *
+   * @example
+   * const success = i18n.setLanguage('en-US')
+   * if (success) {
+   *   console.log('语言切换成功')
+   * }
+   */
   // Set language
   setLanguage(lang) {
     if (this.translations[lang]) {
@@ -502,16 +578,44 @@ export class I18n {
     return false;
   }
 
+  /**
+   * 获取当前语言代码
+   *
+   * @returns {string} 当前语言代码（如 'zh-CN', 'en-US'）
+   *
+   * @example
+   * const currentLang = i18n.getLanguage()
+   * console.log(currentLang) // => 'zh-CN'
+   */
   // Get current language
   getLanguage() {
     return this.currentLang;
   }
 
+  /**
+   * 获取所有可用的语言代码
+   *
+   * @returns {string[]} 语言代码数组
+   *
+   * @example
+   * const langs = i18n.getAvailableLanguages()
+   * console.log(langs) // => ['zh-CN', 'en-US']
+   */
   // Get available languages
   getAvailableLanguages() {
     return Object.keys(this.translations);
   }
 
+  /**
+   * 更新页面内容
+   * 更新所有带有 i18n 属性的元素，包括文本内容、HTML、占位符、标题和无障碍标签
+   *
+   * @returns {void}
+   *
+   * @example
+   * i18n.updatePageContent()
+   * // 所有带有 data-i18n 属性的元素都会被更新
+   */
   // Update page content
   updatePageContent() {
     // Update HTML lang attribute
@@ -559,6 +663,16 @@ export class I18n {
     this.updateLanguageToggleLabel();
   }
 
+  /**
+   * 更新语言切换按钮的标签
+   * 根据当前语言显示目标语言的名称
+   *
+   * @returns {void}
+   *
+   * @example
+   * i18n.updateLanguageToggleLabel()
+   * // 如果当前是中文，按钮会显示 'English'
+   */
   updateLanguageToggleLabel() {
     const label = document.getElementById('languageToggleLabel');
     if (!label) return;
