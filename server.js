@@ -571,10 +571,10 @@ function processBangumiApiError(res, data, uid) {
   return undefined;
 }
 
-app.get('/:uid(\\d+)\\.ics', rateLimiterMiddleware, handleCalendar);
-app.get('/:uid(\\d+)', rateLimiterMiddleware, handleCalendar);
-app.get('/aggregate/:uid(\\d+)\\.ics', rateLimiterMiddleware, handleAggregate);
-app.get('/aggregate/:uid(\\d+)', rateLimiterMiddleware, handleAggregate);
+app.get('/:uid.ics', rateLimiterMiddleware, handleCalendar);
+app.get('/:uid', rateLimiterMiddleware, handleCalendar);
+app.get('/aggregate/:uid.ics', rateLimiterMiddleware, handleAggregate);
+app.get('/aggregate/:uid', rateLimiterMiddleware, handleAggregate);
 
 // 处理404错误 - 为浏览器请求返回HTML页面
 app.use((req, res) => {
