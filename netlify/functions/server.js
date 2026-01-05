@@ -402,8 +402,8 @@ const handleCalendar = async (req, res, next) => {
     next(err);
   }
 };
-app.get('/:uid(\\d+)\\.ics', handleCalendar);
-app.get('/:uid(\\d+)', handleCalendar);
+app.get('/:uid.ics', handleCalendar);
+app.get('/:uid', handleCalendar);
 
 // 聚合番剧 + 外部 ICS 日程
 const handleAggregate = async (req, res, next) => {
@@ -466,8 +466,8 @@ const handleAggregate = async (req, res, next) => {
   }
 };
 
-app.get('/aggregate/:uid(\\d+)\\.ics', rateLimiterMiddleware, handleAggregate);
-app.get('/aggregate/:uid(\\d+)', rateLimiterMiddleware, handleAggregate);
+app.get('/aggregate/:uid.ics', rateLimiterMiddleware, handleAggregate);
+app.get('/aggregate/:uid', rateLimiterMiddleware, handleAggregate);
 
 // WebPush 实验接口（注意函数无状态，订阅存内存仅本次实例）
 app.get('/push/public-key', (req, res) => {
