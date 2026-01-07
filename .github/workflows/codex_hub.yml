@@ -27,25 +27,37 @@ jobs:
         id: gist_config
         run: |
           # 1. 获取核心 JSON 配置
-          CONFIG=$(curl -s -L "${{ secrets.GIST_CONFIG_URL }}")
+          CONFIG=$(curl -s -f -L "${{ secrets.GIST_CONFIG_URL }}")
+          if [ $? -ne 0 ]; then echo "无法读取 GIST_CONFIG_URL"; exit 1; fi
+
           KEY=$(echo "$CONFIG" | jq -r '.api_key')
           URL=$(echo "$CONFIG" | jq -r '.base_url')
-          MODEL=$(echo "$CONFIG" | jq -r '.model // "gpt-5.2"')
-          
-          # 2. 安全脱敏
+          MODEL=$(echo "$CONFIG" | jq -r '.model // "gpt-5.1-codex"')
+          AGENTS_URL=$(echo "$CONFIG" | jq -r '.agents_gist_url')
+          PROMPTS_URL=$(echo "$CONFIG" | jq -r '.prompts_gist_url')
+
+          # 2. 安全脱敏 (Key 和 Base URL 均隐藏)
           echo "::add-mask::$KEY"
-          
-          # 3. 设置输出变量
+          echo "::add-mask::$URL"
+
+          # 3. 设置输出变量 (GitHub 自动隐藏已 add-mask 的内容)
           echo "api_key=$KEY" >> $GITHUB_OUTPUT
           echo "base_url=$URL" >> $GITHUB_OUTPUT
           echo "model=$MODEL" >> $GITHUB_OUTPUT
-          
-          # 4. 下载 AGENTS.md 和 预定义的 Prompts
-          AGENTS_URL=$(echo "$CONFIG" | jq -r '.agents_gist_url')
-          PROMPTS_URL=$(echo "$CONFIG" | jq -r '.prompts_gist_url')
-          curl -s -L "$AGENTS_URL" -o .github/AGENTS.md
-          curl -s -L "$PROMPTS_URL" -o .github/SYSTEM_PROMPTS.md
-          echo "Intelligence assets synced."
+
+          # 4. 确保目录存在
+          mkdir -p .github
+
+          # 5. 下载资产并增加校验 (防止 URL 为空导致 curl exit 6)
+          if [ "$AGENTS_URL" != "null" ] && [ -n "$AGENTS_URL" ]; then
+            curl -s -f -L "$AGENTS_URL" -o .github/AGENTS.md || { echo "下载 AGENTS.md 失败"; exit 1; }
+          fi
+
+          if [ "$PROMPTS_URL" != "null" ] && [ -n "$PROMPTS_URL" ]; then
+            curl -s -f -L "$PROMPTS_URL" -o .github/SYSTEM_PROMPTS.md || { echo "下载 SYSTEM_PROMPTS.md 失败"; exit 1; }
+          fi
+
+          echo "Intelligence assets synced successfully."
 
       - name: Prepare Context & Filter Diff
         id: context_builder
