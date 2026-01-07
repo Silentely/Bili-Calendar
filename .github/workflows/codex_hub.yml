@@ -1,0 +1,107 @@
+name: "Codex Intelligence Hub"
+
+on:
+  issue_comment:
+    types: [created]
+  push:
+    branches: [main]
+
+jobs:
+  codex_brain:
+    if: |
+      github.event_name == 'push' || 
+      (github.event.comment && contains(github.event.comment.body, '@codex'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch Remote Intelligence (Gist)
+        id: gist_config
+        run: |
+          # 1. 获取核心 JSON 配置
+          CONFIG=$(curl -s -L "${{ secrets.GIST_CONFIG_URL }}")
+          KEY=$(echo "$CONFIG" | jq -r '.api_key')
+          URL=$(echo "$CONFIG" | jq -r '.base_url')
+          MODEL=$(echo "$CONFIG" | jq -r '.model // "gpt-5.2"')
+          
+          # 2. 安全脱敏
+          echo "::add-mask::$KEY"
+          
+          # 3. 设置输出变量
+          echo "api_key=$KEY" >> $GITHUB_OUTPUT
+          echo "base_url=$URL" >> $GITHUB_OUTPUT
+          echo "model=$MODEL" >> $GITHUB_OUTPUT
+          
+          # 4. 下载 AGENTS.md 和 预定义的 Prompts
+          AGENTS_URL=$(echo "$CONFIG" | jq -r '.agents_gist_url')
+          PROMPTS_URL=$(echo "$CONFIG" | jq -r '.prompts_gist_url')
+          curl -s -L "$AGENTS_URL" -o .github/AGENTS.md
+          curl -s -L "$PROMPTS_URL" -o .github/SYSTEM_PROMPTS.md
+          echo "Intelligence assets synced."
+
+      - name: Prepare Context & Filter Diff
+        id: context_builder
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 定义过滤规则 (排除锁文件、文档、图片等)
+          FILTER=":!*.lock :!*-lock.json :!*.md :!*.svg :!*.png :!*.jpg"
+          
+          if [ "${{ github.event_name }}" == "push" ]; then
+            # Main 推送审计模式
+            DIFF=$(git diff HEAD^ HEAD -- . $FILTER | tail -c 10000)
+            echo "mode=AUDIT" >> $GITHUB_OUTPUT
+            echo "instruction=Perform a comprehensive code audit based on pr-review-comprehensive template." >> $GITHUB_OUTPUT
+            echo "$DIFF" > context.txt
+          elif [ "${{ github.event.issue.pull_request }}" != "null" ]; then
+            # PR 评论审查模式
+            DIFF=$(gh pr diff ${{ github.event.issue.number }} -- . $FILTER | tail -c 10000)
+            echo "mode=PR_REVIEW" >> $GITHUB_OUTPUT
+            echo "instruction=Act as a Senior Engineer. Follow the comprehensive review prompt." >> $GITHUB_OUTPUT
+            echo "$DIFF" > context.txt
+          else
+            # Issue 任务模式 (修复/功能)
+            ISSUE_BODY="${{ github.event.issue.body }}"
+            TREE=$(find . -maxdepth 2 -not -path '*/.*')
+            echo "mode=ISSUE_RESOLVE" >> $GITHUB_OUTPUT
+            echo "instruction=Analyze the issue and provide a fix or implementation plan. Project Structure:\n$TREE" >> $GITHUB_OUTPUT
+            echo "$ISSUE_BODY" > context.txt
+          fi
+
+      - name: OpenAI Codex Action (2025.11)
+        id: codex
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ steps.gist_config.outputs.api_key }}
+          model: ${{ steps.gist_config.outputs.model }}
+          responses-api-endpoint: "${{ steps.gist_config.outputs.base_url }}/v1/responses"
+          # 动态加载远程获取的角色配置
+          agents-config: "./github/AGENTS.md"
+          prompt: |
+            ### SYSTEM TEMPLATE (From Remote)
+            $(cat .github/SYSTEM_PROMPTS.md)
+            
+            ### TASK
+            Mode: ${{ steps.context_builder.outputs.mode }}
+            Instruction: ${{ steps.context_builder.outputs.instruction }}
+            User Comment: ${{ github.event.comment.body }}
+            
+            ### CONTEXT DATA
+            $(cat context.txt)
+
+      - name: Post Response
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 将结果回帖，区分 PR 和 Issue
+          RESPONSE_BODY="${{ steps.codex.outputs.final-message }}"
+          gh issue comment ${{ github.event.issue.number }} --body "### 🤖 Codex Hub Result
+          $RESPONSE_BODY"
