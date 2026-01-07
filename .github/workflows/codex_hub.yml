@@ -1,16 +1,13 @@
 name: "Codex Intelligence Hub"
 
 on:
-  # 场景 1: PR 创建或代码更新时自动触发
   pull_request:
     types: [opened, synchronize]
-  # 场景 2: 在 Issue 或 PR 中发表评论时触发
   issue_comment:
     types: [created]
 
 jobs:
   codex_brain:
-    # 触发逻辑：如果是 PR 活动，或者评论中包含 @codex
     if: |
       github.event_name == 'pull_request' || 
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@codex'))
@@ -30,56 +27,62 @@ jobs:
       - name: Fetch Remote Intelligence (Gist)
         id: gist_config
         run: |
-          # 1. 获取核心 JSON 配置 (确保 secrets.GIST_CONFIG_URL 是 Raw 链接)
+          # 1. 获取 JSON 配置
           CONFIG=$(curl -s -f -L "${{ secrets.GIST_CONFIG_URL }}")
-          if [ $? -ne 0 ]; then echo "无法读取 GIST 配置文件"; exit 1; fi
-
+          
+          # 提取并脱敏
           KEY=$(echo "$CONFIG" | jq -r '.api_key')
           URL=$(echo "$CONFIG" | jq -r '.base_url')
-          MODEL=$(echo "$CONFIG" | jq -r '.model // "gpt-5.1-codex"')
-          AGENTS_URL=$(echo "$CONFIG" | jq -r '.agents_gist_url')
-          PROMPTS_URL=$(echo "$CONFIG" | jq -r '.prompts_gist_url')
-
-          # 2. 安全脱敏：隐藏 Key 和 Base URL
           echo "::add-mask::$KEY"
           echo "::add-mask::$URL"
-
-          # 3. 设置输出
+          
           echo "api_key=$KEY" >> $GITHUB_OUTPUT
           echo "base_url=$URL" >> $GITHUB_OUTPUT
-          echo "model=$MODEL" >> $GITHUB_OUTPUT
+          echo "model=$(echo "$CONFIG" | jq -r '.model // "gpt-5.2-codex"')" >> $GITHUB_OUTPUT
           
-          # 4. 准备目录并下载资产
-          mkdir -p .github
-          if [ "$AGENTS_URL" != "null" ]; then curl -s -f -L "$AGENTS_URL" -o .github/AGENTS.md; fi
-          if [ "$PROMPTS_URL" != "null" ]; then curl -s -f -L "$PROMPTS_URL" -o .github/SYSTEM_PROMPTS.md; fi
+          # 2. 下载资产（强制创建目录）
+          mkdir -p .github/prompts
+          AGENTS_URL=$(echo "$CONFIG" | jq -r '.agents_gist_url')
+          PROMPTS_URL=$(echo "$CONFIG" | jq -r '.prompts_gist_url')
+          
+          curl -s -f -L "$AGENTS_URL" -o .github/AGENTS.md || echo "No Agents file"
+          curl -s -f -L "$PROMPTS_URL" -o .github/SYSTEM_PROMPTS.md || echo "No Prompts file"
 
-      - name: Prepare Context
-        id: context
+      - name: Prepare Final Prompt
+        id: prompt_builder
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           FILTER=":!*.lock :!*-lock.json :!*.md :!*.svg :!*.png :!*.jpg"
           
-          # 判断场景
+          # 1. 提取 Diff 或 Issue 内容
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            # PR 自动运行场景
-            DIFF=$(git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} -- . $FILTER | tail -c 10000)
-            echo "mode=AUTO_PR_REVIEW" >> $GITHUB_OUTPUT
-            echo "instruction=自动对本次 PR 变更进行全面审查。" >> $GITHUB_OUTPUT
-            echo "$DIFF" > context.txt
+            CONTENT=$(git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} -- . $FILTER | tail -c 8000)
+            TITLE="PR Auto Review"
           elif [ "${{ github.event.issue.pull_request }}" != "null" ]; then
-            # PR 评论召唤场景
-            DIFF=$(gh pr diff ${{ github.event.issue.number }} -- . $FILTER | tail -c 10000)
-            echo "mode=PR_COMMENT_TASK" >> $GITHUB_OUTPUT
-            echo "instruction=响应 PR 中的用户指令: ${{ github.event.comment.body }}" >> $GITHUB_OUTPUT
-            echo "$DIFF" > context.txt
+            CONTENT=$(gh pr diff ${{ github.event.issue.number }} -- . $FILTER | tail -c 8000)
+            TITLE="PR Comment Task: ${{ github.event.comment.body }}"
           else
-            # Issue 评论召唤场景
-            echo "mode=ISSUE_TASK" >> $GITHUB_OUTPUT
-            echo "instruction=分析 Issue 并根据用户指令提供方案: ${{ github.event.comment.body }}" >> $GITHUB_OUTPUT
-            echo "${{ github.event.issue.body }}" > context.txt
+            CONTENT="${{ github.event.issue.body }}"
+            TITLE="Issue Task: ${{ github.event.comment.body }}"
           fi
+
+          # 2. 读取 System Prompt (处理文件不存在的情况)
+          if [ -f ".github/SYSTEM_PROMPTS.md" ]; then
+            SYSTEM_P=$(cat .github/SYSTEM_PROMPTS.md)
+          else
+            SYSTEM_P="Standard AI Assistant Mode"
+          fi
+
+          # 3. 核心：合成最终 Prompt 并存入 OUTPUT (解决 Shell 注入问题)
+          echo "full_prompt<<EOF" >> $GITHUB_OUTPUT
+          echo "--- SYSTEM INSTRUCTION ---" >> $GITHUB_OUTPUT
+          echo "$SYSTEM_P" >> $GITHUB_OUTPUT
+          echo "--- TASK CONTEXT ---" >> $GITHUB_OUTPUT
+          echo "Mode: $TITLE" >> $GITHUB_OUTPUT
+          echo "--- DATA CONTENT ---" >> $GITHUB_OUTPUT
+          echo "$CONTENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Run OpenAI Codex Action
         id: codex
@@ -87,23 +90,20 @@ jobs:
         with:
           openai-api-key: ${{ steps.gist_config.outputs.api_key }}
           model: ${{ steps.gist_config.outputs.model }}
-          # 动态拼接端点
           responses-api-endpoint: "${{ steps.gist_config.outputs.base_url }}/v1/responses"
-          agents-config: "./github/AGENTS.md"
-          prompt: |
-            $(cat .github/SYSTEM_PROMPTS.md || echo "Standard Review Mode")
-            
-            [Context Mode: ${{ steps.context.outputs.mode }}]
-            [Instruction: ${{ steps.context.outputs.instruction }}]
-            
-            Data Content:
-            $(cat context.txt)
+          # 使用下载的 Agent 配置
+          agents-config: ".github/AGENTS.md"
+          # 直接使用上一步合成好的字符串，不再在 with 中运行 cat 或 sed
+          prompt: ${{ steps.prompt_builder.outputs.full_prompt }}
 
       - name: Post Results
+        if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # 只有当 codex 有输出时才回帖
           RESULT="${{ steps.codex.outputs.final-message }}"
-          # 如果是 PR 自动触发，在 PR 列表页发评论；如果是 Issue/Comment，直接回帖
-          gh issue comment ${{ github.event.issue.number || github.event.pull_request.number }} --body "### 🤖 Codex Intelligence Result
-          $RESULT"
+          if [ -n "$RESULT" ]; then
+            gh issue comment ${{ github.event.issue.number || github.event.pull_request.number }} --body "### 🤖 Codex Intelligence Result
+            $RESULT"
+          fi
