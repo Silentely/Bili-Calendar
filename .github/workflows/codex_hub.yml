@@ -1,16 +1,20 @@
 name: "Codex Intelligence Hub"
 
 on:
+  # 场景 1: PR 创建或代码更新时自动触发
+  pull_request:
+    types: [opened, synchronize]
+  # 场景 2: 在 Issue 或 PR 中发表评论时触发
   issue_comment:
     types: [created]
-  push:
-    branches: [main]
 
 jobs:
   codex_brain:
+    # 触发逻辑：如果是 PR 活动，或者评论中包含 @codex
     if: |
-      github.event_name == 'push' || 
-      (github.event.comment && contains(github.event.comment.body, '@codex'))
+      github.event_name == 'pull_request' || 
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@codex'))
+    
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -26,9 +30,9 @@ jobs:
       - name: Fetch Remote Intelligence (Gist)
         id: gist_config
         run: |
-          # 1. 获取核心 JSON 配置
+          # 1. 获取核心 JSON 配置 (确保 secrets.GIST_CONFIG_URL 是 Raw 链接)
           CONFIG=$(curl -s -f -L "${{ secrets.GIST_CONFIG_URL }}")
-          if [ $? -ne 0 ]; then echo "无法读取 GIST_CONFIG_URL"; exit 1; fi
+          if [ $? -ne 0 ]; then echo "无法读取 GIST 配置文件"; exit 1; fi
 
           KEY=$(echo "$CONFIG" | jq -r '.api_key')
           URL=$(echo "$CONFIG" | jq -r '.base_url')
@@ -36,84 +40,70 @@ jobs:
           AGENTS_URL=$(echo "$CONFIG" | jq -r '.agents_gist_url')
           PROMPTS_URL=$(echo "$CONFIG" | jq -r '.prompts_gist_url')
 
-          # 2. 安全脱敏 (Key 和 Base URL 均隐藏)
+          # 2. 安全脱敏：隐藏 Key 和 Base URL
           echo "::add-mask::$KEY"
           echo "::add-mask::$URL"
 
-          # 3. 设置输出变量 (GitHub 自动隐藏已 add-mask 的内容)
+          # 3. 设置输出
           echo "api_key=$KEY" >> $GITHUB_OUTPUT
           echo "base_url=$URL" >> $GITHUB_OUTPUT
           echo "model=$MODEL" >> $GITHUB_OUTPUT
-
-          # 4. 确保目录存在
+          
+          # 4. 准备目录并下载资产
           mkdir -p .github
+          if [ "$AGENTS_URL" != "null" ]; then curl -s -f -L "$AGENTS_URL" -o .github/AGENTS.md; fi
+          if [ "$PROMPTS_URL" != "null" ]; then curl -s -f -L "$PROMPTS_URL" -o .github/SYSTEM_PROMPTS.md; fi
 
-          # 5. 下载资产并增加校验 (防止 URL 为空导致 curl exit 6)
-          if [ "$AGENTS_URL" != "null" ] && [ -n "$AGENTS_URL" ]; then
-            curl -s -f -L "$AGENTS_URL" -o .github/AGENTS.md || { echo "下载 AGENTS.md 失败"; exit 1; }
-          fi
-
-          if [ "$PROMPTS_URL" != "null" ] && [ -n "$PROMPTS_URL" ]; then
-            curl -s -f -L "$PROMPTS_URL" -o .github/SYSTEM_PROMPTS.md || { echo "下载 SYSTEM_PROMPTS.md 失败"; exit 1; }
-          fi
-
-          echo "Intelligence assets synced successfully."
-
-      - name: Prepare Context & Filter Diff
-        id: context_builder
+      - name: Prepare Context
+        id: context
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # 定义过滤规则 (排除锁文件、文档、图片等)
           FILTER=":!*.lock :!*-lock.json :!*.md :!*.svg :!*.png :!*.jpg"
           
-          if [ "${{ github.event_name }}" == "push" ]; then
-            # Main 推送审计模式
-            DIFF=$(git diff HEAD^ HEAD -- . $FILTER | tail -c 10000)
-            echo "mode=AUDIT" >> $GITHUB_OUTPUT
-            echo "instruction=Perform a comprehensive code audit based on pr-review-comprehensive template." >> $GITHUB_OUTPUT
+          # 判断场景
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            # PR 自动运行场景
+            DIFF=$(git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} -- . $FILTER | tail -c 10000)
+            echo "mode=AUTO_PR_REVIEW" >> $GITHUB_OUTPUT
+            echo "instruction=自动对本次 PR 变更进行全面审查。" >> $GITHUB_OUTPUT
             echo "$DIFF" > context.txt
           elif [ "${{ github.event.issue.pull_request }}" != "null" ]; then
-            # PR 评论审查模式
+            # PR 评论召唤场景
             DIFF=$(gh pr diff ${{ github.event.issue.number }} -- . $FILTER | tail -c 10000)
-            echo "mode=PR_REVIEW" >> $GITHUB_OUTPUT
-            echo "instruction=Act as a Senior Engineer. Follow the comprehensive review prompt." >> $GITHUB_OUTPUT
+            echo "mode=PR_COMMENT_TASK" >> $GITHUB_OUTPUT
+            echo "instruction=响应 PR 中的用户指令: ${{ github.event.comment.body }}" >> $GITHUB_OUTPUT
             echo "$DIFF" > context.txt
           else
-            # Issue 任务模式 (修复/功能)
-            ISSUE_BODY="${{ github.event.issue.body }}"
-            TREE=$(find . -maxdepth 2 -not -path '*/.*')
-            echo "mode=ISSUE_RESOLVE" >> $GITHUB_OUTPUT
-            echo "instruction=Analyze the issue and provide a fix or implementation plan. Project Structure:\n$TREE" >> $GITHUB_OUTPUT
-            echo "$ISSUE_BODY" > context.txt
+            # Issue 评论召唤场景
+            echo "mode=ISSUE_TASK" >> $GITHUB_OUTPUT
+            echo "instruction=分析 Issue 并根据用户指令提供方案: ${{ github.event.comment.body }}" >> $GITHUB_OUTPUT
+            echo "${{ github.event.issue.body }}" > context.txt
           fi
 
-      - name: OpenAI Codex Action (2025.11)
+      - name: Run OpenAI Codex Action
         id: codex
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ steps.gist_config.outputs.api_key }}
           model: ${{ steps.gist_config.outputs.model }}
+          # 动态拼接端点
           responses-api-endpoint: "${{ steps.gist_config.outputs.base_url }}/v1/responses"
-          # 动态加载远程获取的角色配置
           agents-config: "./github/AGENTS.md"
           prompt: |
-            ### SYSTEM TEMPLATE (From Remote)
-            $(cat .github/SYSTEM_PROMPTS.md)
+            $(cat .github/SYSTEM_PROMPTS.md || echo "Standard Review Mode")
             
-            ### TASK
-            Mode: ${{ steps.context_builder.outputs.mode }}
-            Instruction: ${{ steps.context_builder.outputs.instruction }}
-            User Comment: ${{ github.event.comment.body }}
+            [Context Mode: ${{ steps.context.outputs.mode }}]
+            [Instruction: ${{ steps.context.outputs.instruction }}]
             
-            ### CONTEXT DATA
+            Data Content:
             $(cat context.txt)
 
-      - name: Post Response
+      - name: Post Results
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # 将结果回帖，区分 PR 和 Issue
-          RESPONSE_BODY="${{ steps.codex.outputs.final-message }}"
-          gh issue comment ${{ github.event.issue.number }} --body "### 🤖 Codex Hub Result
-          $RESPONSE_BODY"
+          RESULT="${{ steps.codex.outputs.final-message }}"
+          # 如果是 PR 自动触发，在 PR 列表页发评论；如果是 Issue/Comment，直接回帖
+          gh issue comment ${{ github.event.issue.number || github.event.pull_request.number }} --body "### 🤖 Codex Intelligence Result
+          $RESULT"
