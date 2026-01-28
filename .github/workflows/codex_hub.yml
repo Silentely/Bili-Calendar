@@ -10,14 +10,14 @@ jobs:
   codex_brain:
     # 仅在 PR/Issue 评论包含 @codex，或 PR 自动触发时运行
     if: |
-      github.actor != 'renovate[bot]' && 
-      github.actor != 'dependabot[bot]' && 
-      (github.event_name == 'pull_request' || 
+      github.actor != 'renovate[bot]' &&
+      github.actor != 'dependabot[bot]' &&
+      (github.event_name == 'pull_request' ||
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@codex')))
-    
+
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
       issues: write
 
@@ -30,23 +30,35 @@ jobs:
       - name: Fetch and Mask Intelligence (Gist)
         id: gist_config
         run: |
+          set -euo pipefail
+
           # 1. 获取配置
           CONFIG=$(curl -s -f -L "${{ secrets.GIST_CONFIG_URL }}")
-          
+
           KEY=$(echo "$CONFIG" | jq -r '.api_key')
           URL=$(echo "$CONFIG" | jq -r '.base_url')
           AGENTS_URL=$(echo "$CONFIG" | jq -r '.agents_gist_url')
           PROMPTS_URL=$(echo "$CONFIG" | jq -r '.prompts_gist_url')
 
+          # 校验关键变量
+          if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
+            echo "::error::api_key 未配置或为空"
+            exit 1
+          fi
+          if [ -z "$URL" ] || [ "$URL" = "null" ]; then
+            echo "::error::base_url 未配置或为空"
+            exit 1
+          fi
+
           # 2. 核心：全量掩码 (防止在日志中显示)
           echo "::add-mask::$KEY"
           echo "::add-mask::$URL"
-          
+
           # 3. 输出给后续步骤
           echo "key=$KEY" >> $GITHUB_OUTPUT
           echo "url=$URL" >> $GITHUB_OUTPUT
           echo "model=$(echo "$CONFIG" | jq -r '.model // "gpt-5.2"')" >> $GITHUB_OUTPUT
-          
+
           # 4. 下载逻辑资产
           mkdir -p .github/assets
           curl -s -f -L "$AGENTS_URL" -o .github/assets/AGENTS.md || echo "No Agents"
@@ -56,27 +68,29 @@ jobs:
         id: context
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          USER_CMD: ${{ github.event.comment.body }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          ISSUE_NUM: ${{ github.event.issue.number }}
+          IS_PR_COMMENT: ${{ github.event.issue.pull_request }}
         run: |
+          set -euo pipefail
+
           # 1. 预设过滤规则
           FILTER=":!*.lock :!*-lock.json :!*.md :!*.svg :!*.png"
-          
-          # 2. 提取公共变量
-          USER_CMD="${{ github.event.comment.body }}"
-          ISSUE_TITLE="${{ github.event.issue.title }}"
-          ISSUE_BODY=$(cat << 'EOF'
-          ${{ github.event.issue.body }}
-          EOF
-          )
 
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
+          if [ "$EVENT_NAME" == "pull_request" ]; then
             # 场景 A: PR 自动审查 (读取 Diff)
-            DIFF=$(git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} -- . $FILTER | tail -c 8000)
+            DIFF=$(git diff "${BASE_SHA}..${HEAD_SHA}" -- . $FILTER | tail -c 8000)
             DATA="PR 自动审计模式。代码变更如下：\n$DIFF"
             TASK="请进行代码质量与安全审查。"
 
-          elif [ "${{ github.event.issue.pull_request }}" != "null" ]; then
+          elif [ "$IS_PR_COMMENT" != "null" ] && [ -n "$IS_PR_COMMENT" ]; then
             # 场景 B: PR 评论召唤 (读取 Diff + 用户指令)
-            DIFF=$(gh pr diff ${{ github.event.issue.number }} -- . $FILTER | tail -c 8000)
+            DIFF=$(gh pr diff "$ISSUE_NUM" -- . $FILTER | tail -c 8000)
             DATA="PR 代码上下文：\n$DIFF"
             TASK="用户指令：$USER_CMD"
 
@@ -87,13 +101,13 @@ jobs:
             TASK="当前用户指令：$USER_CMD"
           fi
 
-          # 3. 注入 System Prompt (从 Gist 下载的资产)
+          # 2. 注入 System Prompt (从 Gist 下载的资产)
           SYSTEM_P="你是一个全能助手，请严格保护敏感信息。"
           if [ -f ".github/assets/SYSTEM_PROMPTS.md" ]; then
              SYSTEM_P=$(cat .github/assets/SYSTEM_PROMPTS.md)
           fi
 
-          # 4. 组合成最终 Prompt (解决 Shell 注入与换行问题)
+          # 3. 组合成最终 Prompt
           echo "final_prompt<<EOF" >> $GITHUB_OUTPUT
           echo "--- 系统指令 ---" >> $GITHUB_OUTPUT
           echo "$SYSTEM_P" >> $GITHUB_OUTPUT
@@ -113,18 +127,17 @@ jobs:
           model: ${{ steps.gist_config.outputs.model }}
           responses-api-endpoint: "${{ steps.gist_config.outputs.url }}/v1/responses"
           agents-config: ".github/assets/AGENTS.md"
-          # 直接使用构建好的纯文本，不包含任何 Shell 脚本字符
-          prompt: ${{ steps.prompt_builder.outputs.final_prompt }}
+          prompt: ${{ steps.context.outputs.final_prompt }}
 
       - name: Post Results
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RESPONSE: ${{ steps.codex.outputs.final-message }}
+          NUM: ${{ github.event.issue.number || github.event.pull_request.number }}
         run: |
-          RESPONSE="${{ steps.codex.outputs.final-message }}"
+          set -euo pipefail
           if [ -n "$RESPONSE" ]; then
-            # 动态获取当前编号
-            NUM=${{ github.event.issue.number || github.event.pull_request.number }}
-            gh issue comment $NUM --body "### 🤖 Codex Intelligence Result
-            $RESPONSE"
+            gh issue comment "$NUM" --body "### 🤖 Codex Intelligence Result
+          $RESPONSE"
           fi
