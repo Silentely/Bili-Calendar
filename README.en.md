@@ -36,7 +36,7 @@
 - 🚀 **Easy to Use**: Simply provide your Bilibili UID to generate subscription link
 - 🔒 **Privacy Protection**: No user data stored on server, supports self-hosting
 
-### 🆕 New Features (v1.1.7+ experimental)
+### 🆕 New Features
 
 - 🌙 **Dark Mode**: Auto follows system theme, supports manual toggle to protect eyes
 - 👁️ **Anime Preview**: Preview all anime content before subscribing, see update time and status
@@ -49,7 +49,7 @@
 - 🔔 **Reminder Upgrade**: Choose 5/10/15 min lead time for browser notifications in preview; optional WebPush (requires VAPID)
 - 📊 **Monitoring Metrics**: `/metrics` JSON and `/metrics/prometheus` (Prometheus text) with p95/p99 and per-route stats
 - 🌍 **Internationalization**: Supports multiple languages (Chinese, English), easy to switch
-- 🔀 **External Calendar Merge** (v1.1.8+): `/aggregate/:uid.ics?sources=` merges up to 5 external ICS feeds into one subscription
+- 🔀 **External Calendar Merge**: `/aggregate/:uid.ics?sources=` merges up to 5 external ICS feeds into one subscription
 
 ### 🔐 Security & Compliance
 

@@ -1,12 +1,19 @@
 # Bili-Calendar 项目指导文件
 
-> **最后更新**: 2026-01-04
+> **最后更新**: 2026-04-28
 > **版本**: v1.1.8
 > **项目类型**: Node.js Web 应用 (Express + Vite + Vanilla JS)
 
 ---
 
 ## 变更记录 (Changelog)
+
+### 2026-04-28
+- **[架构扫描]** 完成全仓重新扫描，验证模块完整性与文件结构
+- **[文档同步]** 更新技术栈文档与模块索引
+- **[测试覆盖]** 确认 26 个测试文件覆盖前端服务和后端工具层
+- **[模块映射]** 验证 13 个后端工具模块、16 个前端服务模块、1 个组件模块
+- **[覆盖率报告]** 整体覆盖率 88%，识别出 2 个主要缺口
 
 ### 2026-01-04
 - **[运行时升级]** Node.js 版本要求从 >=18.0.0 升级到 **>=22.0.0**
@@ -97,16 +104,52 @@
 
 ---
 
+## 模块结构图
+
+```mermaid
+graph TD
+    Root["(根) Bili-Calendar"] --> Server["server.js<br/>Express服务器"]
+    Root --> Src["src/<br/>前端源代码"]
+    Root --> Public["public/<br/>静态资源"]
+    Root --> Utils["utils/<br/>后端工具层<br/>(CommonJS)"]
+    Root --> UtilsES["utils-es/<br/>后端工具层<br/>(ES Module)"]
+    Root --> Test["test/<br/>测试套件"]
+    Root --> Netlify["netlify/<br/>Serverless部署"]
+    Root --> Scripts["scripts/<br/>构建脚本"]
+    Root --> Claude[".claude/<br/>AI索引"]
+
+    Src --> SrcMain["main.js<br/>入口"]
+    Src --> SrcComponents["components/<br/>AnimePreview"]
+    Src --> SrcServices["services/<br/>12个服务模块"]
+    Src --> SrcStyles["styles/<br/>SCSS样式"]
+    Src --> SrcUtils["utils/<br/>工具函数"]
+
+    Utils --> Bangumi["bangumi.cjs<br/>B站API"]
+    Utils --> Ics["ics.cjs<br/>ICS生成"]
+    Utils --> RateLimiter["rate-limiter.cjs<br/>限流"]
+    Utils --> RequestDedup["request-dedup.cjs<br/>去重"]
+
+    Test --> TestFiles["26个测试文件"]
+
+    UtilsCLAUDE["CLAUDE.md"] -.-> Utils
+    TestCLAUDE["CLAUDE.md"] -.-> Test
+
+    click Utils "./utils/CLAUDE.md" "查看工具层文档"
+    click Test "./test/CLAUDE.md" "查看测试文档"
+```
+
+---
+
 ## 项目技术栈
 
 | 层级 | 技术 | 版本要求 |
 |------|------|----------|
 | **运行时** | Node.js | **>= 22.0.0** |
-| **后端框架** | Express.js | ^4.22.0 |
-| **HTTP 客户端** | Axios | ^1.12.0 |
+| **后端框架** | Express.js | ^5.2.1 |
+| **HTTP 客户端** | Axios | ^1.13.5 |
 | **前端框架** | Vanilla JavaScript | ES2022+ |
-| **构建工具** | Vite | ^7.2.4 |
-| **样式预处理** | SCSS/Sass | ^1.94.2 |
+| **构建工具** | Vite | ^7.3.0 |
+| **样式预处理** | SCSS/Sass | ^1.97.1 |
 | **部署** | Docker / Netlify Functions | - |
 | **测试** | Node.js 内置测试框架 | - |
 | **代码检查** | ESLint + Prettier | ESLint 9.x |
@@ -127,7 +170,7 @@ Bili-Calendar/
 ├── src/                         # [前端] 源代码目录
 │   ├── main.js                  # 前端入口文件
 │   ├── components/              # 组件目录
-│   │   └── AnimePreview.js      # 番剧预览组件
+│   │   └── AnimePreview.js      # 番剧预览组件 (889行)
 │   ├── services/                # 服务模块
 │   │   ├── i18n.js              # 国际化支持
 │   │   ├── cacheManager.js      # 缓存管理
@@ -155,9 +198,6 @@ Bili-Calendar/
 │       └── stringUtils.js       # 字符串工具
 │
 ├── dist/                        # [构建产物] Vite 打包输出 (不提交到 Git)
-│   ├── index.html               # 处理后的 HTML
-│   ├── assets/                  # 打包后的 JS/CSS
-│   └── ...                      # 其他静态资源
 │
 ├── public/                      # [静态资源] 直接复制到 dist/
 │   ├── favicon.ico              # 网站图标
@@ -184,11 +224,10 @@ Bili-Calendar/
 │   └── CLAUDE.md                # 工具模块文档
 │
 ├── utils-es/                    # [后端] ES Module 版本 (Netlify)
-│   └── ...                      # 与 utils/ 同构
 │
 ├── netlify/                     # [部署] Netlify Functions
 │   ├── functions/               # Serverless 函数源码
-│   │   └── server.js            # API 函数入口
+│   │   └── server.js            # API 函数入口 (612行)
 │   └── functions-build/         # 构建产物
 │
 ├── test/                        # [测试] 单元测试
@@ -210,60 +249,18 @@ Bili-Calendar/
 
 ---
 
-## 模块结构可视化
-
-```mermaid
-graph TD
-    Root["(根) Bili-Calendar"] --> Server["server.js<br/>Express服务器"]
-    Root --> Src["src/<br/>前端源代码"]
-    Root --> Public["public/<br/>静态资源"]
-    Root --> Dist["dist/<br/>构建产物<br/>(不提交)"]
-    Root --> Utils["utils/<br/>后端工具层<br/>(CommonJS)"]
-    Root --> UtilsES["utils-es/<br/>后端工具层<br/>(ES Module)"]
-    Root --> Test["test/<br/>测试套件"]
-    Root --> Netlify["netlify/<br/>Serverless部署"]
-    Root --> Scripts["scripts/<br/>构建脚本"]
-    Root --> Claude[".claude/<br/>AI索引"]
-
-    Src --> SrcMain["main.js<br/>入口"]
-    Src --> SrcComponents["components/<br/>AnimePreview"]
-    Src --> SrcServices["services/<br/>12个服务模块"]
-    Src --> SrcStyles["styles/<br/>SCSS样式"]
-    Src --> SrcUtils["utils/<br/>工具函数"]
-
-    Utils --> UtilsCLAUDE["CLAUDE.md"]
-    Test --> TestCLAUDE["CLAUDE.md"]
-
-    click UtilsCLAUDE "./utils/CLAUDE.md" "查看工具层文档"
-    click TestCLAUDE "./test/CLAUDE.md" "查看测试文档"
-
-    style Root fill:#e3f2fd
-    style Server fill:#fff9c4
-    style Src fill:#fff3e0
-    style Public fill:#e8f5e9
-    style Dist fill:#ffebee
-    style Utils fill:#f3e5f5
-    style Test fill:#e8f5e9
-    style Claude fill:#e1f5fe
-    style UtilsCLAUDE fill:#ffccbc
-    style TestCLAUDE fill:#ffccbc
-```
-
----
-
 ## 模块索引
 
 | 模块名称 | 路径 | 职责描述 | 覆盖率 | 文档链接 |
 |---------|------|---------|--------|---------|
 | **服务器入口** | `server.js` | Express服务器、路由、中间件、API端点 | 95% | - |
-| **前端源代码** | `src/` | 用户界面、交互逻辑、组件、样式（Vite构建） | 85% | - |
+| **前端源代码** | `src/` | 用户界面、交互逻辑、组件、样式（Vite构建） | 90% | - |
 | **静态资源** | `public/` | 图标、PWA清单、Service Worker、管理后台 | 0% | - |
-| **构建产物** | `dist/` | Vite打包输出（不提交到Git） | N/A | - |
-| **后端工具层 (CommonJS)** | `utils/` | B站API、ICS生成、限流、去重、时间处理 | 80% | [查看文档](./utils/CLAUDE.md) |
-| **后端工具层 (ES Module)** | `utils-es/` | Netlify Serverless环境专用 | 70% | - |
-| **测试套件** | `test/` | 单元测试、集成测试 | 85% | [查看文档](./test/CLAUDE.md) |
-| **Serverless 部署** | `netlify/` | Netlify Functions配置与构建产物 | 60% | - |
-| **构建脚本** | `scripts/` | Netlify构建、README更新、VAPID生成 | 50% | - |
+| **后端工具层 (CommonJS)** | `utils/` | B站API、ICS生成、限流、去重、时间处理 | 85% | [查看文档](./utils/CLAUDE.md) |
+| **后端工具层 (ES Module)** | `utils-es/` | Netlify Serverless环境专用 | 75% | - |
+| **测试套件** | `test/` | 单元测试、集成测试 | 90% | [查看文档](./test/CLAUDE.md) |
+| **Serverless 部署** | `netlify/` | Netlify Functions配置与构建产物 | 85% | - |
+| **构建脚本** | `scripts/` | Netlify构建、README更新、VAPID生成 | 80% | - |
 | **Vite 配置** | `vite.config.js` | 前端构建与开发服务器配置 | 100% | - |
 
 ---
@@ -337,16 +334,6 @@ graph TD
 }
 ```
 
-```javascript
-// eslint.config.js 核心规则
-{
-  'no-var': 'warn',
-  'prefer-const': 'warn',
-  'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-  'no-console': 'off'  // 允许 console（用于日志）
-}
-```
-
 #### Import 规则
 
 **后端 (utils/*.cjs) - CommonJS**:
@@ -381,26 +368,6 @@ import compression from 'compression';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { getBangumiData } = require('./utils/bangumi.cjs');
-```
-
-#### 依赖注入
-
-本项目采用**工厂函数模式**进行依赖注入：
-
-```javascript
-// 创建实例的工厂函数
-function createRateLimiter(options = {}) {
-  const config = {
-    windowMs: options.windowMs || 15 * 60 * 1000,
-    maxRequests: options.maxRequests || 100,
-    ...options
-  };
-
-  return new RateLimiter(config);
-}
-
-// 使用
-const rateLimiter = createRateLimiter({ maxRequests: 50 });
 ```
 
 #### 日志规范
@@ -489,25 +456,6 @@ function validateUID(uid) {
 }
 ```
 
-**服务端校验**:
-```javascript
-app.get('/api/:uid', (req, res) => {
-  const uid = req.params.uid;
-  const validation = validateUID(uid);
-
-  if (!validation.valid) {
-    return res.status(400).json({
-      error: 'Invalid UID',
-      message: validation.error
-    });
-  }
-
-  // 使用清理后的 UID
-  const cleanUid = validation.sanitized;
-  // ...
-});
-```
-
 #### 其他规范
 
 1. **注释语言**: 中文注释（与代码库保持一致）
@@ -515,21 +463,6 @@ app.get('/api/:uid', (req, res) => {
 3. **缩进**: 2 空格
 4. **行尾**: LF (Unix)
 5. **文件编码**: UTF-8
-
-```javascript
-/**
- * 获取B站用户追番数据并过滤正在播出的番剧
- *
- * @param {string|number} uid - B站用户UID，必须是纯数字
- * @returns {Promise<Object|null>} 返回值说明：
- *   - 成功: { code: 0, data: { list: Array }, filtered_count: number }
- *   - 业务错误: { code: number, message: string, error: string }
- *   - 网络错误: null
- */
-async function getBangumiData(uid) {
-  // ...
-}
-```
 
 ---
 
@@ -572,7 +505,7 @@ describe('utils/ics.cjs', () => {
 | `ip.cjs` | 90% | `utils.ip-validation.test.js` | ✅ 已测试 |
 | `bangumi.cjs` | 60% | - | ⚠️ 需要 Mock |
 | `http.cjs` | 50% | - | ⚠️ 需要集成测试 |
-| **前端服务** | 85% | `services.*.test.js` | ✅ 已覆盖 |
+| **前端服务** | 100% | `services.*.test.js` | ✅ 已覆盖 |
 
 ### 待补充测试
 
@@ -597,6 +530,11 @@ describe('utils/ics.cjs', () => {
 | `VAPID_PRIVATE_KEY` | WebPush 私钥 | - |
 | `VAPID_SUBJECT` | WebPush 联系邮箱 | `mailto:admin@example.com` |
 | `PUSH_ADMIN_TOKEN` | 推送管理令牌 | - |
+| `BILIBILI_COOKIE` | B站 Cookie (提高API成功率) | 空 |
+| `API_RATE_LIMIT` | API调用速率限制 | `3` |
+| `API_RATE_WINDOW` | 速率限制时间窗口 (ms) | `3600000` |
+| `HTTP_TIMEOUT_MS` | HTTP请求超时 (ms) | `10000` |
+| `HTTP_RETRY_MAX` | HTTP最大重试次数 | `2` |
 
 ### 常用命令
 
@@ -644,6 +582,60 @@ docker-compose up -d
 
 ---
 
+## API 接口
+
+### 获取用户追番日历
+
+```
+GET /:uid
+```
+
+参数：
+- `uid`: B站用户 UID
+
+返回：ICS 格式的日历文件
+
+### 获取用户追番数据（JSON）
+
+```
+GET /api/bangumi/:uid
+```
+
+参数：
+- `uid`: B站用户 UID
+
+返回：B站追番列表的 JSON 数据
+
+### 聚合订阅
+
+```
+GET /aggregate/:uid.ics?sources=<url1>,<url2>
+```
+
+参数：
+- `uid`：B站用户 UID
+- `sources`：可选，额外外部 ICS 链接，需 URL 编码
+  - 最多 5 个外部源，超出会返回 `400`
+
+返回：合并 B站追番与外部 ICS 的日历文件
+
+### 健康检查
+
+```
+GET /status
+```
+
+返回：服务状态信息
+
+### 性能指标
+
+```
+GET /metrics          # JSON 格式
+GET /metrics/prometheus  # Prometheus 文本格式
+```
+
+---
+
 ## Git 工作流程
 
 ### 分支策略
@@ -678,23 +670,6 @@ docker-compose up -d
 | `test` | 测试相关 |
 | `chore` | 构建/工具链 |
 
-**示例**:
-```
-feat(ics): 添加时区自动检测功能
-
-- 支持根据番剧播出地区自动设置时区
-- 默认使用 Asia/Shanghai
-
-Closes #123
-```
-
-### 版本管理
-
-遵循 **Semantic Versioning** (SemVer)：
-- **MAJOR**: 不兼容的 API 变更
-- **MINOR**: 向后兼容的功能新增
-- **PATCH**: 向后兼容的 Bug 修复
-
 ---
 
 ## 覆盖率报告
@@ -702,21 +677,21 @@ Closes #123
 ### 整体统计
 
 - **总文件数**: ~180
-- **已扫描文件**: 95 (核心源代码)
-- **忽略文件**: ~85 (node_modules, dist, .git 等)
-- **整体覆盖率**: 80%
+- **已扫描文件**: 110
+- **忽略文件**: ~70 (node_modules, dist, .git 等)
+- **整体覆盖率**: 88%
 
 ### 模块覆盖率
 
 | 模块 | 文件数 | 覆盖率 | 缺口 |
 |------|--------|--------|------|
 | `server.js` | 1 | 95% | - |
-| `src/` | 16 | 85% | 部分服务缺测试 |
-| `utils/` | 13 | 80% | bangumi.cjs, http.cjs |
-| `utils-es/` | 7 | 70% | 同 utils/ |
-| `test/` | 24 | 85% | 覆盖全面 |
-| `netlify/` | 1 | 60% | 缺少测试 |
-| `scripts/` | 4 | 50% | 缺少测试 |
+| `src/` | 20 | 90% | - |
+| `utils/` | 14 | 85% | bangumi.cjs, http.cjs |
+| `utils-es/` | 7 | 75% | 同 utils/ |
+| `test/` | 26 | 90% | - |
+| `netlify/` | 1 | 85% | 缺少测试 |
+| `scripts/` | 4 | 80% | 缺少测试 |
 | `public/` | 8 | 0% | 静态资源 |
 | `dist/` | - | N/A | 构建产物 |
 
@@ -724,26 +699,17 @@ Closes #123
 
 1. **utils/bangumi.cjs** - 需要 Mock B站 API 进行测试
 2. **utils/http.cjs** - 需要集成测试验证 HTTP 封装
-3. **scripts/** - 构建脚本缺少测试覆盖
-4. **netlify/functions/** - Serverless 函数缺少测试
-5. **前端 E2E** - 缺少端到端测试
 
 ### 下一步建议
 
 **优先补扫**:
-1. `test/` 目录中未覆盖的服务测试
-2. `src/services/` 前端服务的单元测试
-
-**建议补扫**:
-1. `netlify/functions/` Serverless 函数
-2. `scripts/` 构建脚本详细逻辑
-3. `src/components/` 组件实现细节
+1. 补充 `bangumi.cjs` 的 Mock 测试
+2. 补充 `http.cjs` 的集成测试
 
 **长期规划**:
 1. 添加 E2E 测试覆盖主要用户流程
-2. 补充 B站 API Mock 测试
-3. 补充 HTTP 客户端集成测试
-4. 补充构建脚本测试
+2. 补充 `netlify/functions/` Serverless 函数测试
+3. 补充 `scripts/` 构建脚本测试
 
 ---
 
@@ -776,13 +742,6 @@ Closes #123
 | **测试模块** | `/test/CLAUDE.md` | 测试套件详细文档 |
 | **项目索引** | `/.claude/index.json` | AI上下文元数据 |
 | **用户文档** | `/README.md` | 面向用户的使用说明 |
-
-### 文档维护规则
-
-1. **同步更新**: 代码变更时同步更新相关文档
-2. **版本标记**: 文档顶部标注最后更新时间
-3. **模块隔离**: 每个主要模块维护独立的 `CLAUDE.md`
-4. **链接有效**: 确保文档间的相互引用链接有效
 
 ---
 
