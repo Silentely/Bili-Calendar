@@ -323,7 +323,7 @@ Bili-Calendar/
 ├── .github/               # GitHub配置目录
 │   └── workflows/         # GitHub Actions工作流配置
 │       └── docker-build.yml # Docker镜像自动构建配置
-├── src/                   # 前端源代码目录
+├── src/                   # 前端源代码目录（Vite 构建）
 │   ├── main.js            # 前端入口文件
 │   ├── components/        # 组件目录
 │   │   └── AnimePreview.js # 番剧预览组件
@@ -331,7 +331,15 @@ Bili-Calendar/
 │   │   ├── i18n.js        # 国际化支持
 │   │   ├── cacheManager.js # 缓存管理
 │   │   ├── errorHandler.js # 错误处理
-│   │   └── pwa.js         # PWA 初始化
+│   │   ├── pwa.js         # PWA 初始化
+│   │   ├── push.js        # 推送服务
+│   │   ├── notifier.js    # 通知管理
+│   │   ├── animationService.js # 动画服务
+│   │   ├── clipboardService.js # 剪贴板服务
+│   │   ├── loadingService.js # 加载状态
+│   │   ├── progressService.js # 进度条
+│   │   ├── themeService.js # 主题切换
+│   │   └── toastService.js # 提示消息
 │   ├── styles/            # 样式目录 (SCSS)
 │   │   ├── app.scss       # 主样式入口
 │   │   ├── _modules.scss  # 模块化样式
@@ -340,18 +348,15 @@ Bili-Calendar/
 │   │   ├── _error.scss    # 错误样式
 │   │   ├── _dark.scss     # 暗黑模式
 │   │   └── _history.scss  # 历史记录样式
-│   ├── utils/             # 前端工具函数
-│   └── assets/            # 前端资源文件
-├── dist/                  # 构建产物目录（Vite 打包输出，不提交到 Git）
-│   ├── index.html         # 处理后的 HTML
-│   ├── assets/            # 打包后的 JS/CSS
-│   └── .vite/             # Vite 元数据
-│       └── manifest.json  # 构建清单（Service Worker 需要）
+│   └── utils/             # 前端工具函数
+│       ├── deviceDetector.js # 设备检测
+│       └── stringUtils.js # 字符串工具
 ├── public/                # 静态资源目录（直接复制到 dist/）
 │   ├── favicon.ico        # 网站图标
 │   ├── manifest.webmanifest # PWA 清单
 │   ├── sw.js              # Service Worker
-│   ├── CLAUDE.md          # 前端模块文档
+│   ├── admin/             # 管理后台
+│   │   └── metrics.js     # 性能指标查看器
 │   └── icons/             # 应用图标
 ├── netlify/
 │   ├── functions/
@@ -360,23 +365,25 @@ Bili-Calendar/
 ├── utils/                 # 后端工具函数目录（CommonJS）
 │   ├── time.cjs           # 时间处理
 │   ├── ics.cjs            # ICS生成
+│   ├── ics-merge.cjs      # 外部ICS聚合
 │   ├── http.cjs           # HTTP客户端
 │   ├── bangumi.cjs        # B站数据抓取
 │   ├── rate-limiter.cjs   # 请求速率限制
 │   ├── request-dedup.cjs  # 请求去重
 │   ├── constants.cjs      # 常量定义
 │   ├── ip.cjs             # IP 提取工具
+│   ├── security.cjs       # 安全校验
+│   ├── validation.cjs     # 参数验证
+│   ├── metrics.cjs        # 性能指标
+│   ├── push-store.cjs     # WebPush存储
 │   └── CLAUDE.md          # 工具模块文档
 ├── utils-es/              # 后端工具函数目录（ES Module，Netlify 专用）
 ├── scripts/               # 构建脚本
 │   ├── build-netlify.mjs
 │   ├── update-readme-year.js
-│   └── check-dist.js
-├── test/                  # 测试目录
-│   ├── utils.ics.test.js
-│   ├── utils.time.test.js
-│   ├── utils.rate-limiter.test.js
-│   ├── utils.request-dedup.test.js
+│   ├── check-dist.js
+│   └── generate-vapid.js  # VAPID密钥生成
+├── test/                  # 测试目录（25 个测试文件）
 │   └── CLAUDE.md          # 测试模块文档
 ├── assets/                # 文档资源目录
 │   ├── light-mode.jpg
@@ -474,7 +481,7 @@ npm run format
 ### 部署到云服务器
 
 1. 克隆项目到服务器
-2. 安装 Node.js 环境（建议使用 v18 或更高版本）
+2. 安装 Node.js 环境（要求 v22 或更高版本）
 3. 安装 PM2 进程管理器：`npm install -g pm2`
 4. 安装项目依赖：`npm install`
 5. 启动服务：`pm2 start npm --name "Bili-Calendar" -- start`

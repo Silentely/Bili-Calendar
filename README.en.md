@@ -133,11 +133,9 @@ Language preference is automatically saved and restored on next visit.
 | Shortcut       | Function                |
 | -------------- | ----------------------- |
 | `Enter`        | Generate/Execute action |
-| `Ctrl/Cmd + K` | Focus search box        |
-| `Ctrl/Cmd + P` | Preview anime list      |
-| `Ctrl/Cmd + D` | Toggle dark mode        |
-| `Ctrl/Cmd + H` | Show/Hide history       |
-| `Ctrl/Cmd + C` | Copy subscription link  |
+| `Alt + T`      | Toggle dark mode        |
+| `Alt + G`      | Generate subscription   |
+| `Alt + P`      | Preview anime list      |
 | `Esc`          | Close popup/Clear input |
 
 ---
@@ -301,41 +299,78 @@ Returns: Service status information for health checks
 ```
 Bili-Calendar/
 ├── server.js              # Main service (container/local)
+├── vite.config.js         # Vite build config
+├── index.html             # Frontend entry HTML
 ├── netlify.toml           # Netlify config
 ├── .github/               # GitHub config directory
 │   └── workflows/         # GitHub Actions workflow config
 │       └── docker-build.yml # Docker image auto-build config
-├── netlify/
-│   └── functions/
-│       └── server.js      # Netlify Functions entry (CJS)
-├── public/                # Static files directory
-│   ├── index.html         # Frontend page
-│   ├── i18n.js            # Internationalization module
-│   ├── styles.css         # Base styles
-│   ├── styles-dark.css    # Dark mode styles
-│   ├── loading-animations.css # Loading animation styles
-│   ├── error-guide.css    # Error guidance styles
-│   ├── anime-preview.css  # Anime preview styles
-│   ├── cache-history.css  # Cache history styles
-│   ├── mobile-enhancements.css # Mobile optimization styles
-│   ├── app.js             # Main app logic
-│   ├── error-handler.js   # Error handling module
-│   ├── anime-preview.js   # Anime preview module
-│   ├── cache-manager.js   # Cache management module
+├── src/                   # Frontend source code (Vite build)
+│   ├── main.js            # Frontend entry file
+│   ├── components/        # Components
+│   │   └── AnimePreview.js # Anime preview component
+│   ├── services/          # Service modules
+│   │   ├── i18n.js        # Internationalization
+│   │   ├── cacheManager.js # Cache management
+│   │   ├── errorHandler.js # Error handling
+│   │   ├── pwa.js         # PWA initialization
+│   │   ├── push.js        # Push service
+│   │   ├── notifier.js    # Notification management
+│   │   ├── animationService.js # Animation service
+│   │   ├── clipboardService.js # Clipboard service
+│   │   ├── loadingService.js # Loading state
+│   │   ├── progressService.js # Progress bar
+│   │   ├── themeService.js # Theme switching
+│   │   └── toastService.js # Toast messages
+│   ├── styles/            # Styles directory (SCSS)
+│   │   ├── app.scss       # Main style entry
+│   │   ├── _modules.scss  # Modular styles
+│   │   ├── _preview.scss  # Preview styles
+│   │   ├── _loading.scss  # Loading animations
+│   │   ├── _error.scss    # Error styles
+│   │   ├── _dark.scss     # Dark mode
+│   │   └── _history.scss  # History styles
+│   └── utils/             # Frontend utilities
+│       ├── deviceDetector.js # Device detection
+│       └── stringUtils.js # String utilities
+├── public/                # Static assets (copied to dist/)
+│   ├── favicon.ico        # Website icon
+│   ├── manifest.webmanifest # PWA manifest
 │   ├── sw.js              # Service Worker
-│   └── manifest.webmanifest # PWA manifest file
-├── utils/                 # Utility functions directory
-│   ├── time.cjs           # Time handling (backend/functions)
-│   ├── ics.cjs            # ICS generation (backend/functions)
-│   ├── http.cjs           # HTTP client (backend/functions)
-│   ├── bangumi.cjs        # Bilibili data fetching (backend/functions)
-│   └── bangumi.js         # Misuse protection
-├── assets/                # Asset files directory
-│   └── icons/             # PWA icons
+│   ├── admin/             # Admin dashboard
+│   │   └── metrics.js     # Performance metrics viewer
+│   └── icons/             # App icons
+├── netlify/
+│   ├── functions/
+│   │   └── server.js      # Netlify Functions entry (CJS)
+│   └── functions-build/   # Netlify build output
+├── utils/                 # Backend utility functions (CommonJS)
+│   ├── time.cjs           # Time handling
+│   ├── ics.cjs            # ICS generation
+│   ├── ics-merge.cjs      # External ICS merge
+│   ├── http.cjs           # HTTP client
+│   ├── bangumi.cjs        # Bilibili data fetching
+│   ├── rate-limiter.cjs   # Rate limiting
+│   ├── request-dedup.cjs  # Request deduplication
+│   ├── constants.cjs      # Constants
+│   ├── ip.cjs             # IP extraction
+│   ├── security.cjs       # Security validation
+│   ├── validation.cjs     # Input validation
+│   ├── metrics.cjs        # Performance metrics
+│   ├── push-store.cjs     # WebPush storage
+│   └── CLAUDE.md          # Utils documentation
+├── utils-es/              # Backend utils (ES Module, Netlify)
+├── scripts/               # Build scripts
+│   ├── build-netlify.mjs
+│   ├── update-readme-year.js
+│   ├── check-dist.js
+│   └── generate-vapid.js  # VAPID key generation
+├── test/                  # Tests (25 test files)
+│   └── CLAUDE.md          # Test documentation
+├── assets/                # Documentation assets
 ├── Dockerfile             # Docker image config
 ├── docker-compose.yml     # Docker Compose config
 ├── package.json           # Node.js project config
-├── IMPROVEMENTS.md        # Feature improvements doc
 ├── README.md              # Project documentation (Chinese)
 └── README.en.md           # Project documentation (English)
 ```

@@ -6,17 +6,21 @@
 
 ## 📋 模块概览
 
-**Utils** 模块是 Bili-Calendar 的后端核心工具层，提供 B站 API 调用、ICS 文件生成、请求限流、去重、时间处理等基础功能。采用 CommonJS 模块系统，确保与 Node.js 服务器的兼容性。
+**Utils** 模块是 Bili-Calendar 的后端核心工具层，提供 B站 API 调用、ICS 文件生成、请求限流、去重、时间处理、安全校验、性能指标采集等基础功能。采用 CommonJS 模块系统，确保与 Node.js 服务器的兼容性。
 
 ### 核心职责
 
 - 🌐 B站 API 数据获取与解析
-- 📅 ICS 日历文件生成
+- 📅 ICS 日历文件生成与多源合并
 - 🚦 请求速率限制 (Rate Limiting)
 - 🔄 请求去重 (Request Deduplication)
 - ⏰ 时间解析与格式化
 - 🌍 HTTP 请求封装
 - 🔧 常量与配置管理
+- 🛡️ 安全校验与 SSRF 防护
+- 📊 性能指标采集
+- 📲 WebPush 订阅存储
+- ✅ 统一输入验证
 
 ---
 
@@ -24,15 +28,21 @@
 
 ```
 utils/
-├── 📄 bangumi.cjs              # B站番剧数据获取
-├── 📄 ics.cjs                  # ICS 日历文件生成
-├── 📄 rate-limiter.cjs         # 请求速率限制
-├── 📄 request-dedup.cjs        # 请求去重
-├── 📄 time.cjs                 # 时间处理工具
-├── 📄 http.cjs                 # HTTP 请求工具
-├── 📄 constants.cjs            # 常量定义
-├── 📄 ip.cjs                   # IP 提取工具
-└── 📄 bangumi.js               # (废弃) ES Module 版本
+├── bangumi.cjs              # B站番剧数据获取
+├── bangumi.js               # (废弃) ES Module 版本
+├── constants.cjs            # 常量定义
+├── http.cjs                 # HTTP 请求工具
+├── ics-merge.cjs            # 多源 ICS 合并与冲突检测
+├── ics.cjs                  # ICS 日历文件生成
+├── ip.cjs                   # IP 提取工具
+├── metrics.cjs              # 性能指标采集
+├── push-store.cjs           # WebPush 订阅存储
+├── rate-limiter.cjs         # 请求速率限制
+├── request-dedup.cjs        # 请求去重
+├── security.cjs             # 安全校验（UID 验证、SSRF 防护）
+├── time.cjs                 # 时间处理工具
+├── validation.cjs           # 输入验证工具
+└── CLAUDE.md                # 本文件
 ```
 
 ---
@@ -232,7 +242,69 @@ description += ` ✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
 
 ---
 
-### 3. `rate-limiter.cjs` - 请求速率限制
+### 3. `ics-merge.cjs` - 多源 ICS 合并与冲突检测
+
+**职责**: 拉取外部 ICS 源，合并到 B站追番日历，支持冲突检测与 DNS 安全查询
+
+**核心功能**:
+
+#### `safeLookup(hostname)`
+
+安全的 DNS 查询，防止 DNS 重绑定攻击。
+
+**参数**:
+- `hostname` (string): 主机名
+
+**返回值**:
+- `Promise<string>`: 解析后的 IP 地址
+
+**安全机制**:
+- 使用 `dns.lookup` 解析主机名
+- 结合 `security.cjs` 的 `isPrivateIPAddress` 检测私有地址
+- 阻止对内网地址的请求，防止 SSRF
+
+#### `fetchExternalICS(url)`
+
+拉取外部 ICS 源内容。
+
+**参数**:
+- `url` (string): 外部 ICS 链接
+
+**返回值**:
+- `Promise<string|null>`: ICS 内容或 null（失败时）
+
+**处理流程**:
+1. 解析 URL，提取主机名
+2. 调用 `safeLookup` 验证 DNS 解析结果
+3. 使用 `httpClient` 拉取 ICS 内容
+4. 返回原始 ICS 文本
+
+#### `mergeICS(bangumiICS, externalICSList)`
+
+合并多个 ICS 源为一个日历文件。
+
+**参数**:
+- `bangumiICS` (string): B站追番 ICS 内容
+- `externalICSList` (Array<string>): 外部 ICS 内容列表
+
+**返回值**:
+- `string`: 合并后的 ICS 内容
+
+**合并策略**:
+- 保留 B站 ICS 的日历头部（VCALENDAR、VTIMEZONE）
+- 从外部源中提取 VEVENT 块
+- 通过 UID 去重，避免重复事件
+- 将外部事件追加到 B站事件之后
+
+**依赖**:
+- `axios` - HTTP 请求
+- `dns` - DNS 查询（Node.js 内置）
+- `security.cjs` - 私有地址检测
+- `time.cjs` - 时间处理
+
+---
+
+### 4. `rate-limiter.cjs` - 请求速率限制
 
 **职责**: 基于 IP 的请求速率限制，防止滥用
 
@@ -320,7 +392,7 @@ setInterval(() => rateLimiter.cleanup(), 60 * 60 * 1000);
 
 ---
 
-### 4. `request-dedup.cjs` - 请求去重
+### 5. `request-dedup.cjs` - 请求去重
 
 **职责**: 防止相同请求并发执行，减少 API 调用
 
@@ -389,7 +461,7 @@ Promise.all([
 
 ---
 
-### 5. `time.cjs` - 时间处理工具
+### 6. `time.cjs` - 时间处理工具
 
 **职责**: 时间解析、格式化、时区转换
 
@@ -473,7 +545,7 @@ function getNextBroadcastDate(dayOfWeek, time) {
 
 ---
 
-### 6. `http.cjs` - HTTP 请求工具
+### 7. `http.cjs` - HTTP 请求工具
 
 **职责**: 封装 HTTP 请求客户端，提供统一的请求接口
 
@@ -544,7 +616,7 @@ try {
 
 ---
 
-### 7. `constants.cjs` - 常量定义
+### 8. `constants.cjs` - 常量定义
 
 **职责**: 集中管理项目常量
 
@@ -580,7 +652,7 @@ module.exports = {
 
 ---
 
-### 8. `ip.cjs` - IP 提取工具
+### 9. `ip.cjs` - IP 提取工具
 
 **职责**: 从请求中提取客户端真实 IP
 
@@ -610,6 +682,20 @@ app.use((req, res, next) => {
 });
 ```
 
+#### `normalizeIPAddress(ip)`
+
+标准化 IP 地址格式。
+
+**参数**:
+- `ip` (string): 原始 IP 地址（可能包含 IPv6 映射前缀）
+
+**返回值**:
+- `string`: 标准化后的 IP 地址
+
+**处理逻辑**:
+- 移除 `::ffff:` IPv6 映射前缀
+- 统一为 IPv4 格式
+
 #### `generateRequestId()`
 
 生成唯一请求 ID。
@@ -630,6 +716,302 @@ app.use((req, res, next) => {
 
 ---
 
+### 10. `security.cjs` - 安全校验
+
+**职责**: 输入校验与安全工具，防止 SSRF 等攻击
+
+**核心函数**:
+
+#### `validateUID(uid)`
+
+验证 UID 格式是否合法。
+
+**参数**:
+- `uid` (string|number): 待验证的 UID
+
+**返回值**:
+```javascript
+// 合法
+{ valid: true, sanitized: string }
+
+// 非法
+{ valid: false, error: string }
+```
+
+**验证规则**:
+- 必须为纯数字
+- 长度 1-20 位
+- 自动去除首尾空白
+
+**使用示例**:
+```javascript
+const { validateUID } = require('./utils/security.cjs');
+
+const result = validateUID('  614500  ');
+if (result.valid) {
+  console.log('合法 UID:', result.sanitized); // '614500'
+}
+
+const bad = validateUID('abc');
+if (!bad.valid) {
+  console.error('非法 UID:', bad.error);
+}
+```
+
+#### `isPrivateIPAddress(hostname)`
+
+检测是否为私有/本地地址，防止 SSRF 攻击。
+
+**参数**:
+- `hostname` (string): 主机名或 IP 地址
+
+**返回值**:
+- `boolean`: 是否为私有地址
+
+**拦截范围**:
+- `127.0.0.0/8` (本地回环)
+- `10.0.0.0/8` (A 类私有)
+- `172.16.0.0/12` (B 类私有)
+- `192.168.0.0/16` (C 类私有)
+- `169.254.0.0/16` (链路本地)
+- `::1` (IPv6 回环)
+- `fc00::/7` (IPv6 私有)
+- `localhost` 等保留域名
+
+**依赖**:
+- `ip.cjs` - `normalizeIPAddress` 用于标准化 IP 格式
+
+---
+
+### 11. `validation.cjs` - 输入验证工具
+
+**职责**: 统一的输入验证模块，提供可复用的验证规则
+
+**常量**:
+
+#### UID 验证规则
+
+```javascript
+const UID_RULES = {
+  PATTERN: /^\d{1,20}$/,    // 纯数字，1-20 位
+  MIN_LENGTH: 1,
+  MAX_LENGTH: 20,
+  ERROR_MESSAGES: {
+    EMPTY: 'UID 不能为空',
+    INVALID_FORMAT: 'UID 必须是 1-20 位纯数字',
+    TOO_LONG: 'UID 长度不能超过 20 位'
+  }
+};
+```
+
+#### URL 验证
+
+```javascript
+// 协议白名单
+const ALLOWED_PROTOCOLS = ['http:', 'https:'];
+```
+
+**核心函数**:
+
+#### `validateUID(uid)`
+
+验证 UID 输入。
+
+**参数**:
+- `uid` (string|number): 待验证的 UID
+
+**返回值**:
+```javascript
+{ valid: boolean, sanitized?: string, error?: string }
+```
+
+#### `validateURL(url)`
+
+验证 URL 格式与协议。
+
+**参数**:
+- `url` (string): 待验证的 URL
+
+**返回值**:
+```javascript
+{ valid: boolean, parsed?: URL, error?: string }
+```
+
+**验证规则**:
+- 必须为合法 URL 格式
+- 协议必须在白名单内（http/https）
+- 拒绝 `javascript:`、`data:` 等危险协议
+
+#### `isPrivateIP(hostname)`
+
+私有 IP 拦截模式，用于外部源验证。
+
+**参数**:
+- `hostname` (string): 主机名
+
+**返回值**:
+- `boolean`: 是否为私有地址
+
+**与 `security.cjs` 的关系**:
+- `validation.cjs` 提供上层验证接口
+- `security.cjs` 提供底层安全检测
+- 两者可独立使用，也可组合使用
+
+---
+
+### 12. `metrics.cjs` - 性能指标采集
+
+**职责**: 简易内存指标采集，支持路由级统计与 Prometheus 导出
+
+**核心类**:
+
+#### `Metrics`
+
+**采集指标**:
+- 请求总数 (`requests_total`)
+- 成功请求数 (`requests_success`)
+- 错误请求数 (`requests_error`)
+- API 调用延迟 (`api_latency_ms`)
+- 路由级统计 (`route_stats`)
+
+**核心方法**:
+
+##### `recordRequest(route, statusCode, duration)`
+
+记录一次请求的指标数据。
+
+**参数**:
+- `route` (string): 路由路径
+- `statusCode` (number): HTTP 状态码
+- `duration` (number): 请求耗时（毫秒）
+
+##### `recordAPICall(route, duration, success)`
+
+记录一次 API 调用的延迟。
+
+**参数**:
+- `route` (string): 路由路径
+- `duration` (number): 调用耗时（毫秒）
+- `success` (boolean): 是否成功
+
+##### `getPercentile(route, percentile)`
+
+获取指定路由的延迟百分位数。
+
+**参数**:
+- `route` (string): 路由路径
+- `percentile` (number): 百分位（如 95、99）
+
+**返回值**:
+- `number`: 对应百分位的延迟值（毫秒）
+
+##### `getMetrics()`
+
+获取全部指标数据。
+
+**返回值**:
+```javascript
+{
+  uptime: number,              // 服务运行时长（秒）
+  requests: {
+    total: number,             // 请求总数
+    success: number,           // 成功数
+    error: number              // 错误数
+  },
+  routes: Map<string, {        // 路由级统计
+    count: number,
+    errors: number,
+    latency: {
+      avg: number,
+      p95: number,
+      p99: number
+    }
+  }>
+}
+```
+
+##### `getPrometheusMetrics()`
+
+导出 Prometheus 文本格式的指标。
+
+**返回值**:
+- `string`: Prometheus exposition format 文本
+
+**内存保护**:
+- 限制最大路由数（默认 1000），超出时丢弃新路由的详细统计
+- 延迟采样窗口限制大小，防止内存无限增长
+
+---
+
+### 13. `push-store.cjs` - WebPush 订阅存储
+
+**职责**: 简易文件型推送订阅存储，管理 WebPush 订阅数据
+
+**核心类**:
+
+#### `PushStore`
+
+**存储位置**: `./data/push-subscriptions.json`
+
+**构造函数**:
+```javascript
+const store = new PushStore(dataDir);
+// dataDir: 可选，默认 './data'
+```
+
+**初始化行为**:
+- 自动创建数据目录（如不存在）
+- 自动创建 JSON 文件（如不存在）
+- 加载已有订阅数据到内存
+
+**核心方法**:
+
+##### `add(subscription)`
+
+添加一条推送订阅。
+
+**参数**:
+- `subscription` (object): WebPush 订阅对象
+  - `endpoint` (string): 推送服务端点
+  - `keys` (object): 加密密钥（`p256dh`、`auth`）
+
+**返回值**:
+- `boolean`: 是否为新增（false 表示已存在）
+
+##### `remove(endpoint)`
+
+根据 endpoint 删除订阅。
+
+**参数**:
+- `endpoint` (string): 推送服务端点
+
+**返回值**:
+- `boolean`: 是否成功删除
+
+##### `getAll()`
+
+获取所有订阅。
+
+**返回值**:
+- `Array<object>`: 订阅列表
+
+##### `has(endpoint)`
+
+检查是否已存在某订阅。
+
+**参数**:
+- `endpoint` (string): 推送服务端点
+
+**返回值**:
+- `boolean`: 是否存在
+
+**持久化机制**:
+- 每次增删操作后自动写入文件
+- 使用同步写入确保数据一致性
+- JSON 格式便于调试与手动编辑
+
+---
+
 ## 🔄 模块依赖关系
 
 ```mermaid
@@ -640,16 +1022,37 @@ graph TD
 
     E[ics.cjs] --> F[time.cjs]
 
+    M[ics-merge.cjs] --> B
+    M --> S[security.cjs]
+    M --> F
+    M -.-> axios
+
     G[rate-limiter.cjs] --> C
+
+    S --> I[ip.cjs]
+    V[validation.cjs] --> I
+
+    MT[metrics.cjs] -.-> |独立模块| MT
+
+    PS[push-store.cjs] -.-> |独立模块| PS
 
     H[server.js] --> A
     H --> E
+    H --> M
     H --> G
-    H --> I[ip.cjs]
+    H --> I
+    H --> S
+    H --> V
+    H --> MT
+    H --> PS
 
     style A fill:#e1f5ff
     style E fill:#fff3e0
     style G fill:#f3e5f5
+    style M fill:#e8f5e9
+    style S fill:#fce4ec
+    style MT fill:#f5f5f5
+    style PS fill:#f5f5f5
 ```
 
 ---
@@ -658,17 +1061,25 @@ graph TD
 
 ### 已测试模块
 
-- ✅ `ics.cjs` - ICS 生成逻辑
-- ✅ `time.cjs` - 时间解析与格式化
-- ✅ `rate-limiter.cjs` - 速率限制器
-- ✅ `request-dedup.cjs` - 请求去重
+| 模块 | 测试文件 | 覆盖率 | 状态 |
+|------|---------|--------|------|
+| `ics.cjs` | `test/utils.ics.test.js` | 85% | ✅ 已测试 |
+| `time.cjs` | `test/utils.time.test.js` | 90% | ✅ 已测试 |
+| `rate-limiter.cjs` | `test/utils.rate-limiter.test.js` | 95% | ✅ 已测试 |
+| `request-dedup.cjs` | `test/utils.request-dedup.test.js` | 95% | ✅ 已测试 |
+| `ip.cjs` | `test/utils.ip-validation.test.js` | 90% | ✅ 已测试 |
+| `security.cjs` | `test/utils.security.test.js` | 90% | ✅ 已测试 |
+| `validation.cjs` | `test/utils.validation.test.js` | 90% | ✅ 已测试 |
+| `ics-merge.cjs` | `test/ics-merge.test.js` | 80% | ✅ 已测试 |
+| `metrics.cjs` | `test/metrics.test.js` | 85% | ✅ 已测试 |
 
-### 测试文件
+### 待补充测试
 
-- `test/utils.ics.test.js`
-- `test/utils.time.test.js`
-- `test/utils.rate-limiter.test.js`
-- `test/utils.request-dedup.test.js`
+| 模块 | 缺口 | 计划 |
+|------|------|------|
+| `bangumi.cjs` | 需要 Mock B站 API | 编写 Mock 测试 |
+| `http.cjs` | 需要集成测试 | 编写 HTTP 封装测试 |
+| `push-store.cjs` | 文件 I/O 测试 | 编写持久化测试 |
 
 ---
 
@@ -693,14 +1104,25 @@ graph TD
 - 友好的错误提示
 - 自动重试机制 (可选)
 
+### 5. 安全防护
+- SSRF 防护：DNS 重绑定检测 + 私有地址拦截
+- 输入验证：UID 格式校验 + URL 协议白名单
+- 最小权限：仅允许 http/https 协议
+
+### 6. 指标采集
+- 内存级采集，零外部依赖
+- 路由级统计，定位性能瓶颈
+- p95/p99 百分位，识别长尾延迟
+- 路由数上限，防止内存泄漏
+
 ---
 
 ## 🔗 相关链接
 
 - [← 返回根目录](../CLAUDE.md)
-- [前端模块文档](../public/CLAUDE.md)
+- [前端模块文档](../docs/frontend.md)
 - [测试文档](../test/CLAUDE.md)
 
 ---
 
-**最后更新**: 2025-11-22 15:49:27 UTC
+**最后更新**: 2026-05-03

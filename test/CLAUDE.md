@@ -6,14 +6,18 @@
 
 ## 📋 模块概览
 
-**Test** 模块是 Bili-Calendar 的测试套件，使用 Node.js 内置测试框架对核心工具函数进行单元测试和集成测试，确保代码质量和功能正确性。
+**Test** 模块是 Bili-Calendar 的测试套件，使用 Node.js 内置测试框架对后端工具层和前端服务层进行单元测试和集成测试，确保代码质量和功能正确性。
 
 ### 测试范围
 
-- ✅ ICS 文件生成逻辑
-- ✅ 时间解析与格式化
-- ✅ 请求速率限制器
-- ✅ 请求去重机制
+- ICS 文件生成与聚合逻辑
+- 时间解析与格式化
+- 请求速率限制器
+- 请求去重机制
+- IP 验证与安全工具
+- 输入验证工具
+- 性能指标采集
+- 前端服务模块（12 个）
 
 ---
 
@@ -21,376 +25,198 @@
 
 ```
 test/
-├── 📄 utils.ics.test.js              # ICS 生成测试 (CommonJS)
-├── 📄 utils.time.test.js             # 时间处理测试 (CommonJS)
-├── 📄 utils.rate-limiter.test.js     # 速率限制测试
-├── 📄 utils.request-dedup.test.js    # 请求去重测试
-├── 📄 utils-es.ics.test.js           # ICS 生成测试 (ES Module)
-└── 📄 utils-es.time.test.js          # 时间处理测试 (ES Module)
+├── utils.ics.test.js              # ICS 生成测试 (CommonJS)
+├── utils.time.test.js             # 时间处理测试 (CommonJS)
+├── utils.rate-limiter.test.js     # 速率限制测试
+├── utils.request-dedup.test.js    # 请求去重测试
+├── utils.ip-validation.test.js    # IP 验证测试
+├── utils.security.test.js         # 安全工具测试
+├── utils.validation.test.js       # 输入验证测试
+├── utils-es.ics.test.js           # ICS 生成测试 (ES Module)
+├── utils-es.time.test.js          # 时间处理测试 (ES Module)
+├── ics-merge.test.js              # ICS 聚合测试
+├── metrics.test.js                # 性能指标测试
+├── services.animationService.test.js   # 动画服务测试
+├── services.cacheManager.test.js       # 缓存管理测试
+├── services.clipboardService.test.js   # 剪贴板服务测试
+├── services.deviceDetector.test.js     # 设备检测测试
+├── services.errorHandler.test.js       # 错误处理测试
+├── services.i18n.test.js               # 国际化测试
+├── services.loadingService.test.js     # 加载服务测试
+├── services.notifier.test.js           # 通知管理测试
+├── services.progressService.test.js    # 进度条测试
+├── services.push.test.js               # 推送服务测试
+├── services.pwa.test.js                # PWA 测试
+├── services.stringUtils.test.js        # 字符串工具测试
+├── services.themeService.test.js       # 主题切换测试
+├── services.toastService.test.js       # 提示消息测试
+└── CLAUDE.md                     # 本文件
 ```
 
 ---
 
 ## 🧪 测试详解
 
-### 1. `utils.ics.test.js` - ICS 生成测试
+### 1. 后端工具层测试
+
+#### 1.1 `utils.ics.test.js` - ICS 生成测试
 
 **测试目标**: `utils/ics.cjs`
 
 **测试用例**:
+- 基本 ICS 文件生成（BEGIN/END VCALENDAR）
+- 时区设置为 Asia/Shanghai
+- 连载中番剧的 RRULE 重复规则
+- 已完结番剧无重复规则
+- 特殊字符转义（逗号、分号、反斜杠）
 
-#### 1.1 基本 ICS 生成
-```javascript
-test('生成基本的 ICS 文件', () => {
-  const bangumis = [
-    {
-      season_id: 12345,
-      title: '测试番剧',
-      pub_index: '每周六 12:00',
-      is_finish: 0,
-      evaluate: '这是一部测试番剧'
-    }
-  ];
-
-  const ics = generateICS(bangumis, '614500');
-
-  assert.ok(ics.includes('BEGIN:VCALENDAR'));
-  assert.ok(ics.includes('END:VCALENDAR'));
-  assert.ok(ics.includes('测试番剧'));
-  assert.ok(ics.includes('RRULE:FREQ=WEEKLY'));
-});
-```
-
-#### 1.2 时区处理
-```javascript
-test('正确设置时区为 Asia/Shanghai', () => {
-  const ics = generateICS([], '614500');
-
-  assert.ok(ics.includes('TZID:Asia/Shanghai'));
-  assert.ok(ics.includes('X-WR-TIMEZONE:Asia/Shanghai'));
-});
-```
-
-#### 1.3 重复规则
-```javascript
-test('连载中番剧应有重复规则', () => {
-  const bangumis = [{
-    season_id: 12345,
-    title: '连载番剧',
-    pub_index: '每周六 12:00',
-    is_finish: 0  // 连载中
-  }];
-
-  const ics = generateICS(bangumis, '614500');
-  assert.ok(ics.includes('RRULE:FREQ=WEEKLY;COUNT=2'));
-});
-
-test('已完结番剧不应有重复规则', () => {
-  const bangumis = [{
-    season_id: 12345,
-    title: '完结番剧',
-    pub_index: '每周六 12:00',
-    is_finish: 1  // 已完结
-  }];
-
-  const ics = generateICS(bangumis, '614500');
-  assert.ok(!ics.includes('RRULE'));
-});
-```
-
-#### 1.4 特殊字符转义
-```javascript
-test('正确转义 ICS 特殊字符', () => {
-  const bangumis = [{
-    season_id: 12345,
-    title: '测试,番剧;特殊\\字符',
-    pub_index: '每周六 12:00',
-    is_finish: 0
-  }];
-
-  const ics = generateICS(bangumis, '614500');
-  assert.ok(ics.includes('测试\\,番剧\\;特殊\\\\字符'));
-});
-```
-
----
-
-### 2. `utils.time.test.js` - 时间处理测试
+#### 1.2 `utils.time.test.js` - 时间处理测试
 
 **测试目标**: `utils/time.cjs`
 
 **测试用例**:
+- 播出时间解析（"每周六 12:00"、"周日 18:30"、"星期三 20:00"）
+- 新集播出时间解析（"2025-11-23 12:00:00"）
+- 下次播出日期计算
+- 当天已过时间应返回下周
+- 日期格式化为 ICS 格式
+- ICS 特殊字符转义
 
-#### 2.1 播出时间解析
-```javascript
-test('解析 "每周六 12:00"', () => {
-  const result = parseBroadcastTime('每周六 12:00');
-
-  assert.strictEqual(result.dayOfWeek, 6);
-  assert.strictEqual(result.time, '12:00');
-  assert.strictEqual(result.rruleDay, 'SA');
-});
-
-test('解析 "周日 18:30"', () => {
-  const result = parseBroadcastTime('周日 18:30');
-
-  assert.strictEqual(result.dayOfWeek, 0);
-  assert.strictEqual(result.time, '18:30');
-  assert.strictEqual(result.rruleDay, 'SU');
-});
-
-test('解析 "星期三 20:00"', () => {
-  const result = parseBroadcastTime('星期三 20:00');
-
-  assert.strictEqual(result.dayOfWeek, 3);
-  assert.strictEqual(result.time, '20:00');
-  assert.strictEqual(result.rruleDay, 'WE');
-});
-```
-
-#### 2.2 新集时间解析
-```javascript
-test('解析新集播出时间', () => {
-  const result = parseNewEpTime('2025-11-23 12:00:00');
-
-  assert.strictEqual(result.dayOfWeek, 6);  // 周六
-  assert.strictEqual(result.time, '12:00');
-  assert.strictEqual(result.rruleDay, 'SA');
-});
-```
-
-#### 2.3 下次播出日期计算
-```javascript
-test('计算下次播出日期', () => {
-  const now = new Date('2025-11-22T10:00:00+08:00');  // 周五
-  const nextDate = getNextBroadcastDate(6, '12:00');  // 周六 12:00
-
-  assert.strictEqual(nextDate.getDay(), 6);  // 周六
-  assert.strictEqual(nextDate.getHours(), 12);
-  assert.strictEqual(nextDate.getMinutes(), 0);
-});
-
-test('当天已过播出时间，应返回下周', () => {
-  const now = new Date('2025-11-22T14:00:00+08:00');  // 周五 14:00
-  const nextDate = getNextBroadcastDate(5, '12:00');  // 周五 12:00 (已过)
-
-  // 应返回下周五
-  assert.ok(nextDate > now);
-  assert.strictEqual(nextDate.getDay(), 5);
-});
-```
-
-#### 2.4 日期格式化
-```javascript
-test('格式化日期为 ICS 格式', () => {
-  const date = new Date('2025-11-23T12:00:00+08:00');
-  const formatted = formatDate(date);
-
-  assert.strictEqual(formatted, '20251123T120000');
-});
-```
-
-#### 2.5 文本转义
-```javascript
-test('转义 ICS 特殊字符', () => {
-  assert.strictEqual(escapeICSText('测试,文本'), '测试\\,文本');
-  assert.strictEqual(escapeICSText('测试;文本'), '测试\\;文本');
-  assert.strictEqual(escapeICSText('测试\\文本'), '测试\\\\文本');
-  assert.strictEqual(escapeICSText('测试\n文本'), '测试\\n文本');
-});
-```
-
----
-
-### 3. `utils.rate-limiter.test.js` - 速率限制测试
+#### 1.3 `utils.rate-limiter.test.js` - 速率限制测试
 
 **测试目标**: `utils/rate-limiter.cjs`
 
 **测试用例**:
+- 允许限制内的请求
+- 拒绝超过限制的请求
+- 窗口过期后重置计数
+- 不同 IP 独立计数
+- cleanup 清理过期记录
 
-#### 3.1 基本限流功能
-```javascript
-test('允许在限制内的请求', () => {
-  const limiter = createRateLimiter({
-    windowMs: 60000,
-    maxRequests: 10
-  });
-
-  const result = limiter.check('192.168.1.1');
-
-  assert.strictEqual(result.allowed, true);
-  assert.strictEqual(result.remaining, 9);
-});
-
-test('拒绝超过限制的请求', () => {
-  const limiter = createRateLimiter({
-    windowMs: 60000,
-    maxRequests: 2
-  });
-
-  limiter.check('192.168.1.1');  // 第 1 次
-  limiter.check('192.168.1.1');  // 第 2 次
-  const result = limiter.check('192.168.1.1');  // 第 3 次 (超限)
-
-  assert.strictEqual(result.allowed, false);
-  assert.strictEqual(result.remaining, 0);
-  assert.ok(result.retryAfter > 0);
-});
-```
-
-#### 3.2 窗口重置
-```javascript
-test('窗口过期后应重置计数', async () => {
-  const limiter = createRateLimiter({
-    windowMs: 100,  // 100ms 窗口
-    maxRequests: 2
-  });
-
-  limiter.check('192.168.1.1');
-  limiter.check('192.168.1.1');
-
-  // 等待窗口过期
-  await new Promise(resolve => setTimeout(resolve, 150));
-
-  const result = limiter.check('192.168.1.1');
-  assert.strictEqual(result.allowed, true);
-  assert.strictEqual(result.remaining, 1);
-});
-```
-
-#### 3.3 多 IP 隔离
-```javascript
-test('不同 IP 应独立计数', () => {
-  const limiter = createRateLimiter({
-    windowMs: 60000,
-    maxRequests: 2
-  });
-
-  limiter.check('192.168.1.1');
-  limiter.check('192.168.1.1');
-
-  // IP2 不应受 IP1 影响
-  const result = limiter.check('192.168.1.2');
-  assert.strictEqual(result.allowed, true);
-  assert.strictEqual(result.remaining, 1);
-});
-```
-
-#### 3.4 清理过期记录
-```javascript
-test('cleanup 应清理过期记录', async () => {
-  const limiter = createRateLimiter({
-    windowMs: 100,
-    maxRequests: 10
-  });
-
-  limiter.check('192.168.1.1');
-  limiter.check('192.168.1.2');
-
-  // 等待过期
-  await new Promise(resolve => setTimeout(resolve, 150));
-
-  limiter.cleanup();
-
-  // 验证记录已清理
-  const size = limiter.getRecordCount();
-  assert.strictEqual(size, 0);
-});
-```
-
----
-
-### 4. `utils.request-dedup.test.js` - 请求去重测试
+#### 1.4 `utils.request-dedup.test.js` - 请求去重测试
 
 **测试目标**: `utils/request-dedup.cjs`
 
 **测试用例**:
+- 相同 key 并发请求只执行一次
+- 不同 key 独立执行
+- 错误正确传播
+- 请求完成后清理缓存
 
-#### 4.1 基本去重功能
-```javascript
-test('相同 key 的并发请求应只执行一次', async () => {
-  const dedup = createRequestDedup();
-  let callCount = 0;
+#### 1.5 `utils.ip-validation.test.js` - IP 验证测试
 
-  const fn = async () => {
-    callCount++;
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return 'result';
-  };
+**测试目标**: `utils/ip.cjs`
 
-  // 并发 3 个相同请求
-  const results = await Promise.all([
-    dedup.dedupe('test-key', fn),
-    dedup.dedupe('test-key', fn),
-    dedup.dedupe('test-key', fn)
-  ]);
+**测试用例**:
+- IPv4/IPv6 地址提取
+- X-Forwarded-For 头解析
+- 私有地址检测
 
-  // 应只执行一次
-  assert.strictEqual(callCount, 1);
+#### 1.6 `utils.security.test.js` - 安全工具测试
 
-  // 结果应相同
-  assert.strictEqual(results[0], 'result');
-  assert.strictEqual(results[1], 'result');
-  assert.strictEqual(results[2], 'result');
-});
-```
+**测试目标**: `utils/security.cjs`
 
-#### 4.2 不同 key 独立执行
-```javascript
-test('不同 key 的请求应独立执行', async () => {
-  const dedup = createRequestDedup();
-  let callCount = 0;
+**测试用例**:
+- UID 格式验证（纯数字 1-20 位）
+- 私有/本地地址检测
+- SSRF 防护逻辑
 
-  const fn = async () => {
-    callCount++;
-    return 'result';
-  };
+#### 1.7 `utils.validation.test.js` - 输入验证测试
 
-  await Promise.all([
-    dedup.dedupe('key1', fn),
-    dedup.dedupe('key2', fn),
-    dedup.dedupe('key3', fn)
-  ]);
+**测试目标**: `utils/validation.cjs`
 
-  // 应执行 3 次
-  assert.strictEqual(callCount, 3);
-});
-```
+**测试用例**:
+- UID 验证规则
+- URL 协议白名单（http/https）
+- 私有 IP 拦截
 
-#### 4.3 错误处理
-```javascript
-test('错误应正确传播', async () => {
-  const dedup = createRequestDedup();
+#### 1.8 `ics-merge.test.js` - ICS 聚合测试
 
-  const fn = async () => {
-    throw new Error('Test Error');
-  };
+**测试目标**: `utils/ics-merge.cjs`
 
-  // 并发请求都应收到错误
-  await assert.rejects(
-    Promise.all([
-      dedup.dedupe('test-key', fn),
-      dedup.dedupe('test-key', fn)
-    ]),
-    /Test Error/
-  );
-});
-```
+**测试用例**:
+- 外部 ICS 源拉取与合并
+- DNS 安全查询（防止重绑定）
+- 事件去重与冲突处理
 
-#### 4.4 请求完成后清理
-```javascript
-test('请求完成后应清理缓存', async () => {
-  const dedup = createRequestDedup();
+#### 1.9 `metrics.test.js` - 性能指标测试
 
-  const fn = async () => 'result';
+**测试目标**: `utils/metrics.cjs`
 
-  await dedup.dedupe('test-key', fn);
+**测试用例**:
+- 请求计数与成功率
+- API 延迟统计（p95/p99）
+- 路由级统计
+- 指标重置
 
-  // 验证缓存已清理
-  const hasPending = dedup.hasPending('test-key');
-  assert.strictEqual(hasPending, false);
-});
-```
+#### 1.10 `utils-es.*.test.js` - ES Module 版本测试
+
+**测试目标**: `utils-es/ics.js`、`utils-es/time.js`
+
+与 CommonJS 版本相同的测试用例，验证 ES Module 版本的一致性。
+
+---
+
+### 2. 前端服务层测试
+
+#### 2.1 `services.i18n.test.js` - 国际化测试
+
+**测试目标**: `src/services/i18n.js`
+
+**测试用例**:
+- 语言切换与翻译
+- 浏览器语言检测
+- LocalStorage 偏好保存
+
+#### 2.2 `services.cacheManager.test.js` - 缓存管理测试
+
+**测试目标**: `src/services/cacheManager.js`
+
+**测试用例**:
+- 缓存设置与获取
+- 缓存过期处理
+- 历史记录管理（最多 10 条）
+
+#### 2.3 `services.errorHandler.test.js` - 错误处理测试
+
+**测试目标**: `src/services/errorHandler.js`
+
+**测试用例**:
+- 错误类型识别
+- 友好错误提示生成
+- HTML 转义防护 XSS
+
+#### 2.4 `services.notifier.test.js` - 通知管理测试
+
+**测试目标**: `src/services/notifier.js`
+
+**测试用例**:
+- 浏览器通知权限请求
+- 通知发送与关闭
+- 环境隔离（动态导入 i18n）
+
+#### 2.5 `services.stringUtils.test.js` - 字符串工具测试
+
+**测试目标**: `src/utils/stringUtils.js`
+
+**测试用例**:
+- HTML 转义（& < > " ' /）
+- 全角/半角转换
+- 空值处理
+
+#### 2.6 其他前端服务测试
+
+| 测试文件 | 测试目标 | 核心测试点 |
+|---------|---------|-----------|
+| `services.animationService.test.js` | `src/services/animationService.js` | 动画触发与清理 |
+| `services.clipboardService.test.js` | `src/services/clipboardService.js` | 剪贴板复制操作 |
+| `services.deviceDetector.test.js` | `src/utils/deviceDetector.js` | 移动端/桌面端检测 |
+| `services.loadingService.test.js` | `src/services/loadingService.js` | 加载状态显示与隐藏 |
+| `services.progressService.test.js` | `src/services/progressService.js` | 进度条更新与完成 |
+| `services.push.test.js` | `src/services/push.js` | WebPush 订阅管理 |
+| `services.pwa.test.js` | `src/services/pwa.js` | PWA 注册与更新 |
+| `services.themeService.test.js` | `src/services/themeService.js` | 主题切换与持久化 |
+| `services.toastService.test.js` | `src/services/toastService.js` | Toast 提示显示 |
 
 ---
 
@@ -404,9 +230,7 @@ npm test
 ### 运行特定测试文件
 ```bash
 node --test test/utils.ics.test.js
-node --test test/utils.time.test.js
-node --test test/utils.rate-limiter.test.js
-node --test test/utils.request-dedup.test.js
+node --test test/services.i18n.test.js
 ```
 
 ### 查看测试覆盖率
@@ -426,15 +250,20 @@ node --test --experimental-test-coverage
 | `time.cjs` | ~90% | 时间解析与格式化已覆盖 |
 | `rate-limiter.cjs` | ~95% | 限流逻辑已全面测试 |
 | `request-dedup.cjs` | ~95% | 去重机制已全面测试 |
+| `ics-merge.cjs` | ~80% | ICS 聚合已覆盖 |
+| `metrics.cjs` | ~85% | 指标采集已覆盖 |
+| `validation.cjs` | ~90% | 输入验证已覆盖 |
+| `security.cjs` | ~90% | 安全工具已覆盖 |
+| `ip.cjs` | ~90% | IP 提取已覆盖 |
 | `bangumi.cjs` | ~60% | 需要 Mock B站 API |
 | `http.cjs` | ~50% | 需要集成测试 |
+| **前端服务** | ~100% | 12 个服务模块已全覆盖 |
 
 ### 待补充测试
 
 - [ ] `bangumi.cjs` - B站 API 调用 (需要 Mock)
 - [ ] `http.cjs` - HTTP 客户端 (需要集成测试)
-- [ ] `ip.cjs` - IP 提取逻辑
-- [ ] `constants.cjs` - 常量验证
+- [ ] `push-store.cjs` - WebPush 存储 (需要文件系统 Mock)
 
 ---
 
@@ -450,16 +279,18 @@ node --test --experimental-test-coverage
 
 **基本用法**:
 ```javascript
-const { test } = require('node:test');
-const assert = require('node:assert');
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
 
-test('测试描述', () => {
-  assert.strictEqual(1 + 1, 2);
-});
+describe('模块名', () => {
+  it('测试描述', () => {
+    assert.strictEqual(1 + 1, 2);
+  });
 
-test('异步测试', async () => {
-  const result = await asyncFunction();
-  assert.ok(result);
+  it('异步测试', async () => {
+    const result = await asyncFunction();
+    assert.ok(result);
+  });
 });
 ```
 
@@ -498,8 +329,8 @@ test('异步测试', async () => {
 
 - [← 返回根目录](../CLAUDE.md)
 - [工具模块文档](../utils/CLAUDE.md)
-- [前端模块文档](../public/CLAUDE.md)
+- [前端模块文档](../docs/frontend.md)
 
 ---
 
-**最后更新**: 2025-11-22 15:49:27 UTC
+**最后更新**: 2026-05-03
