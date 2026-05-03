@@ -50,7 +50,7 @@ test/
 ├── services.stringUtils.test.js        # 字符串工具测试
 ├── services.themeService.test.js       # 主题切换测试
 ├── services.toastService.test.js       # 提示消息测试
-└── CLAUDE.md                     # 本文件
+└── CLAUDE.md                           # 本文件
 ```
 
 ---
