@@ -140,6 +140,60 @@ app.use((req, res, next) => {
 // 提供静态文件服务
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Markdown 协商中间件 — 在静态文件之前拦截 Agent 请求
+app.use((req, res, next) => {
+  const accept = req.headers.accept || '';
+  if (!accept.includes('text/markdown')) return next();
+
+  if (req.path === '/') {
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    return res.send(`# Bili-Calendar — B站追番日历订阅
+
+将B站追番列表转换为ICS日历订阅，兼容Apple/Google/Outlook等主流日历应用。
+
+## API 端点
+
+- **GET /api/bangumi/:uid** — 获取用户追番数据（JSON）
+- **GET /:uid.ics** — 获取用户追番日历（ICS格式）
+- **GET /aggregate/:uid.ics?sources=...** — 聚合外部ICS日历
+- **GET /status** — 服务健康状态
+- **GET /metrics** — 性能指标（JSON）
+
+## 使用方法
+
+1. 输入B站用户UID（纯数字，1-20位）
+2. 获取ICS日历订阅链接
+3. 添加到Apple日历/Google日历/Outlook
+
+## 链接
+
+- [GitHub 仓库](https://github.com/Silentely/Bili-Calendar)
+- [API 目录](/.well-known/api-catalog)
+- [站点地图](/sitemap.xml)
+`);
+  }
+
+  if (req.path === '/status') {
+    const uptime = process.uptime();
+    const days = Math.floor(uptime / 86400);
+    const hours = Math.floor((uptime % 86400) / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
+    const uptimeStr = [days > 0 ? `${days}天` : '', hours > 0 ? `${hours}小时` : '', `${minutes}分钟`].filter(Boolean).join(' ');
+    const mem = Math.round(process.memoryUsage().rss / 1024 / 1024);
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    return res.send(`# Bili-Calendar 服务状态
+
+- **状态**: ok
+- **运行时间**: ${uptimeStr}
+- **内存使用**: ${mem} MB
+- **版本**: ${VERSION}
+`);
+  }
+
+  next();
+});
+
 app.use(express.static(path.join(__dirname, 'dist'), { dotfiles: 'allow' }));
 // 开发环境备用：dist/ 不存在时从 public/ 提供静态文件
 app.use(express.static(path.join(__dirname, 'public'), { dotfiles: 'allow' }));
@@ -627,7 +681,7 @@ function processBangumiApiError(res, data, uid) {
   return undefined;
 }
 
-// 显式路由：robots.txt 和 sitemap.xml（避免被 /:uid 参数路由捕获）
+// 显式路由：robots.txt、sitemap.xml、openapi.json（避免被 /:uid 参数路由捕获）
 app.get('/robots.txt', (req, res) => {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.sendFile(path.join(__dirname, 'public', 'robots.txt'));
@@ -635,6 +689,83 @@ app.get('/robots.txt', (req, res) => {
 app.get('/sitemap.xml', (req, res) => {
   res.setHeader('Content-Type', 'application/xml; charset=utf-8');
   res.sendFile(path.join(__dirname, 'public', 'sitemap.xml'));
+});
+
+/** MPP OpenAPI — Machine Payment Protocol 支付发现 */
+app.get('/openapi.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.json({
+    openapi: '3.0.3',
+    info: {
+      title: 'Bili-Calendar API',
+      description: 'B站追番日历订阅服务 API — 将B站追番列表转换为 ICS 日历格式',
+      version: VERSION,
+      contact: { name: 'Bili-Calendar', url: 'https://github.com/Silentely/Bili-Calendar' },
+    },
+    servers: [{ url: 'https://calendar.cosr.eu.org', description: '生产环境' }],
+    paths: {
+      '/api/bangumi/{uid}': {
+        get: {
+          operationId: 'getBangumi',
+          summary: '获取用户追番数据',
+          description: '根据B站用户UID获取追番列表的JSON数据',
+          tags: ['bangumi'],
+          parameters: [
+            { name: 'uid', in: 'path', required: true, schema: { type: 'string', pattern: '^\\d{1,20}$' }, description: 'B站用户UID' },
+          ],
+          responses: {
+            '200': { description: '追番数据 JSON' },
+            '400': { description: 'UID 格式无效' },
+            '429': { description: '请求过于频繁' },
+          },
+        },
+      },
+      '/{uid}.ics': {
+        get: {
+          operationId: 'getCalendar',
+          summary: '获取追番日历',
+          description: '根据B站用户UID生成 ICS 格式的日历订阅文件',
+          tags: ['calendar'],
+          parameters: [
+            { name: 'uid', in: 'path', required: true, schema: { type: 'string', pattern: '^\\d{1,20}$' }, description: 'B站用户UID' },
+          ],
+          responses: {
+            '200': { description: 'ICS 日历文件', content: { 'text/calendar': { schema: { type: 'string', format: 'binary' } } } },
+          },
+        },
+      },
+      '/aggregate/{uid}.ics': {
+        get: {
+          operationId: 'getAggregatedCalendar',
+          summary: '获取聚合日历',
+          description: '合并B站追番与外部 ICS 源的聚合日历',
+          tags: ['calendar', 'aggregate'],
+          parameters: [
+            { name: 'uid', in: 'path', required: true, schema: { type: 'string' }, description: 'B站用户UID' },
+            { name: 'sources', in: 'query', required: false, schema: { type: 'string' }, description: '外部ICS链接（URL编码，逗号分隔，最多5个）' },
+          ],
+          responses: {
+            '200': { description: '聚合 ICS 日历文件' },
+            '400': { description: '参数错误' },
+          },
+        },
+      },
+      '/status': {
+        get: {
+          operationId: 'getStatus',
+          summary: '服务健康状态',
+          tags: ['system'],
+          responses: { '200': { description: '服务状态信息' } },
+        },
+      },
+    },
+    tags: [
+      { name: 'bangumi', description: 'B站追番数据' },
+      { name: 'calendar', description: '日历订阅' },
+      { name: 'aggregate', description: '外部日历聚合' },
+      { name: 'system', description: '系统状态' },
+    ],
+  });
 });
 
 app.get('/:uid.ics', rateLimiterMiddleware, handleCalendar);
