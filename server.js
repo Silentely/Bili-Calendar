@@ -126,10 +126,23 @@ app.use((req, res, next) => {
   next();
 });
 
+/** Link 响应头（RFC 8288）— 用于 Agent 发现 */
+app.use((req, res, next) => {
+  const links = [
+    '</sitemap.xml>; rel="sitemap"',
+    '</.well-known/api-catalog>; rel="api-catalog"',
+    '</.well-known/agent-skills/index.json>; rel="service-desc"',
+  ];
+  res.setHeader('Link', links.join(', '));
+  next();
+});
+
 // 提供静态文件服务
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use(express.static(path.join(__dirname, 'dist'), { dotfiles: 'allow' }));
+// 开发环境备用：dist/ 不存在时从 public/ 提供静态文件
+app.use(express.static(path.join(__dirname, 'public'), { dotfiles: 'allow' }));
 
 // 请求ID & 日志中间件
 app.use((req, res, next) => {
@@ -220,9 +233,24 @@ app.get('/status', (req, res) => {
     metrics: metrics.snapshot(),
   };
 
-  const wantJson = req.query.format === 'json' || req.headers.accept?.includes('application/json');
+  const accept = req.headers.accept || '';
+  const wantJson = req.query.format === 'json' || accept.includes('application/json');
+  const wantMarkdown = accept.includes('text/markdown');
   if (wantJson) {
     res.json(data);
+  } else if (wantMarkdown) {
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.send(`# Bili-Calendar 服务状态
+
+- **状态**: ok
+- **运行时间**: ${uptimeFormatted}
+- **内存使用**: ${mem} MB
+- **环境**: ${env}
+- **版本**: ${VERSION}
+- **端口**: ${PORT}
+- **请求统计**: 总计 ${data.metrics.requests.total}, 成功 ${data.metrics.requests.success}, 错误 ${data.metrics.requests.errors}, 限流 ${data.metrics.requests.rateLimited}
+- **B站API**: 调用 ${data.metrics.api.calls}, 错误 ${data.metrics.api.errors}, 平均耗时 ${data.metrics.api.avgLatencyMs}ms, 最大耗时 ${data.metrics.api.maxLatencyMs}ms
+`);
   } else {
     const statusMessage = `✅ Bili-Calendar Service is running.
 
@@ -360,8 +388,36 @@ function formatUptime(seconds) {
   return parts.join(' ');
 }
 
-// 根路径返回前端页面（Vite 构建产物）
+// 根路径返回前端页面（Vite 构建产物）— 支持 Markdown 协商
 app.get('/', (req, res) => {
+  const accept = req.headers.accept || '';
+  if (accept.includes('text/markdown')) {
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    return res.send(`# Bili-Calendar — B站追番日历订阅
+
+将B站追番列表转换为ICS日历订阅，兼容Apple/Google/Outlook等主流日历应用。
+
+## API 端点
+
+- **GET /api/bangumi/:uid** — 获取用户追番数据（JSON）
+- **GET /:uid.ics** — 获取用户追番日历（ICS格式）
+- **GET /aggregate/:uid.ics?sources=...** — 聚合外部ICS日历
+- **GET /status** — 服务健康状态
+- **GET /metrics** — 性能指标（JSON）
+
+## 使用方法
+
+1. 输入B站用户UID（纯数字，1-20位）
+2. 获取ICS日历订阅链接
+3. 添加到Apple日历/Google日历/Outlook
+
+## 链接
+
+- [GitHub 仓库](https://github.com/Silentely/Bili-Calendar)
+- [API 目录](/.well-known/api-catalog)
+- [站点地图](/sitemap.xml)
+`);
+  }
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
@@ -571,10 +627,142 @@ function processBangumiApiError(res, data, uid) {
   return undefined;
 }
 
+// 显式路由：robots.txt 和 sitemap.xml（避免被 /:uid 参数路由捕获）
+app.get('/robots.txt', (req, res) => {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.sendFile(path.join(__dirname, 'public', 'robots.txt'));
+});
+app.get('/sitemap.xml', (req, res) => {
+  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+  res.sendFile(path.join(__dirname, 'public', 'sitemap.xml'));
+});
+
 app.get('/:uid.ics', rateLimiterMiddleware, handleCalendar);
 app.get('/:uid', rateLimiterMiddleware, handleCalendar);
 app.get('/aggregate/:uid.ics', rateLimiterMiddleware, handleAggregate);
 app.get('/aggregate/:uid', rateLimiterMiddleware, handleAggregate);
+
+// ===== .well-known Agent 发现端点 =====
+
+/** RFC 9727 — API 目录 */
+app.get('/.well-known/api-catalog', (req, res) => {
+  res.setHeader('Content-Type', 'application/linkset+json; charset=utf-8');
+  res.json({
+    linkset: [
+      {
+        anchor: `https://calendar.cosr.eu.org/api/bangumi/:uid`,
+        item: [
+          { rel: 'service-desc', href: 'https://calendar.cosr.eu.org/status', type: 'text/plain' },
+          { rel: 'status', href: 'https://calendar.cosr.eu.org/status', type: 'application/json' },
+        ],
+      },
+      {
+        anchor: 'https://calendar.cosr.eu.org/:uid.ics',
+        item: [
+          { rel: 'service-desc', href: 'https://calendar.cosr.eu.org/status', type: 'text/plain' },
+        ],
+      },
+      {
+        anchor: 'https://calendar.cosr.eu.org/aggregate/:uid.ics',
+        item: [
+          { rel: 'service-desc', href: 'https://calendar.cosr.eu.org/status', type: 'text/plain' },
+        ],
+      },
+    ],
+  });
+});
+
+/** RFC 9728 — OAuth Protected Resource Metadata */
+app.get('/.well-known/oauth-protected-resource', (req, res) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.json({
+    resource: 'https://calendar.cosr.eu.org',
+    authorization_servers: [],
+    scopes_supported: [],
+    bearer_methods_supported: ['header', 'query'],
+    resource_documentation: 'https://github.com/Silentely/Bili-Calendar',
+  });
+});
+
+/** MCP Server Card (SEP-1649) */
+app.get('/.well-known/mcp/server-card.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.json({
+    schema: 'https://modelcontextprotocol.io/schemas/2025-03-26/server-card',
+    name: 'Bili-Calendar',
+    description: '将B站追番列表转换为ICS日历订阅的服务',
+    version: VERSION,
+    homepage: 'https://calendar.cosr.eu.org',
+    transport: {
+      type: 'http',
+      url: 'https://calendar.cosr.eu.org',
+    },
+    capabilities: {
+      tools: [
+        {
+          name: 'generate-subscription',
+          description: '根据B站UID生成ICS日历订阅链接',
+        },
+        {
+          name: 'preview-anime',
+          description: '预览用户的B站追番列表',
+        },
+      ],
+    },
+  });
+});
+
+/** Agent Skills 发现索引 */
+app.get('/.well-known/agent-skills/index.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.json({
+    $schema: 'https://agentskills.io/schemas/v0.2.0/index.json',
+    name: 'Bili-Calendar',
+    description: 'B站追番日历订阅服务的Agent能力发现',
+    skills: [
+      {
+        name: 'generate-subscription',
+        type: 'action',
+        description: '根据B站用户UID生成ICS日历订阅链接，支持单用户和聚合模式',
+        url: 'https://calendar.cosr.eu.org',
+        sha256: '',
+      },
+      {
+        name: 'preview-anime',
+        type: 'query',
+        description: '查询B站用户的追番列表，返回番剧名称、更新时间、封面等信息',
+        url: 'https://calendar.cosr.eu.org',
+        sha256: '',
+      },
+      {
+        name: 'service-status',
+        type: 'query',
+        description: '查询服务运行状态、内存使用、请求统计等信息',
+        url: 'https://calendar.cosr.eu.org/status',
+        sha256: '',
+      },
+    ],
+  });
+});
+
+/** OpenID Connect 发现（声明无受保护端点） */
+app.get('/.well-known/openid-configuration', (req, res) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.json({
+    issuer: 'https://calendar.cosr.eu.org',
+    authorization_endpoint: '',
+    token_endpoint: '',
+    jwks_uri: '',
+    grant_types_supported: [],
+    response_types_supported: [],
+    subject_types_supported: [],
+    id_token_signing_alg_values_supported: [],
+    scopes_supported: [],
+    claims_supported: [],
+    service_documentation: 'https://github.com/Silentely/Bili-Calendar',
+    note: '此服务无需认证，所有API端点均为公开访问',
+  });
+});
 
 // 处理404错误 - 为浏览器请求返回HTML页面
 app.use((req, res) => {

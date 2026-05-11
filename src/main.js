@@ -647,4 +647,79 @@ document.addEventListener('DOMContentLoaded', function () {
       yearEl.textContent = new Date().getFullYear();
     }
   } catch {}
+
+  // WebMCP — 向AI Agent暴露站点工具
+  if (navigator.modelContext) {
+    try {
+      navigator.modelContext.provideContext({
+        tools: [
+          {
+            name: 'generate-subscription',
+            description: '根据B站用户UID生成ICS日历订阅链接',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                uid: { type: 'string', description: 'B站用户UID（纯数字，1-20位）' },
+                sources: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: '可选，外部ICS日历链接列表（最多5个）',
+                },
+              },
+              required: ['uid'],
+            },
+            async execute({ uid, sources }) {
+              const validateResult = (s) => /^\d{1,20}$/.test(String(s).trim());
+              if (!validateResult(uid)) {
+                return { error: 'UID必须是1-20位纯数字' };
+              }
+              const trimmed = String(uid).trim();
+              let url = `${window.location.origin}/${trimmed}.ics`;
+              if (sources && sources.length > 0) {
+                const encoded = sources.slice(0, 5).map(encodeURIComponent).join('&sources=');
+                url = `${window.location.origin}/aggregate/${trimmed}.ics?sources=${encoded}`;
+              }
+              return { subscriptionUrl: url, uid: trimmed };
+            },
+          },
+          {
+            name: 'preview-anime',
+            description: '预览用户的B站追番列表，返回番剧名称和更新状态',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                uid: { type: 'string', description: 'B站用户UID（纯数字，1-20位）' },
+              },
+              required: ['uid'],
+            },
+            async execute({ uid }) {
+              const validateResult = (s) => /^\d{1,20}$/.test(String(s).trim());
+              if (!validateResult(uid)) {
+                return { error: 'UID必须是1-20位纯数字' };
+              }
+              const trimmed = String(uid).trim();
+              try {
+                const resp = await fetch(`/api/bangumi/${trimmed}`);
+                if (!resp.ok) return { error: `HTTP ${resp.status}` };
+                const data = await resp.json();
+                const list = data.data?.list || [];
+                return {
+                  total: list.length,
+                  anime: list.map((item) => ({
+                    title: item.title || item.bangumi?.title || '未知',
+                    cover: item.bangumi?.cover || '',
+                    seasonId: item.season_id || item.bangumi?.season_id,
+                  })),
+                };
+              } catch (e) {
+                return { error: e.message || '获取数据失败' };
+              }
+            },
+          },
+        ],
+      });
+    } catch (e) {
+      // WebMCP 注册失败时静默忽略
+    }
+  }
 });

@@ -1,0 +1,45 @@
+# robots.txt — Bili-Calendar 爬虫规则
+# https://www.rfc-editor.org/rfc/rfc9309
+
+# 默认规则：允许所有爬虫访问公开页面
+User-agent: *
+Allow: /
+Allow: /status
+Allow: /metrics
+Disallow: /push/
+Disallow: /admin/
+
+# AI 爬虫专项规则
+User-agent: GPTBot
+Allow: /
+Allow: /status
+Disallow: /push/
+Disallow: /admin/
+
+User-agent: OAI-SearchBot
+Allow: /
+Allow: /status
+Disallow: /push/
+Disallow: /admin/
+
+User-agent: Claude-Web
+Allow: /
+Allow: /status
+Disallow: /push/
+Disallow: /admin/
+
+User-agent: Google-Extended
+Allow: /
+Allow: /status
+Disallow: /push/
+Disallow: /admin/
+
+# 内容使用偏好声明
+# https://contentsignals.org/
+# ai-train: 不允许使用内容训练AI模型
+# search: 允许用于搜索索引
+# ai-input: 不允许作为AI输入
+Content-Signal: ai-train=no, search=yes, ai-input=no
+
+# 站点地图
+Sitemap: https://calendar.cosr.eu.org/sitemap.xml
