@@ -174,6 +174,18 @@
   color: var(--error);
 }
 
+[data-theme='dark'] .faq-list details {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme='dark'] .faq-list summary {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .faq-list details p {
+  color: var(--text-secondary);
+}
+
 [data-theme='dark'] .project-info {
   background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 212, 255, 0.08));
   border-color: var(--secondary);

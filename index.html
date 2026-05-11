@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title data-i18n="page.title">B站追番日历订阅</title>
+    <title data-i18n="page.title">追番日历 - B站番剧ICS订阅工具 | Bili-Calendar</title>
     <link rel="icon" href="/favicon.ico" type="image/x-icon" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#00a1d6" />
@@ -12,6 +12,42 @@
     <meta name="apple-mobile-web-app-title" content="追番日历" />
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" data-i18n-content="page.description" content="Bili-Calendar 将B站追番列表转换为ICS日历订阅，支持Apple日历、Google日历、Outlook等，智能处理连载更新、时区转换，隐私保护无需注册。" />
+    <meta name="keywords" data-i18n-content="page.keywords" content="bilibili,追番,日历,ICS,订阅,番剧,anime,calendar,订阅工具" />
+    <link rel="canonical" href="https://calendar.cosr.eu.org/" />
+    <link rel="alternate" hreflang="zh-CN" href="https://calendar.cosr.eu.org/" />
+    <link rel="alternate" hreflang="en" href="https://calendar.cosr.eu.org/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://calendar.cosr.eu.org/" />
+    <meta property="og:title" data-i18n-content="page.title" content="追番日历 - B站番剧ICS订阅工具 | Bili-Calendar" />
+    <meta property="og:description" data-i18n-content="page.description" content="Bili-Calendar 将B站追番列表转换为ICS日历订阅，支持Apple日历、Google日历、Outlook等。" />
+    <meta property="og:site_name" content="Bili-Calendar" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" data-i18n-content="page.title" content="追番日历 - B站番剧ICS订阅工具 | Bili-Calendar" />
+    <meta name="twitter:description" data-i18n-content="page.description" content="Bili-Calendar 将B站追番列表转换为ICS日历订阅。" />
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Bili-Calendar",
+      "url": "https://calendar.cosr.eu.org",
+      "description": "将B站追番列表转换为ICS日历订阅，支持Apple日历、Google日历、Outlook等",
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "Web",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" },
+      "featureList": ["智能重复规则", "时区转换", "ICS聚合", "PWA支持", "暗黑模式"],
+      "inLanguage": ["zh-CN", "en-US"],
+      "sourceOrganization": { "@type": "Organization", "name": "Bili-Calendar", "url": "https://github.com/Silentely/Bili-Calendar" }
+    }
+    </script>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -213,12 +249,87 @@
           </li>
           <li data-i18n="features.auto">每集更新时间会自动添加到您的日历中</li>
           <li data-i18n="features.permanent">日历链接长期有效，无需重复订阅</li>
+          <li data-i18n="features.pwa">支持 PWA 安装，可添加到手机桌面像原生应用一样使用</li>
+          <li data-i18n="features.darkmode">支持暗黑模式，夜间追番更舒适</li>
+          <li data-i18n="features.aggregate">支持外部 ICS 日历聚合，最多合并 5 个日程源</li>
+          <li data-i18n="features.history">自动缓存历史记录，快速切换多个 UID</li>
+          <li data-i18n="features.i18n">支持中英文界面，自动检测语言偏好</li>
         </ul>
         <div class="privacy-warning">
           <i class="fas fa-exclamation-triangle"></i>
           <span data-i18n="features.privacy"
             >重要提醒：您的追番数据必须设置为公开，否则无法获取</span
           >
+        </div>
+      </div>
+
+      <!-- 使用教程 -->
+      <div class="info-section">
+        <h3>
+          <i class="fas fa-book-open"></i>
+          <span data-i18n="tutorial.title">使用教程</span>
+        </h3>
+        <ul>
+          <li>
+            <strong data-i18n="tutorial.step1.title">公开追番列表</strong> —
+            <span data-i18n="tutorial.step1.desc">打开B站 App → 设置 → 安全隐私 → 开启「公开我的追番列表」</span>
+          </li>
+          <li>
+            <strong data-i18n="tutorial.step2.title">获取 UID</strong> —
+            <span data-i18n="tutorial.step2.desc">访问B站个人空间，URL 中的数字即为您的 UID</span>
+          </li>
+          <li>
+            <strong data-i18n="tutorial.step3.title">生成订阅链接</strong> —
+            <span data-i18n="tutorial.step3.desc">在上方输入 UID，点击「生成订阅」按钮</span>
+          </li>
+          <li>
+            <strong data-i18n="tutorial.step4.title">添加到日历</strong> —
+            <span data-i18n="tutorial.step4.desc">复制链接并添加到 Apple 日历、Google 日历或 Outlook</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 隐私保护 -->
+      <div class="info-section">
+        <h3>
+          <i class="fas fa-shield-alt"></i>
+          <span data-i18n="privacy.title">隐私保护</span>
+        </h3>
+        <p data-i18n="privacy.description">服务端不存储任何用户数据，所有操作在浏览器端完成</p>
+        <ul>
+          <li><i class="fas fa-check"></i> <span data-i18n="privacy.noStorage">不存储任何个人信息</span></li>
+          <li><i class="fas fa-check"></i> <span data-i18n="privacy.browserSide">所有数据处理在浏览器端完成</span></li>
+          <li><i class="fas fa-check"></i> <span data-i18n="privacy.openSource">开源透明，可自行部署</span></li>
+        </ul>
+      </div>
+
+      <!-- 常见问题 -->
+      <div class="info-section">
+        <h3>
+          <i class="fas fa-question-circle"></i>
+          <span data-i18n="faq.title">常见问题</span>
+        </h3>
+        <div class="faq-list">
+          <details>
+            <summary data-i18n="faq.q1.q">追番列表不公开怎么办？</summary>
+            <p data-i18n="faq.q1.a">请在B站 App 中进入 设置 → 安全隐私 → 开启「公开我的追番列表」。网页端可在个人空间的「账号设置」中修改。不公开的列表无法被第三方工具读取。</p>
+          </details>
+          <details>
+            <summary data-i18n="faq.q2.q">更新频率是多少？</summary>
+            <p data-i18n="faq.q2.a">日历中的番剧更新时间基于B站官方数据，连载中番剧会自动设置每周重复规则。实际更新时间以B站为准。</p>
+          </details>
+          <details>
+            <summary data-i18n="faq.q3.q">支持哪些日历应用？</summary>
+            <p data-i18n="faq.q3.a">支持所有兼容 iCal/ICS 格式的日历应用，包括 Apple 日历、Google 日历、Outlook、Thunderbird 等。</p>
+          </details>
+          <details>
+            <summary data-i18n="faq.q4.q">如何自部署？</summary>
+            <p data-i18n="faq.q4.a">项目支持 Docker 一键部署。运行 docker run -p 3000:3000 ghcr.io/silentely/bili-calendar 即可启动。详见 GitHub 仓库。</p>
+          </details>
+          <details>
+            <summary data-i18n="faq.q5.q">数据是否安全？</summary>
+            <p data-i18n="faq.q5.a">服务端不存储任何用户数据。您的 UID 仅用于实时查询B站 API，不会被记录或分享。项目完全开源，可自行审计。</p>
+          </details>
         </div>
       </div>
 

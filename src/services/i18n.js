@@ -30,7 +30,9 @@ export class I18n {
     this.translations = {
       'zh-CN': {
         // Page Meta
-        'page.title': 'B站追番日历订阅',
+        'page.title': '追番日历 - B站番剧ICS订阅工具 | Bili-Calendar',
+        'page.description': 'Bili-Calendar 将B站追番列表转换为ICS日历订阅，支持Apple日历、Google日历、Outlook等，智能处理连载更新、时区转换，隐私保护无需注册。',
+        'page.keywords': 'bilibili,追番,日历,ICS,订阅,番剧,anime,calendar,订阅工具',
 
         // Header
         'app.title': 'B站追番日历',
@@ -91,7 +93,43 @@ export class I18n {
         'features.compatible': '生成的日历可添加到 Apple 日历、Google 日历、Outlook 等',
         'features.auto': '每集更新时间会自动添加到您的日历中',
         'features.permanent': '日历链接长期有效，无需重复订阅',
+        'features.pwa': '支持 PWA 安装，可添加到手机桌面像原生应用一样使用',
+        'features.darkmode': '支持暗黑模式，夜间追番更舒适',
+        'features.aggregate': '支持外部 ICS 日历聚合，最多合并 5 个日程源',
+        'features.history': '自动缓存历史记录，快速切换多个 UID',
+        'features.i18n': '支持中英文界面，自动检测语言偏好',
         'features.privacy': '重要提醒：您的追番数据必须设置为公开，否则无法获取',
+
+        // Privacy
+        'privacy.title': '隐私保护',
+        'privacy.description': '服务端不存储任何用户数据，所有操作在浏览器端完成',
+        'privacy.noStorage': '不存储任何个人信息',
+        'privacy.browserSide': '所有数据处理在浏览器端完成',
+        'privacy.openSource': '开源透明，可自行部署',
+
+        // Tutorial
+        'tutorial.title': '使用教程',
+        'tutorial.step1.title': '公开追番列表',
+        'tutorial.step1.desc': '打开B站 App → 设置 → 安全隐私 → 开启「公开我的追番列表」',
+        'tutorial.step2.title': '获取 UID',
+        'tutorial.step2.desc': '访问B站个人空间，URL 中的数字即为您的 UID',
+        'tutorial.step3.title': '生成订阅链接',
+        'tutorial.step3.desc': '在上方输入 UID，点击「生成订阅」按钮',
+        'tutorial.step4.title': '添加到日历',
+        'tutorial.step4.desc': '复制链接并添加到 Apple 日历、Google 日历或 Outlook',
+
+        // FAQ
+        'faq.title': '常见问题',
+        'faq.q1.q': '追番列表不公开怎么办？',
+        'faq.q1.a': '请在B站 App 中进入 设置 → 安全隐私 → 开启「公开我的追番列表」。网页端可在个人空间的「账号设置」中修改。不公开的列表无法被第三方工具读取。',
+        'faq.q2.q': '更新频率是多少？',
+        'faq.q2.a': '日历中的番剧更新时间基于B站官方数据，连载中番剧会自动设置每周重复规则。实际更新时间以B站为准。',
+        'faq.q3.q': '支持哪些日历应用？',
+        'faq.q3.a': '支持所有兼容 iCal/ICS 格式的日历应用，包括 Apple 日历、Google 日历、Outlook、Thunderbird 等。',
+        'faq.q4.q': '如何自部署？',
+        'faq.q4.a': '项目支持 Docker 一键部署。运行 docker run -p 3000:3000 ghcr.io/silentely/bili-calendar 即可启动。详见 GitHub 仓库。',
+        'faq.q5.q': '数据是否安全？',
+        'faq.q5.a': '服务端不存储任何用户数据。您的 UID 仅用于实时查询B站 API，不会被记录或分享。项目完全开源，可自行审计。',
 
         // Footer
         'footer.copyright': '保留所有权利。',
@@ -253,7 +291,9 @@ export class I18n {
       },
       'en-US': {
         // Page Meta
-        'page.title': 'Bilibili Anime Calendar Subscription',
+        'page.title': 'Anime Calendar - Bilibili ICS Subscription | Bili-Calendar',
+        'page.description': 'Bili-Calendar converts your Bilibili anime watchlist into ICS calendar subscriptions. Compatible with Apple Calendar, Google Calendar, Outlook. Smart episode tracking, timezone conversion, privacy-first.',
+        'page.keywords': 'bilibili,anime,calendar,ICS,subscription,追番,日历',
 
         // Header
         'app.title': 'Bili-Calendar',
@@ -316,7 +356,43 @@ export class I18n {
         'features.compatible': 'Compatible with Apple Calendar, Google Calendar, Outlook, and more',
         'features.auto': 'Episode updates automatically added to your calendar',
         'features.permanent': 'Subscription link is permanent, no need to resubscribe',
+        'features.pwa': 'PWA support — install to your home screen like a native app',
+        'features.darkmode': 'Dark mode support for comfortable nighttime browsing',
+        'features.aggregate': 'External ICS calendar aggregation — merge up to 5 calendar sources',
+        'features.history': 'Automatic cache and history — quickly switch between UIDs',
+        'features.i18n': 'Bilingual interface — auto-detects your language preference',
         'features.privacy': 'Important: Your anime list must be set to public to be accessed',
+
+        // Privacy
+        'privacy.title': 'Privacy Protection',
+        'privacy.description': 'No user data is stored on our servers. All operations happen in your browser.',
+        'privacy.noStorage': 'No personal information stored',
+        'privacy.browserSide': 'All data processing happens in your browser',
+        'privacy.openSource': 'Open source and transparent — self-deploy anytime',
+
+        // Tutorial
+        'tutorial.title': 'How to Use',
+        'tutorial.step1.title': 'Make Your Watchlist Public',
+        'tutorial.step1.desc': 'Open Bilibili App → Settings → Privacy → Enable "Public My Watchlist"',
+        'tutorial.step2.title': 'Get Your UID',
+        'tutorial.step2.desc': 'Visit your Bilibili profile page — the number in the URL is your UID',
+        'tutorial.step3.title': 'Generate Subscription',
+        'tutorial.step3.desc': 'Enter your UID above and click "Generate Subscription"',
+        'tutorial.step4.title': 'Add to Calendar',
+        'tutorial.step4.desc': 'Copy the link and add it to Apple Calendar, Google Calendar, or Outlook',
+
+        // FAQ
+        'faq.title': 'Frequently Asked Questions',
+        'faq.q1.q': 'What if my watchlist is private?',
+        'faq.q1.a': 'Go to Bilibili App → Settings → Privacy → Enable "Public My Watchlist". On web, you can change this in your account settings. Private lists cannot be accessed by third-party tools.',
+        'faq.q2.q': 'How often does the calendar update?',
+        'faq.q2.a': 'Episode times are based on official Bilibili data. Airing shows automatically get weekly repeat rules. Actual update times follow Bilibili\'s schedule.',
+        'faq.q3.q': 'Which calendar apps are supported?',
+        'faq.q3.a': 'Any app that supports iCal/ICS format: Apple Calendar, Google Calendar, Outlook, Thunderbird, and more.',
+        'faq.q4.q': 'How to self-host?',
+        'faq.q4.a': 'Deploy with Docker: docker run -p 3000:3000 ghcr.io/silentely/bili-calendar. See the GitHub repository for details.',
+        'faq.q5.q': 'Is my data safe?',
+        'faq.q5.a': 'No user data is stored on the server. Your UID is only used to query the Bilibili API in real-time and is never recorded or shared. The project is fully open source.',
 
         // Footer
         'footer.copyright': 'All rights reserved.',
@@ -658,6 +734,12 @@ export class I18n {
     document.querySelectorAll('[data-i18n-aria-label]').forEach((element) => {
       const key = element.getAttribute('data-i18n-aria-label');
       element.setAttribute('aria-label', this.t(key));
+    });
+
+    // Update meta tags with data-i18n-content attribute
+    document.querySelectorAll('[data-i18n-content]').forEach((element) => {
+      const key = element.getAttribute('data-i18n-content');
+      element.setAttribute('content', this.t(key));
     });
 
     this.updateLanguageToggleLabel();

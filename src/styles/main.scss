@@ -791,6 +791,51 @@ html {
   margin-top: 16px;
 }
 
+/* FAQ 折叠面板 */
+.faq-list details {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 12px 0;
+}
+
+.faq-list details:last-child {
+  border-bottom: none;
+}
+
+.faq-list summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--dark);
+  padding: 8px 0;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+
+.faq-list summary::before {
+  content: '▸';
+  color: var(--primary);
+  font-size: 14px;
+  transition: transform 0.2s ease;
+}
+
+.faq-list details[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.faq-list summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-list details p {
+  color: #666;
+  padding: 8px 0 0 20px;
+  margin: 0;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
 .github-btn {
   background: #24292e;
   border: 1px solid rgba(255, 255, 255, 0.18);
