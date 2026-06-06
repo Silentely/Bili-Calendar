@@ -56,8 +56,8 @@ END:VTIMEZONE`;
       } else if (item.new_ep?.index_show) {
         description += `🌟 更新状态: ${item.new_ep.index_show}`;
       }
-      description += ` ➡️ 状态: ${item.is_finish === 0 ? '连载中' : '已完结'}`;
-      description += ` ✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
+      description += `\n➡️ 状态: ${item.is_finish === 0 ? '连载中' : '已完结'}`;
+      description += `\n✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
 
       lines.push(
         'BEGIN:VEVENT',
@@ -97,8 +97,8 @@ END:VTIMEZONE`;
     } else if (item.new_ep?.index_show) {
       normalDescription += `🌟 更新状态: ${item.new_ep.index_show}`;
     }
-    normalDescription += ` ➡️ 状态: ${item.is_finish === 0 ? '连载中' : '已完结'}`;
-    normalDescription += ` ✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
+    normalDescription += `\n➡️ 状态: ${item.is_finish === 0 ? '连载中' : '已完结'}`;
+    normalDescription += `\n✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
 
     eventLines.push(
       `SUMMARY:${escapeICSText(normalTitleWithSeason)}`,

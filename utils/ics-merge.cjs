@@ -77,8 +77,8 @@ function buildBangumiEvents(bangumis, _uid) {
     } else if (item.new_ep?.index_show) {
       description += `🌟 更新状态: ${item.new_ep.index_show}`;
     }
-    description += ` ➡️ 状态: ${item.is_finish === 0 ? '连载中' : '已完结'}`;
-    description += ` ✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
+    description += `\n➡️ 状态: ${item.is_finish === 0 ? '连载中' : '已完结'}`;
+    description += `\n✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
 
     if (!info) {
       // 时间未知：创建全天事件
