@@ -1,7 +1,7 @@
 // test/utils.ip-validation.test.js
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import security from '../utils/security.cjs';
+import security from '../utils-es/security.js';
 
 const { isPrivateIPAddress, validateExternalSource, validateUID } = security;
 

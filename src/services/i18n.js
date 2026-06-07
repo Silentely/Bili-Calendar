@@ -577,21 +577,22 @@ export class I18n {
    */
   // Detect browser language
   detectLanguage() {
+    const translations = /** @type {Record<string, Record<string, string>>} */ (this.translations);
     const saved = localStorage.getItem('language');
-    if (saved && this.translations[saved]) {
+    if (saved && translations[saved]) {
       return saved;
     }
 
-    const browserLang = navigator.language || navigator.userLanguage;
+    const browserLang = navigator.language || navigator.userLanguage || 'zh-CN';
 
     // Check if we have exact match
-    if (this.translations[browserLang]) {
+    if (translations[browserLang]) {
       return browserLang;
     }
 
     // Check for language prefix match (e.g., 'en' from 'en-US')
-    const langPrefix = browserLang.split('-')[0];
-    for (const key in this.translations) {
+    const langPrefix = browserLang.split('-')[0] || browserLang;
+    for (const key in translations) {
       if (key.startsWith(langPrefix)) {
         return key;
       }
@@ -615,12 +616,13 @@ export class I18n {
    */
   // Get translation
   t(key, params = {}) {
-    const lang = this.translations[this.currentLang];
+    const translations = /** @type {Record<string, Record<string, string>>} */ (this.translations);
+    const lang = translations[this.currentLang] || translations['zh-CN'] || {};
     let text = lang[key] || key;
 
     // Replace parameters
     for (const [param, value] of Object.entries(params)) {
-      text = text.replace(`{${param}}`, value);
+      text = text.replace(`{${param}}`, String(value));
     }
 
     return text;
@@ -641,7 +643,8 @@ export class I18n {
    */
   // Set language
   setLanguage(lang) {
-    if (this.translations[lang]) {
+    const translations = /** @type {Record<string, Record<string, string>>} */ (this.translations);
+    if (translations[lang]) {
       this.currentLang = lang;
       localStorage.setItem('language', lang);
       this.updatePageContent();
@@ -701,13 +704,13 @@ export class I18n {
     const titleElement = document.querySelector('title[data-i18n]');
     if (titleElement) {
       const key = titleElement.getAttribute('data-i18n');
-      document.title = this.t(key);
+      if (key) document.title = this.t(key);
     }
 
     // Update all elements with data-i18n attribute
     document.querySelectorAll('[data-i18n]').forEach((element) => {
       const key = element.getAttribute('data-i18n');
-      if (element.tagName !== 'TITLE') {
+      if (key && element.tagName !== 'TITLE') {
         element.textContent = this.t(key);
       }
     });
@@ -715,31 +718,31 @@ export class I18n {
     // Update all elements with data-i18n-html attribute (for HTML content)
     document.querySelectorAll('[data-i18n-html]').forEach((element) => {
       const key = element.getAttribute('data-i18n-html');
-      element.innerHTML = this.t(key);
+      if (key) element.innerHTML = this.t(key);
     });
 
     // Update all elements with data-i18n-placeholder attribute
     document.querySelectorAll('[data-i18n-placeholder]').forEach((element) => {
       const key = element.getAttribute('data-i18n-placeholder');
-      element.placeholder = this.t(key);
+      if (key && 'placeholder' in element) element.placeholder = this.t(key);
     });
 
     // Update all elements with data-i18n-title attribute
     document.querySelectorAll('[data-i18n-title]').forEach((element) => {
       const key = element.getAttribute('data-i18n-title');
-      element.title = this.t(key);
+      if (key && 'title' in element) element.title = this.t(key);
     });
 
     // Update all elements with data-i18n-aria-label attribute
     document.querySelectorAll('[data-i18n-aria-label]').forEach((element) => {
       const key = element.getAttribute('data-i18n-aria-label');
-      element.setAttribute('aria-label', this.t(key));
+      if (key) element.setAttribute('aria-label', this.t(key));
     });
 
     // Update meta tags with data-i18n-content attribute
     document.querySelectorAll('[data-i18n-content]').forEach((element) => {
       const key = element.getAttribute('data-i18n-content');
-      element.setAttribute('content', this.t(key));
+      if (key) element.setAttribute('content', this.t(key));
     });
 
     this.updateLanguageToggleLabel();

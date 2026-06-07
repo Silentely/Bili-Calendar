@@ -3,10 +3,8 @@
 
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { createRequire } from 'module';
 
-const require = createRequire(import.meta.url);
-const {
+import {
   validateUID,
   validateURL,
   validateArray,
@@ -14,9 +12,9 @@ const {
   validateEnum,
   UID_MIN_LENGTH,
   UID_MAX_LENGTH,
-} = require('../utils/validation.cjs');
+} from '../utils-es/validation.js';
 
-describe('utils/validation.cjs', () => {
+describe('utils-es/validation.js', () => {
   // ==================== validateUID 测试 ====================
   describe('validateUID', () => {
     it('应该接受有效的 UID（字符串）', () => {

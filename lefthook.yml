@@ -1,0 +1,22 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: eslint staged js
+      glob: '*.js'
+      run: npx eslint -- {staged_files}
+
+    - name: prettier check
+      glob: '*.{js,json,md,yml,yaml,html,css,scss}'
+      run: npx prettier --check -- {staged_files}
+
+commit-msg:
+  jobs:
+    - name: conventional commit
+      run: |
+        commit_msg_file="{1}"
+        commit_msg="$(head -n 1 "$commit_msg_file")"
+        pattern='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([A-Za-z0-9._-]+\))?!?: .+'
+        if ! printf '%s' "$commit_msg" | grep -Eq "$pattern"; then
+          echo "提交信息需符合 Conventional Commit，例如: feat: add calendar export"
+          exit 1
+        fi

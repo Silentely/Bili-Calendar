@@ -160,7 +160,7 @@ export class CacheManager {
     } catch (e) {
       console.error('保存缓存失败:', e);
       // 如果是存储空间不足，清理所有缓存
-      if (e.name === 'QuotaExceededError') {
+      if (e instanceof Error && e.name === 'QuotaExceededError') {
         this.clearAllCache();
       }
       return false;
@@ -250,10 +250,11 @@ export class CacheManager {
       const batchSize = 10;
       const keysToProcess = keys.filter((key) => key.startsWith(this.cachePrefix));
 
-      for (let i = 0; i < keysToProcess.length && i < batchSize; i++) {
-        const key = keysToProcess[i];
+      for (const key of keysToProcess.slice(0, batchSize)) {
         try {
-          const data = JSON.parse(localStorage.getItem(key));
+          const rawItem = localStorage.getItem(key);
+          if (!rawItem) continue;
+          const data = JSON.parse(rawItem);
           if (data.timestamp && now - data.timestamp > this.maxCacheAge) {
             localStorage.removeItem(key);
             deletedCount++;
@@ -394,9 +395,11 @@ export class CacheManager {
       };
 
       if (existingIndex >= 0) {
+        const existingItem = history[existingIndex];
+        if (!existingItem) return false;
         // 更新访问次数和时间
-        historyItem.visitCount = history[existingIndex].visitCount + 1;
-        historyItem.username = username || history[existingIndex].username;
+        historyItem.visitCount = existingItem.visitCount + 1;
+        historyItem.username = username || existingItem.username;
         history.splice(existingIndex, 1);
       }
 
@@ -500,7 +503,7 @@ export class CacheManager {
     panel.className = 'history-panel';
 
     panel.innerHTML = `
-      <div class="history-panel-overlay" onclick="cacheManager.closeHistoryPanel()"></div>
+      <div class="history-panel-overlay" data-action="close-history-panel"></div>
       <div class="history-panel-content">
         <div class="history-panel-header">
           <h3>
@@ -508,10 +511,10 @@ export class CacheManager {
             历史记录
           </h3>
           <div class="history-panel-actions">
-            <button class="btn-clear-history" onclick="cacheManager.clearHistoryWithConfirm()">
+            <button class="btn-clear-history" type="button" data-action="clear-history">
               <i class="fas fa-trash"></i> 清除全部
             </button>
-            <button class="btn-close-panel" onclick="cacheManager.closeHistoryPanel()">
+            <button class="btn-close-panel" type="button" data-action="close-history-panel">
               <i class="fas fa-times"></i>
             </button>
           </div>
@@ -547,10 +550,10 @@ export class CacheManager {
                     </div>
                   </div>
                   <div class="history-item-actions">
-                    <button class="btn-use-history" onclick="cacheManager.useHistory('${escapeHtml(item.uid)}')">
+                    <button class="btn-use-history" type="button" data-action="use-history" data-uid="${escapeHtml(item.uid)}">
                       <i class="fas fa-play"></i> 使用
                     </button>
-                    <button class="btn-delete-history" onclick="cacheManager.deleteHistory('${escapeHtml(item.uid)}')">
+                    <button class="btn-delete-history" type="button" data-action="delete-history" data-uid="${escapeHtml(item.uid)}">
                       <i class="fas fa-trash"></i>
                     </button>
                   </div>
@@ -567,7 +570,7 @@ export class CacheManager {
           <div class="cache-stats">
             ${this.renderCacheStats()}
           </div>
-          <button class="btn-clear-cache" onclick="cacheManager.clearAllCache()">
+          <button class="btn-clear-cache" type="button" data-action="clear-cache">
             <i class="fas fa-broom"></i> 清理缓存
           </button>
         </div>
@@ -575,11 +578,44 @@ export class CacheManager {
     `;
 
     document.body.appendChild(panel);
+    this.bindHistoryPanelEvents(panel);
 
     // 添加动画
     setTimeout(() => {
       panel.classList.add('show');
     }, 10);
+  }
+
+  /**
+   * 绑定历史记录面板事件委托
+   * 将所有面板操作集中到根元素，避免内联 onclick。
+   *
+   * @param {HTMLElement} panel - 历史记录面板根元素
+   * @returns {void}
+   */
+  bindHistoryPanelEvents(panel) {
+    if (!panel || typeof panel.addEventListener !== 'function') return;
+
+    panel.addEventListener('click', (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      const actionEl = target
+        ? /** @type {HTMLElement|null} */ (target.closest('[data-action]'))
+        : null;
+      if (!actionEl) return;
+
+      const { action, uid } = actionEl.dataset;
+      if (action === 'close-history-panel') {
+        this.closeHistoryPanel();
+      } else if (action === 'clear-history') {
+        this.clearHistoryWithConfirm();
+      } else if (action === 'use-history' && uid) {
+        this.useHistory(uid);
+      } else if (action === 'delete-history' && uid) {
+        this.deleteHistory(uid);
+      } else if (action === 'clear-cache') {
+        this.clearAllCache();
+      }
+    });
   }
 
   /**
@@ -612,7 +648,7 @@ export class CacheManager {
    * cacheManager.useHistory('614500')
    */
   useHistory(uid) {
-    const input = document.getElementById('uidInput');
+    const input = /** @type {HTMLInputElement|null} */ (document.getElementById('uidInput'));
     if (input) {
       input.value = uid;
       this.closeHistoryPanel();
@@ -721,8 +757,8 @@ export class CacheManager {
    * cacheManager.initAutoSuggest()
    */
   initAutoSuggest() {
-    const input = document.getElementById('uidInput');
-    if (!input) return;
+    const input = /** @type {HTMLInputElement|null} */ (document.getElementById('uidInput'));
+    if (!input || !input.parentElement) return;
 
     // 创建建议容器
     const suggestContainer = document.createElement('div');
@@ -732,13 +768,15 @@ export class CacheManager {
 
     // 输入事件监听
     input.addEventListener('input', (e) => {
-      this.showSuggestions(e.target.value);
+      const target = e.target instanceof HTMLInputElement ? e.target : null;
+      if (target) this.showSuggestions(target.value);
     });
 
     // 焦点事件
     input.addEventListener('focus', (e) => {
-      if (e.target.value) {
-        this.showSuggestions(e.target.value);
+      const target = e.target instanceof HTMLInputElement ? e.target : null;
+      if (target && target.value) {
+        this.showSuggestions(target.value);
       }
     });
 
@@ -790,7 +828,7 @@ export class CacheManager {
         ${matches
           .map(
             (item) => `
-          <div class="suggest-item" onclick="cacheManager.selectSuggestion('${escapeHtml(item.uid)}')">
+          <div class="suggest-item" data-action="select-suggestion" data-uid="${escapeHtml(item.uid)}">
             <div class="suggest-uid">${escapeHtml(item.uid)}</div>
             ${item.username ? `<div class="suggest-username">${escapeHtml(item.username)}</div>` : ''}
             <div class="suggest-time">${this.formatTime(item.timestamp)}</div>
@@ -831,7 +869,7 @@ export class CacheManager {
    * cacheManager.selectSuggestion('614500')
    */
   selectSuggestion(uid) {
-    const input = document.getElementById('uidInput');
+    const input = /** @type {HTMLInputElement|null} */ (document.getElementById('uidInput'));
     if (input) {
       input.value = uid;
       this.hideSuggestions();

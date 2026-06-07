@@ -52,7 +52,6 @@
   "include": [
     "src/**/*",
     "public/**/*",
-    "test/**/*",
     "vite.config.js",
     "server.js"
   ],

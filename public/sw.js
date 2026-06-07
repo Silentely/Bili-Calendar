@@ -1,4 +1,13 @@
 /* 简易PWA Service Worker，缓存关键静态资源与离线回退 */
+// @ts-check
+
+/**
+ * @typedef {Event & {waitUntil(promise: Promise<unknown>): void}} ExtendableEvent
+ * @typedef {Event & {request: Request, respondWith(response: Promise<Response | undefined> | Response | undefined): void}} FetchEvent
+ * @typedef {{skipWaiting(): Promise<void>, clients: {claim(): Promise<void>}, addEventListener(type: 'install' | 'activate', listener: (event: ExtendableEvent) => void): void, addEventListener(type: 'fetch', listener: (event: FetchEvent) => void): void}} ServiceWorkerLike
+ */
+
+const sw = /** @type {ServiceWorkerLike} */ (/** @type {unknown} */ (self));
 const VERSION = '1.1.8';
 const CACHE_NAME = `bili-calendar-v${VERSION}`;
 const CORE_ASSETS = [
@@ -17,7 +26,7 @@ async function loadViteAssets() {
     const manifest = await resp.json();
     const assets = new Set();
 
-    Object.values(manifest).forEach((entry) => {
+    Object.values(/** @type {Record<string, {file?: string, css?: string[], assets?: string[]}>} */ (manifest)).forEach((entry) => {
       if (entry.file) assets.add(withLeadingSlash(entry.file));
       if (Array.isArray(entry.css)) entry.css.forEach((css) => assets.add(withLeadingSlash(css)));
       if (Array.isArray(entry.assets))
@@ -31,42 +40,50 @@ async function loadViteAssets() {
   }
 }
 
+/**
+ * @param {string} file - 构建产物路径
+ * @returns {string}
+ */
 function withLeadingSlash(file) {
   if (!file) return file;
   return file.startsWith('/') ? file : '/' + file;
 }
 
 // 安装：预缓存核心资源
-self.addEventListener('install', (event) => {
+sw.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
       const viteAssets = await loadViteAssets();
       const assetsToCache = [...new Set([...CORE_ASSETS, ...viteAssets])];
       await cache.addAll(assetsToCache);
-      await self.skipWaiting();
+      await sw.skipWaiting();
     })()
   );
 });
 
 // 激活：清理旧缓存
-self.addEventListener('activate', (event) => {
+sw.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
       .keys()
       .then((keys) =>
         Promise.all(keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : Promise.resolve())))
       )
-      .then(() => self.clients.claim())
+      .then(() => sw.clients.claim())
   );
 });
 
+/**
+ * @param {URL} url - 请求 URL
+ * @returns {boolean}
+ */
 function isApiRequest(url) {
   return url.pathname.startsWith('/api/');
 }
 
 // 网络优先用于API，缓存优先用于静态资源
-self.addEventListener('fetch', (event) => {
+sw.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   // 仅处理同源请求，避免对外链请求使用 fetch() 触发 connect-src 限制

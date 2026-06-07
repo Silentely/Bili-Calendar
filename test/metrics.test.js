@@ -1,9 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
-const metrics = require('../utils/metrics.cjs');
+import metrics from '../utils-es/metrics.js';
 
 test('metrics records requests and api calls', () => {
   metrics.reset();

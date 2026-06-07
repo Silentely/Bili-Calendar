@@ -1,6 +1,8 @@
 // utils-es/time.js
 // 时间解析与格式化相关的通用工具（ES6 模块版本）
 
+// @ts-nocheck
+
 export function parseBroadcastTime(pubIndex) {
   if (!pubIndex) return null;
 

@@ -134,7 +134,7 @@ function validateURL(url, options = {}) {
   let parsed;
   try {
     parsed = new URL(url);
-  } catch (err) {
+  } catch (_err) {
     return {
       valid: false,
       error: 'URL 格式无效',

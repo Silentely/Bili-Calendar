@@ -15,7 +15,8 @@
     "format:write": "prettier --write .",
     "test": "node --test --test-concurrency=1",
     "type-check": "tsc --noEmit",
-    "type-check:watch": "tsc --noEmit --watch"
+    "type-check:watch": "tsc --noEmit --watch",
+    "prepare": "lefthook install"
   },
   "keywords": [
     "bilibili",
@@ -37,10 +38,16 @@
     "web-push": "^3.6.6"
   },
   "devDependencies": {
+    "@types/compression": "^1.8.1",
+    "@types/express": "^5.0.6",
     "@types/node": "^25.0.3",
+    "@types/web-push": "^3.6.4",
     "concurrently": "^9.2.1",
     "eslint": "^9.39.2",
+    "eslint-plugin-security": "^4.0.0",
+    "eslint-plugin-sonarjs": "^4.0.3",
     "globals": "^15.11.0",
+    "lefthook": "^2.1.9",
     "prettier": "^3.7.4",
     "typescript": "^5.9.3"
   },

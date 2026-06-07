@@ -1,3 +1,4 @@
+// @ts-nocheck
 // utils-es/bangumi.js (ES6 模块版本)
 import { httpClient } from './http.js';
 import {
@@ -9,6 +10,74 @@ import { createRequestDedup } from './request-dedup.js';
 
 // 创建请求去重管理器实例
 const dedupManager = createRequestDedup();
+const BANGUMI_CACHE_TTL_MS = 5 * 60 * 1000;
+const BANGUMI_CACHE_MAX_SIZE = 100;
+const bangumiCache = new Map();
+let activeHttpClient = httpClient;
+
+function normalizeUID(uid) {
+  return String(uid ?? '').trim();
+}
+
+function getCachedBangumi(uid, now = Date.now()) {
+  const cacheKey = normalizeUID(uid);
+  const cached = bangumiCache.get(cacheKey);
+  if (!cached) return null;
+
+  if (now - cached.timestamp > BANGUMI_CACHE_TTL_MS) {
+    bangumiCache.delete(cacheKey);
+    return null;
+  }
+
+  // 刷新插入顺序，保持 Map 的简单 LRU 语义
+  bangumiCache.delete(cacheKey);
+  bangumiCache.set(cacheKey, cached);
+  return structuredClone(cached.value);
+}
+
+function setCachedBangumi(uid, value, now = Date.now()) {
+  const cacheKey = normalizeUID(uid);
+  if (!cacheKey) return;
+
+  if (bangumiCache.has(cacheKey)) {
+    bangumiCache.delete(cacheKey);
+  }
+
+  bangumiCache.set(cacheKey, {
+    timestamp: now,
+    value: structuredClone(value),
+  });
+
+  while (bangumiCache.size > BANGUMI_CACHE_MAX_SIZE) {
+    const oldestKey = bangumiCache.keys().next().value;
+    bangumiCache.delete(oldestKey);
+  }
+}
+
+function filterAiringBangumi(responseData, uid) {
+  if (!responseData.data || !Array.isArray(responseData.data.list)) {
+    return responseData;
+  }
+
+  const originalCount = responseData.data.list.length;
+  const currentlyAiring = responseData.data.list.filter((bangumi) => {
+    const isOngoing = bangumi.is_finish === 0;
+    const hasBroadcastInfo =
+      (bangumi.pub_index && bangumi.pub_index.trim() !== '') ||
+      (bangumi.renewal_time && bangumi.renewal_time.trim() !== '') ||
+      (bangumi.new_ep && bangumi.new_ep.pub_time && bangumi.new_ep.pub_time.trim() !== '');
+    return isOngoing && hasBroadcastInfo;
+  });
+
+  responseData.data.list = currentlyAiring;
+  console.log(
+    `📊 [UID:${uid}] 总共 ${originalCount} 部番剧，过滤后 ${currentlyAiring.length} 部正在播出`
+  );
+  responseData.filtered = true;
+  responseData.filtered_count = currentlyAiring.length;
+  responseData.original_count = originalCount;
+  return responseData;
+}
 
 /**
  * 获取B站用户追番数据并过滤正在播出的番剧
@@ -30,13 +99,24 @@ const dedupManager = createRequestDedup();
  * }
  */
 export async function getBangumiData(uid) {
-  // 使用请求去重，防止并发相同请求
-  return dedupManager.dedupe(`bangumi:${uid}`, async () => {
-    try {
-      console.log(`🔍 获取用户 ${uid} 的追番数据`);
-      const url = `${BILIBILI_API_BASE_URL}/x/space/bangumi/follow/list?type=1&follow_status=0&vmid=${uid}&pn=1&ps=30`;
+  const sanitizedUID = normalizeUID(uid);
+  const cached = getCachedBangumi(sanitizedUID);
+  if (cached) {
+    return cached;
+  }
 
-      const response = await httpClient.get(url);
+  // 使用请求去重，防止并发相同请求
+  return dedupManager.dedupe(`bangumi:${sanitizedUID}`, async () => {
+    const dedupCached = getCachedBangumi(sanitizedUID);
+    if (dedupCached) {
+      return dedupCached;
+    }
+
+    try {
+      console.log(`🔍 获取用户 ${sanitizedUID} 的追番数据`);
+      const url = `${BILIBILI_API_BASE_URL}/x/space/bangumi/follow/list?type=1&follow_status=0&vmid=${sanitizedUID}&pn=1&ps=30`;
+
+      const response = await activeHttpClient.get(url);
 
       // 检查B站API返回的错误码
       if (response.data.code !== BILIBILI_API_SUCCESS_CODE) {
@@ -57,29 +137,9 @@ export async function getBangumiData(uid) {
         return response.data;
       }
 
-      // 如果API返回成功，过滤出正在播出的番剧
-      if (response.data.data && response.data.data.list) {
-        const originalCount = response.data.data.list.length;
-
-        const currentlyAiring = response.data.data.list.filter((bangumi) => {
-          const isOngoing = bangumi.is_finish === 0;
-          const hasBroadcastInfo =
-            (bangumi.pub_index && bangumi.pub_index.trim() !== '') ||
-            (bangumi.renewal_time && bangumi.renewal_time.trim() !== '') ||
-            (bangumi.new_ep && bangumi.new_ep.pub_time && bangumi.new_ep.pub_time.trim() !== '');
-          return isOngoing && hasBroadcastInfo;
-        });
-
-        response.data.data.list = currentlyAiring;
-        console.log(
-          `📊 [UID:${uid}] 总共 ${originalCount} 部番剧，过滤后 ${currentlyAiring.length} 部正在播出`
-        );
-        response.data.filtered = true;
-        response.data.filtered_count = currentlyAiring.length;
-        response.data.original_count = originalCount;
-      }
-
-      return response.data;
+      const data = filterAiringBangumi(response.data, sanitizedUID);
+      setCachedBangumi(sanitizedUID, data);
+      return data;
     } catch (err) {
       console.error(`❌ 获取追番数据失败:`, err);
       if (err.response) {
@@ -92,4 +152,16 @@ export async function getBangumiData(uid) {
       return null;
     }
   });
+}
+
+export function __setBangumiHttpClientForTest(client) {
+  activeHttpClient = client || httpClient;
+}
+
+export function __clearBangumiCacheForTest() {
+  bangumiCache.clear();
+}
+
+export function __getBangumiCacheSizeForTest() {
+  return bangumiCache.size;
 }

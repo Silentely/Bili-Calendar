@@ -1,5 +1,6 @@
 // 番剧预览功能模块
 import i18n from '../services/i18n';
+import { escapeHtml } from '../utils/stringUtils.js';
 
 const STATUS_COLORS = {
   watching: '#00a1d6',
@@ -11,27 +12,32 @@ const STATUS_COLORS = {
 const WEEK_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 const PREVIEW_MAX_EXTERNAL_SOURCES = 5;
 
-function escapeHtml(value = '') {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
+/**
+ * @typedef {'watching'|'finished'|'completed'|'not-started'} AnimeStatusType
+ * @typedef {{id: string, title: string, cover: string, season: string, episodes: string|number, currentEpisode: string|number, statusType: AnimeStatusType, statusColor: string, updateTime: string, rating: string, ratingValue: number|null, url: string, isFinished: boolean, updateDayKey: string, nextEpisodeTime: string|null, rawPubTime: Date|null, status?: {text?: string}}} PreviewAnime
+ * @typedef {{sources?: string[], error?: string}} AggregateParseResult
+ */
 
 export class AnimePreview {
   constructor() {
+    /** @type {PreviewAnime[]} */
     this.animeData = [];
     this.modalId = 'animePreviewModal';
     this.isLoading = false;
     this.activeFilter = 'all';
+    /** @type {HTMLElement|null} */
     this.previousActiveElement = null;
+    /** @type {((event: KeyboardEvent) => void)|null} */
     this.focusTrapHandler = null;
+    /** @type {HTMLElement|null} */
     this.modalElement = null;
   }
 
   // 获取番剧数据
+  /**
+   * @param {string|number} uid - B站用户 UID
+   * @returns {Promise<PreviewAnime[]|undefined>}
+   */
   async fetchAnimeData(uid) {
     if (this.isLoading) return;
 
@@ -58,11 +64,15 @@ export class AnimePreview {
   }
 
   // 格式化番剧数据
+  /**
+   * @param {any} rawData - B站 API 原始响应
+   * @returns {PreviewAnime[]}
+   */
   formatAnimeData(rawData) {
     if (!rawData || !rawData.data) return [];
 
     // 处理API返回的数据结构 - data.list
-    const animeList = rawData.data.list || rawData.data || [];
+    const animeList = /** @type {any[]} */ (rawData.data.list || rawData.data || []);
 
     return animeList.map((anime) => {
       // 处理评分数据
@@ -97,7 +107,7 @@ export class AnimePreview {
       const statusType = this.getAnimeStatusType(anime);
 
       return {
-        id: anime.media_id || anime.season_id,
+        id: String(anime.media_id || anime.season_id || ''),
         title: anime.title || i18n.t('preview.meta.unknownAnime'),
         cover: coverUrl,
         season: anime.season_title || anime.title || i18n.t('preview.meta.unknownSeason'),
@@ -117,6 +127,10 @@ export class AnimePreview {
     });
   }
 
+  /**
+   * @param {any} anime - B站番剧原始项
+   * @returns {AnimeStatusType}
+   */
   getAnimeStatusType(anime) {
     if (anime.is_finish === 1) {
       return 'finished';
@@ -131,6 +145,10 @@ export class AnimePreview {
   }
 
   // 格式化更新时间
+  /**
+   * @param {any} anime - B站番剧原始项
+   * @returns {string}
+   */
   formatUpdateTime(anime) {
     if (!anime.new_ep || !anime.new_ep.pub_time) {
       return i18n.t('preview.update.none');
@@ -138,7 +156,7 @@ export class AnimePreview {
 
     const date = new Date(anime.new_ep.pub_time);
     const now = new Date();
-    const diff = now - date;
+    const diff = now.getTime() - date.getTime();
 
     if (diff < 86400000) {
       // 24小时内
@@ -156,6 +174,10 @@ export class AnimePreview {
   }
 
   // 获取更新日 key
+  /**
+   * @param {any} anime - B站番剧原始项
+   * @returns {string}
+   */
   getUpdateDayKey(anime) {
     if (anime.is_finish === 1) return 'unknown';
 
@@ -169,6 +191,10 @@ export class AnimePreview {
   }
 
   // 获取下一集更新时间
+  /**
+   * @param {any} anime - B站番剧原始项
+   * @returns {string|null}
+   */
   getNextEpisodeTime(anime) {
     if (anime.is_finish === 1) return null;
 
@@ -192,6 +218,10 @@ export class AnimePreview {
   }
 
   // 显示预览模态框
+  /**
+   * @param {PreviewAnime[]|null} [animeData=null] - 可选预览数据
+   * @returns {void}
+   */
   showPreview(animeData = null) {
     if (animeData) {
       this.animeData = animeData;
@@ -307,6 +337,10 @@ export class AnimePreview {
     this.setupAggregatePreview(modal);
   }
 
+  /**
+   * @param {HTMLElement} modal - 预览弹窗根元素
+   * @returns {void}
+   */
   bindModalEvents(modal) {
     const overlay = modal.querySelector('[data-action="overlay-close"]');
     if (overlay) {
@@ -334,25 +368,40 @@ export class AnimePreview {
     }
   }
 
+  /**
+   * @param {HTMLElement} modal - 预览弹窗根元素
+   * @returns {void}
+   */
   setupListDelegation(modal) {
     const listContainer = modal.querySelector('#animeList');
     if (!listContainer) return;
     listContainer.addEventListener('click', (event) => {
-      const detailBtn = event.target.closest('[data-action="show-detail"]');
+      const target = event.target instanceof Element ? event.target : null;
+      const detailBtn = target
+        ? /** @type {HTMLElement|null} */ (target.closest('[data-action="show-detail"]'))
+        : null;
       if (detailBtn) {
-        this.showDetail(detailBtn.dataset.animeId);
+        this.showDetail(detailBtn.dataset.animeId || '');
       }
     });
   }
 
+  /**
+   * @param {HTMLElement} modal - 预览弹窗根元素
+   * @returns {void}
+   */
   enableFocusTrap(modal) {
-    this.previousActiveElement = document.activeElement;
+    this.previousActiveElement =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const focusableSelectors =
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-    const focusable = modal.querySelectorAll(focusableSelectors);
+    const focusable = /** @type {NodeListOf<HTMLElement>} */ (
+      modal.querySelectorAll(focusableSelectors)
+    );
     if (!focusable.length) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
+    const first = focusable.item(0);
+    const last = focusable.item(focusable.length - 1);
+    if (!first || !last) return;
     this.focusTrapHandler = (event) => {
       if (event.key === 'Tab') {
         if (event.shiftKey && document.activeElement === first) {
@@ -383,6 +432,10 @@ export class AnimePreview {
   }
 
   // 渲染番剧列表
+  /**
+   * @param {string|null} [filter=null] - 筛选条件
+   * @returns {string}
+   */
   renderAnimeList(filter = null) {
     if (filter) {
       this.activeFilter = filter;
@@ -511,6 +564,9 @@ export class AnimePreview {
   }
 
   // 渲染统计信息
+  /**
+   * @returns {string}
+   */
   renderStats() {
     const stats = this.computeStats();
     const weekOrder = [...WEEK_KEYS, 'unknown'];
@@ -580,6 +636,9 @@ export class AnimePreview {
     `;
   }
 
+  /**
+   * @returns {string}
+   */
   renderAggregatePanel() {
     if (
       typeof window === 'undefined' ||
@@ -638,12 +697,22 @@ export class AnimePreview {
     `;
   }
 
+  /**
+   * @param {HTMLElement} modal - 预览弹窗根元素
+   * @returns {void}
+   */
   setupAggregatePreview(modal) {
     const panel = modal.querySelector('#previewAggregatePanel');
     if (!panel || !window.aggregateConfig) return;
-    const toggle = panel.querySelector('#previewAggregateToggle');
-    const textarea = panel.querySelector('#previewAggregateSources');
-    const statusEl = panel.querySelector('#previewAggregateStatus');
+    const toggle = /** @type {HTMLInputElement|null} */ (
+      panel.querySelector('#previewAggregateToggle')
+    );
+    const textarea = /** @type {HTMLTextAreaElement|null} */ (
+      panel.querySelector('#previewAggregateSources')
+    );
+    const statusEl = /** @type {HTMLElement|null} */ (
+      panel.querySelector('#previewAggregateStatus')
+    );
     const sampleBtn = panel.querySelector('[data-action="aggregate-sample"]');
     const applyBtn = panel.querySelector('[data-action="aggregate-apply"]');
     const sampleTemplate = i18n.t('aggregate.sampleTemplate');
@@ -662,7 +731,7 @@ export class AnimePreview {
           if (parsed.error) {
             statusEl.classList.add('error');
             if (textarea) textarea.classList.add('input-error');
-          } else if (parsed.sources.length > 0) {
+          } else if ((parsed.sources || []).length > 0) {
             statusEl.classList.add('success');
             if (textarea) textarea.classList.remove('input-error');
           } else {
@@ -723,6 +792,10 @@ export class AnimePreview {
     updateStatus();
   }
 
+  /**
+   * @param {string} [rawValue=''] - 外部 ICS 源原始输入
+   * @returns {AggregateParseResult}
+   */
   parseAggregateSources(rawValue = '') {
     if (!rawValue) {
       return { sources: [] };
@@ -741,12 +814,13 @@ export class AnimePreview {
       return { error: i18n.t('aggregate.errorTooMany', { count: PREVIEW_MAX_EXTERNAL_SOURCES }) };
     }
 
+    /** @type {string[]} */
     const normalized = [];
     for (const token of tokens) {
       let parsed;
       try {
         parsed = new URL(token);
-      } catch (err) {
+      } catch (_err) {
         return { error: i18n.t('aggregate.errorInvalid', { url: token }) };
       }
       if (!['http:', 'https:'].includes(parsed.protocol)) {
@@ -758,6 +832,11 @@ export class AnimePreview {
     return { sources: normalized };
   }
 
+  /**
+   * @param {boolean} enabled - 是否启用聚合
+   * @param {string} [rawValue=''] - 外部 ICS 源原始输入
+   * @returns {string}
+   */
   describeAggregateStatus(enabled, rawValue = '') {
     if (!enabled) {
       return i18n.t('aggregate.feedbackDisabled');
@@ -769,11 +848,15 @@ export class AnimePreview {
     if (parsed.error) {
       return parsed.error;
     }
-    return i18n.t('aggregate.feedbackCount', { count: parsed.sources.length });
+    return i18n.t('aggregate.feedbackCount', { count: (parsed.sources || []).length });
   }
 
+  /**
+   * @returns {{status: {watching: number, finished: number, notStarted: number}, weekMap: Record<string, number>, weekMax: number, todayCount: number, recent7: number, avgRating: string|null, ratingCount: number}}
+   */
   computeStats() {
     const status = { watching: 0, finished: 0, notStarted: 0 };
+    /** @type {Record<string, number>} */
     const weekMap = WEEK_KEYS.reduce((acc, key) => ({ ...acc, [key]: 0 }), { unknown: 0 });
     const todayKey = WEEK_KEYS[new Date().getDay()];
     let todayCount = 0;
@@ -810,14 +893,22 @@ export class AnimePreview {
   }
 
   // 绑定筛选事件
+  /**
+   * @param {HTMLElement} modal - 预览弹窗根元素
+   * @returns {void}
+   */
   bindFilterEvents(modal) {
-    const filterBtns = modal.querySelectorAll('.filter-btn');
+    const filterBtns = /** @type {NodeListOf<HTMLButtonElement>} */ (
+      modal.querySelectorAll('.filter-btn')
+    );
     if (!filterBtns.length) return;
     filterBtns.forEach((btn) => {
       btn.addEventListener('click', (e) => {
         filterBtns.forEach((b) => b.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        const filter = e.currentTarget.dataset.filter;
+        const currentTarget = e.currentTarget;
+        if (!(currentTarget instanceof HTMLButtonElement)) return;
+        currentTarget.classList.add('active');
+        const filter = currentTarget.dataset.filter || null;
         const listContainer = modal.querySelector('#animeList');
         if (listContainer) {
           listContainer.innerHTML = this.renderAnimeList(filter);
@@ -828,7 +919,9 @@ export class AnimePreview {
 
   // 显示筛选器
   showFilter() {
-    const filters = this.modalElement?.querySelector('#animeFilters');
+    const filters = /** @type {HTMLElement|null|undefined} */ (
+      this.modalElement?.querySelector('#animeFilters')
+    );
     if (!filters) return;
     filters.style.display = filters.style.display === 'none' ? 'flex' : 'none';
   }
@@ -844,6 +937,10 @@ export class AnimePreview {
   }
 
   // 显示番剧详情
+  /**
+   * @param {string|number} animeId - 番剧 ID
+   * @returns {void}
+   */
   showDetail(animeId) {
     const anime = this.animeData.find((a) => a.id == animeId);
     if (!anime) return;
@@ -851,8 +948,9 @@ export class AnimePreview {
     // 这里可以显示更详细的信息
     // Use window.showToast which will be exposed in main.js
     if (window.showToast) {
+      const statusText = i18n.t(`preview.status.${anime.statusType}`);
       window.showToast(
-        `《${anime.title}》\n状态：${anime.status.text}\n进度：${anime.currentEpisode}/${anime.episodes}`,
+        `《${anime.title}》\n状态：${statusText}\n进度：${anime.currentEpisode}/${anime.episodes}`,
         'info',
         5000
       );

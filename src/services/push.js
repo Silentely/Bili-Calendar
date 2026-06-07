@@ -70,7 +70,9 @@ async function registerPush() {
   const key = await getPublicKey();
   const sub = await reg.pushManager.subscribe({
     userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(key),
+    applicationServerKey: /** @type {BufferSource} */ (
+      /** @type {unknown} */ (urlBase64ToUint8Array(key))
+    ),
   });
 
   const resp = await fetch('/push/subscribe', {

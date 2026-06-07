@@ -91,6 +91,7 @@ export function isEmpty(str) {
 export function escapeHtml(str) {
   if (!str) return '';
 
+  /** @type {Record<string, string>} */
   const htmlEscapeMap = {
     '&': '&amp;',
     '<': '&lt;',
@@ -100,7 +101,7 @@ export function escapeHtml(str) {
     '/': '&#x2F;',
   };
 
-  return String(str).replace(/[&<>"'/]/g, (char) => htmlEscapeMap[char]);
+  return String(str).replace(/[&<>"'/]/g, (char) => htmlEscapeMap[char] || char);
 }
 
 export default {

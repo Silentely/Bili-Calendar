@@ -1,22 +1,21 @@
 // netlify/functions/server.js
-const serverless = require('serverless-http');
-const express = require('express');
-const compression = require('compression');
-const path = require('path');
-const fs = require('fs');
-const crypto = require('crypto');
-// 让 Netlify bundler 显式包含 axios，供 utils/* 动态依赖
-require('axios');
+import serverless from 'serverless-http';
+import express from 'express';
+import compression from 'compression';
+import path from 'node:path';
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+import { createRateLimiter } from '../../utils-es/rate-limiter.js';
+import { extractClientIP, generateRequestId } from '../../utils-es/ip.js';
+import { generateICS, respondWithICS, respondWithEmptyCalendar } from '../../utils-es/ics.js';
+import { generateMergedICS, fetchExternalICS } from '../../utils-es/ics-merge.js';
+import { getBangumiData } from '../../utils-es/bangumi.js';
+import metrics from '../../utils-es/metrics.js';
+import { isValidUID, validateExternalSource } from '../../utils-es/security.js';
 
-const { createRequire } = require('module');
-const requireFromRoot = createRequire(path.join(__dirname, '../../package.json'));
-
-const { createRateLimiter } = requireFromRoot('./utils/rate-limiter.cjs');
-const { extractClientIP, generateRequestId } = requireFromRoot('./utils/ip.cjs');
-const { generateICS, respondWithICS, respondWithEmptyCalendar } = requireFromRoot('./utils/ics.cjs');
-const { generateMergedICS, fetchExternalICS } = requireFromRoot('./utils/ics-merge.cjs');
-const { getBangumiData } = requireFromRoot('./utils/bangumi.cjs');
-const metrics = requireFromRoot('./utils/metrics.cjs');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const PUSH_ADMIN_TOKEN = process.env.PUSH_ADMIN_TOKEN || '';
 const IS_DEV = (process.env.NODE_ENV || 'development') === 'development';
 let webpush = null;
@@ -154,7 +153,7 @@ for (const candidate of STATIC_DIRS) {
 }
 
 if (staticDir) {
-  app.use(express.static(staticDir, { dotfiles: 'allow' }));
+  app.use(express.static(staticDir, { dotfiles: 'ignore' }));
 }
 
 // 请求ID & 日志中间件 (简化)
@@ -334,11 +333,11 @@ app.get('/', (req, res) => {
 app.get('/api/bangumi/:uid', rateLimiterMiddleware, async (req, res, next) => {
   const { uid } = req.params;
 
-  if (!/^\d+$/.test(uid)) {
+  if (!isValidUID(uid)) {
     console.warn(`⚠️ 无效的UID格式: ${uid}`);
     return res.status(400).json({
       error: 'Invalid UID',
-      message: 'UID必须是纯数字',
+      message: 'UID必须是1-20位纯数字',
     });
   }
 
@@ -422,9 +421,13 @@ const handleAggregate = async (req, res, next) => {
       .json({ error: 'Too many sources', message: '最多支持 5 个外部 ICS 链接' });
   }
 
-  const invalid = sourceList.find((s) => !/^https?:\/\//i.test(s));
-  if (invalid) {
-    return res.status(400).json({ error: 'Invalid source', message: '仅支持 http/https 链接' });
+  // SSRF 防御：校验外部源 URL 安全性
+  for (const sourceUrl of sourceList) {
+    const ssrfError = validateExternalSource(sourceUrl);
+    if (ssrfError) {
+      console.warn(`⚠️ SSRF 检测拦截: ${sourceUrl} - ${ssrfError}`);
+      return res.status(400).json({ error: 'Invalid source', message: ssrfError });
+    }
   }
 
   try {
@@ -495,7 +498,8 @@ if (IS_DEV) {
     if (!requirePushAuth(req, res)) return;
     try {
       if (!webpush) {
-        webpush = requireFromRoot('web-push');
+        const mod = await import('web-push');
+        webpush = mod.default;
         webpush.setVapidDetails(
           process.env.VAPID_SUBJECT || 'mailto:admin@example.com',
           process.env.VAPID_PUBLIC_KEY,
@@ -608,4 +612,4 @@ app.use((err, req, res, _next) => {
 });
 
 // 将Express应用包装为serverless函数
-exports.handler = serverless(app);
+export const handler = serverless(app);

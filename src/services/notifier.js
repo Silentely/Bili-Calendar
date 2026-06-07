@@ -100,12 +100,13 @@ async function showNotification(title, body) {
   try {
     const reg = await navigator.serviceWorker?.ready;
     if (reg?.showNotification) {
-      await reg.showNotification(title, {
+      const options = /** @type {NotificationOptions & {renotify?: boolean}} */ ({
         body,
         icon: '/icons/icon-192.png',
         tag: 'bili-calendar-reminder',
         renotify: true,
       });
+      await reg.showNotification(title, options);
       return true;
     }
     // Fallback
@@ -175,6 +176,7 @@ async function scheduleAnimeReminders(animeList = [], options = {}) {
 
   const now = Date.now();
   const oneDay = 24 * 60 * 60 * 1000;
+  /** @type {{anime: AnimeData, triggerAt: number, next: Date}[]} */
   const candidate = [];
 
   // 动态导入 i18n（避免在测试环境加载时出错）
