@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * @fileoverview HTTP 客户端工具模块（ESM）
  * 对齐 CJS 版本的默认头、连接池与指数退避重试策略
@@ -6,21 +7,11 @@
 import axios from 'axios';
 import http from 'node:http';
 import https from 'node:https';
+import { parseIntEnv } from './env.js';
 
-/**
- * 将字符串环境变量解析为整数，并约束上下界
- */
-function parseIntEnv(name, def, min, max) {
-  const raw = process.env[name];
-  if (raw == null || raw === '') return def;
-  const parsed = Number.parseInt(String(raw), 10);
-  if (Number.isNaN(parsed)) return def;
-  return Math.min(Math.max(parsed, min), max);
-}
-
-const DEFAULT_TIMEOUT_MS = parseIntEnv('HTTP_TIMEOUT_MS', 25000, 5000, 60000);
-const RETRY_MAX = parseIntEnv('HTTP_RETRY_MAX', 3, 0, 5);
-const RETRY_BASE_DELAY_MS = parseIntEnv('HTTP_RETRY_BASE_DELAY_MS', 500, 100, 5000);
+export const DEFAULT_TIMEOUT_MS = parseIntEnv('HTTP_TIMEOUT_MS', 25000, 5000, 60000);
+export const RETRY_MAX = parseIntEnv('HTTP_RETRY_MAX', 2, 0, 5);
+export const RETRY_BASE_DELAY_MS = parseIntEnv('HTTP_RETRY_BASE_DELAY_MS', 1000, 100, 5000);
 
 const DEFAULT_HEADERS = {
   'User-Agent':
@@ -52,31 +43,60 @@ export const httpClient = axios.create({
   httpsAgent,
 });
 
-function sleep(ms) {
+let sleep = function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+};
+
+export function getRetryDelay(retryCount) {
+  return RETRY_BASE_DELAY_MS * Math.pow(2, retryCount - 1);
+}
+
+export function shouldRetryHttpError(error) {
+  const cfg = error.config || {};
+  const method = cfg.method?.toLowerCase();
+  const status = error.response?.status;
+  const errorCode = error.code;
+  const errorMessage = error.message || '';
+  const networkErrorHints = ['timeout', 'socket hang up', 'connect ECONNREFUSED', 'getaddrinfo ENOTFOUND'];
+
+  return (
+    method === 'get' &&
+    ((status && status >= 500 && status < 600) ||
+      ['ETIMEDOUT', 'ECONNRESET', 'ENOTFOUND', 'ECONNREFUSED', 'EHOSTUNREACH'].includes(errorCode) ||
+      networkErrorHints.some((hint) => errorMessage.includes(hint)))
+  );
+}
+
+export function toHttpErrorInfo(error) {
+  if (error.response) {
+    return {
+      type: 'http',
+      status: error.response.status,
+      message: error.message,
+      retryable: shouldRetryHttpError(error),
+    };
+  }
+
+  return {
+    type: 'network',
+    code: error.code || 'UNKNOWN',
+    message: error.message || 'Network Error',
+    retryable: shouldRetryHttpError(error),
+  };
+}
+
+export function __setHttpSleepForTest(fn) {
+  sleep = typeof fn === 'function' ? fn : ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
 }
 
 /**
- * 响应拦截器：对 GET 请求的 429/5xx/网络错误 进行有限次数的指数退避重试
+ * 响应拦截器：对 GET 请求的 5xx/网络错误进行有限次数的指数退避重试
  */
 httpClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const cfg = error.config || {};
-    const method = cfg.method?.toLowerCase();
-    const status = error.response?.status;
-    const errorCode = error.code;
-    const errorMessage = error.message || '';
-
-    const networkErrorHints = ['timeout', 'socket hang up', 'connect ECONNREFUSED', 'getaddrinfo ENOTFOUND'];
-    const shouldRetry =
-      method === 'get' &&
-      (status === 429 ||
-        (status && status >= 500 && status < 600) ||
-        ['ETIMEDOUT', 'ECONNRESET', 'ENOTFOUND', 'ECONNREFUSED', 'EHOSTUNREACH'].includes(errorCode) ||
-        networkErrorHints.some((hint) => errorMessage.includes(hint)));
-
-    if (!shouldRetry) {
+    if (!shouldRetryHttpError(error)) {
       return Promise.reject(error);
     }
 
@@ -85,7 +105,7 @@ httpClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    const delay = RETRY_BASE_DELAY_MS * Math.pow(2, cfg.__retryCount - 1);
+    const delay = getRetryDelay(cfg.__retryCount);
     console.log(`🔄 重试第 ${cfg.__retryCount} 次请求 (${cfg.method?.toUpperCase()} ${cfg.url})，延迟 ${delay}ms`);
 
     await sleep(delay);

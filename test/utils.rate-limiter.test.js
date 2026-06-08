@@ -2,9 +2,7 @@
 // 速率限制器单元测试
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const { createRateLimiter } = require('../utils/rate-limiter.cjs');
+import { createRateLimiter } from '../utils-es/rate-limiter.js';
 
 describe('Rate Limiter', () => {
   let rateLimiter;

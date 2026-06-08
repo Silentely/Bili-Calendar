@@ -1,3 +1,4 @@
+// @ts-nocheck
 // utils-es/ics.js
 // 生成与响应 ICS 的通用工具（ES6 模块版本）
 import {

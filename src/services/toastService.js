@@ -4,10 +4,31 @@
  * 提供优雅的消息提示功能，支持多种类型和自动关闭
  */
 
+import { escapeHtml } from '../utils/stringUtils.js';
+
 /**
  * Toast 类型
  * @typedef {'success' | 'error' | 'warning' | 'info'} ToastType
  */
+
+/**
+ * 事件委托：关闭按钮点击处理（延迟绑定，避免测试环境报错）
+ * @private
+ */
+let _closeListenerBound = false;
+function ensureCloseListener() {
+  if (_closeListenerBound) return;
+  if (typeof document === 'undefined' || !document.addEventListener) return;
+  document.addEventListener('click', (e) => {
+    const target = e.target instanceof Element ? e.target : null;
+    const closeBtn = target ? target.closest('[data-toast-close]') : null;
+    if (closeBtn) {
+      const toast = closeBtn.closest('.toast-notification-enhanced');
+      if (toast instanceof HTMLElement) hideToast(toast);
+    }
+  });
+  _closeListenerBound = true;
+}
 
 /**
  * Toast 图标映射
@@ -45,6 +66,7 @@ const DEFAULT_CONFIG = {
  * showToast('提示信息', 'info')
  */
 export function showToast(message, type = 'info', duration = DEFAULT_CONFIG.duration) {
+  ensureCloseListener();
   const toast = createToastElement(message, type);
 
   document.body.appendChild(toast);
@@ -80,7 +102,7 @@ function createToastElement(message, type) {
     <div class="toast-content-enhanced ${type}">
       <i class="fas ${icon} toast-icon"></i>
       <span class="toast-message">${escapeHtml(message)}</span>
-      <i class="fas fa-times toast-close" onclick="this.closest('.toast-notification-enhanced').remove()"></i>
+      <i class="fas fa-times toast-close" data-toast-close></i>
     </div>
   `;
 
@@ -100,19 +122,6 @@ function hideToast(toast) {
       document.body.removeChild(toast);
     }
   }, DEFAULT_CONFIG.fadeOutDuration);
-}
-
-/**
- * 转义 HTML 特殊字符 (防止 XSS 攻击)
- *
- * @private
- * @param {string} text - 待转义的文本
- * @returns {string} 转义后的文本
- */
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
 }
 
 /**

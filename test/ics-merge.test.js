@@ -1,10 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
-const { parseIcsEvents, detectConflicts, generateMergedICS } = require('../utils/ics-merge.cjs');
-const { getNextBroadcastDate } = require('../utils/time.cjs');
+import { parseIcsEvents, detectConflicts, generateMergedICS } from '../utils-es/ics-merge.js';
+import { getNextBroadcastDate } from '../utils-es/time.js';
 
 test('parseIcsEvents should parse timed and all-day events', () => {
   const ics = `BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:abc\nSUMMARY:Test Event\nDTSTART;TZID=Asia/Shanghai:20250105T200000\nDTEND;TZID=Asia/Shanghai:20250105T210000\nEND:VEVENT\nBEGIN:VEVENT\nSUMMARY:All Day\nDTSTART;VALUE=DATE:20250106\nEND:VEVENT\nEND:VCALENDAR`;

@@ -1,15 +1,13 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const {
+import {
   parseBroadcastTime,
   parseNewEpTime,
   getNextBroadcastDate,
   formatDate,
-} = require('../utils/time.cjs');
+} from '../utils-es/time.js';
 
-describe('utils/time.cjs', () => {
+describe('utils-es/time.js', () => {
   it('parseBroadcastTime: standard patterns', () => {
     const a = parseBroadcastTime('每周四 21:00 更新');
     assert.equal(a.rruleDay, 'TH');

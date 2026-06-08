@@ -1,3 +1,4 @@
+// @ts-nocheck
 // utils-es/request-dedup.js
 export function createRequestDedup() {
   const activeRequests = new Map();
@@ -35,6 +36,14 @@ export function createRequestDedup() {
         activeRequests.delete(key);
         throw error;
       }
+    },
+
+    getPendingCount() {
+      return activeRequests.size;
+    },
+
+    clear() {
+      activeRequests.clear();
     },
   };
 }

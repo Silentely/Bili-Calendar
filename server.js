@@ -5,19 +5,33 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const { getBangumiData } = require('./utils/bangumi.cjs');
-const { createRateLimiter } = require('./utils/rate-limiter.cjs');
-const { extractClientIP, generateRequestId } = require('./utils/ip.cjs');
-const { validateUID } = require('./utils/security.cjs');
-const metrics = require('./utils/metrics.cjs');
-const createPushStore = require('./utils/push-store.cjs');
+import { getBangumiData } from './utils-es/bangumi.js';
+import { createRateLimiter } from './utils-es/rate-limiter.js';
+import { extractClientIP, generateRequestId } from './utils-es/ip.js';
+import { isValidUID, validateExternalSource } from './utils-es/security.js';
+import metrics from './utils-es/metrics.js';
+import createPushStore from './utils-es/push-store.js';
+import { generateICS, respondWithICS, respondWithEmptyCalendar } from './utils-es/ics.js';
+import { generateMergedICS, fetchExternalICS } from './utils-es/ics-merge.js';
+
+/**
+ * @typedef {import('express').Request} Request
+ * @typedef {import('express').Response} Response
+ * @typedef {import('express').NextFunction} NextFunction
+ * @typedef {{setVapidDetails(subject?: string, publicKey?: string, privateKey?: string): void, sendNotification(subscription: unknown, payload?: string): Promise<unknown>}} WebPushClient
+ * @typedef {{code?: number, message?: string, error?: string, data?: {list?: unknown[]}} & Record<string, unknown>} BangumiData
+ */
+
 const pushStore = createPushStore(process.env.PUSH_STORE_FILE);
 const PUSH_ADMIN_TOKEN = process.env.PUSH_ADMIN_TOKEN || '';
 const IS_DEV = (process.env.NODE_ENV || 'development') === 'development';
+/** @type {WebPushClient|null} */
 let webpushInstance = null;
 
+/**
+ * @param {string|number|boolean|undefined} rawValue - trust proxy 原始配置
+ * @returns {boolean|number|string|undefined}
+ */
 function resolveTrustProxySetting(rawValue) {
   if (rawValue == null) return undefined;
   const trimmed = String(rawValue).trim();
@@ -29,10 +43,6 @@ function resolveTrustProxySetting(rawValue) {
   if (!Number.isNaN(numeric)) return numeric;
   return trimmed;
 }
-
-// 抽离的通用工具（使用 CJS 版本）
-const { generateICS, respondWithICS, respondWithEmptyCalendar } = require('./utils/ics.cjs');
-const { generateMergedICS, fetchExternalICS } = require('./utils/ics-merge.cjs');
 
 const app = express();
 
@@ -72,6 +82,11 @@ const CORS_HEADERS = {
 
 // 创建速率限制器实例
 const rateLimiter = createRateLimiter();
+/**
+ * @param {Request} req - Express 请求
+ * @param {Response} res - Express 响应
+ * @returns {boolean}
+ */
 const requirePushAuth = (req, res) => {
   if (!PUSH_ADMIN_TOKEN) return true;
   const header = req.headers['authorization'] || '';
@@ -82,10 +97,13 @@ const requirePushAuth = (req, res) => {
   return false;
 };
 
+/**
+ * @returns {Promise<WebPushClient>}
+ */
 async function getWebpush() {
   if (!webpushInstance) {
     const mod = await import('web-push');
-    webpushInstance = mod.default;
+    webpushInstance = /** @type {WebPushClient} */ (mod.default);
     webpushInstance.setVapidDetails(
       process.env.VAPID_SUBJECT || 'mailto:admin@example.com',
       process.env.VAPID_PUBLIC_KEY,
@@ -123,11 +141,11 @@ app.use((req, res, next) => {
   // CORS
   Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
   if (req.method === 'OPTIONS') return res.sendStatus(200);
-  next();
+  return next();
 });
 
 /** Link 响应头（RFC 8288）— 用于 Agent 发现 */
-app.use((req, res, next) => {
+app.use((_req, res, next) => {
   const links = [
     '</sitemap.xml>; rel="sitemap"',
     '</.well-known/api-catalog>; rel="api-catalog"',
@@ -194,9 +212,9 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, 'dist'), { dotfiles: 'allow' }));
+app.use(express.static(path.join(__dirname, 'dist'), { dotfiles: 'ignore' }));
 // 开发环境备用：dist/ 不存在时从 public/ 提供静态文件
-app.use(express.static(path.join(__dirname, 'public'), { dotfiles: 'allow' }));
+app.use(express.static(path.join(__dirname, 'public'), { dotfiles: 'ignore' }));
 
 // 请求ID & 日志中间件
 app.use((req, res, next) => {
@@ -233,10 +251,17 @@ try {
     }
   }
 } catch (err) {
-  console.warn('⚠️ 无法读取版本信息:', err.message);
+  const message = err instanceof Error ? err.message : String(err);
+  console.warn('⚠️ 无法读取版本信息:', message);
 }
 
 // 限流中间件
+/**
+ * @param {Request} req - Express 请求
+ * @param {Response} res - Express 响应
+ * @param {NextFunction} next - 后续中间件
+ * @returns {void|Response}
+ */
 const rateLimiterMiddleware = (req, res, next) => {
   const ip = extractClientIP(req);
 
@@ -264,7 +289,7 @@ const rateLimiterMiddleware = (req, res, next) => {
   res.setHeader('X-RateLimit-Remaining', rateLimiter.getRemainingRequests(ip));
   res.setHeader('X-RateLimit-Reset', new Date(rateLimiter.getResetTime(ip)).toISOString());
 
-  next();
+  return next();
 };
 
 // 健康检查接口
@@ -322,12 +347,12 @@ app.get('/status', (req, res) => {
 });
 
 // 简易指标 API（JSON）
-app.get('/metrics', (req, res) => {
+app.get('/metrics', (_req, res) => {
   res.json({ status: 'ok', metrics: metrics.snapshot() });
 });
 
 // Prometheus 文本格式
-app.get('/metrics/prometheus', (req, res) => {
+app.get('/metrics/prometheus', (_req, res) => {
   const m = metrics.snapshot();
   const lines = [
     '# HELP bili_requests_total Total requests',
@@ -382,18 +407,20 @@ app.get('/metrics/prometheus', (req, res) => {
 });
 
 // WebPush 实验接口
-app.get('/push/public-key', (req, res) => {
+app.get('/push/public-key', (_req, res) => {
   const key = process.env.VAPID_PUBLIC_KEY;
   if (!key) return res.status(404).json({ error: 'missing key' });
-  res.json({ key });
+  return res.json({ key });
 });
 
 app.post('/push/subscribe', (req, res) => {
   if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
-    return res.status(501).json({ error: 'push not configured' });
+    res.status(501).json({ error: 'push not configured' });
+    return;
   }
   if (!req.body || !req.body.endpoint) {
-    return res.status(400).json({ error: 'invalid subscription' });
+    res.status(400).json({ error: 'invalid subscription' });
+    return;
   }
   pushStore.add(req.body);
   res.json({ status: 'ok', stored: pushStore.list().length });
@@ -402,7 +429,8 @@ app.post('/push/subscribe', (req, res) => {
 if (IS_DEV) {
   app.post('/push/test', async (req, res) => {
     if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
-      return res.status(501).json({ error: 'push not configured' });
+      res.status(501).json({ error: 'push not configured' });
+      return;
     }
     if (!requirePushAuth(req, res)) return;
     try {
@@ -417,7 +445,8 @@ if (IS_DEV) {
       await Promise.all(promises);
       res.json({ status: 'sent', count: subs.length });
     } catch (err) {
-      res.status(501).json({ error: 'web-push module missing', detail: err.message });
+      const detail = err instanceof Error ? err.message : String(err);
+      res.status(501).json({ error: 'web-push module missing', detail });
     }
   });
 }
@@ -447,7 +476,7 @@ app.get('/', (req, res) => {
   const accept = req.headers.accept || '';
   if (accept.includes('text/markdown')) {
     res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
-    return res.send(`# Bili-Calendar — B站追番日历订阅
+    res.send(`# Bili-Calendar — B站追番日历订阅
 
 将B站追番列表转换为ICS日历订阅，兼容Apple/Google/Outlook等主流日历应用。
 
@@ -471,57 +500,72 @@ app.get('/', (req, res) => {
 - [API 目录](/.well-known/api-catalog)
 - [站点地图](/sitemap.xml)
 `);
+    return;
   }
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 // 获取 B站追番数据
 app.get('/api/bangumi/:uid', rateLimiterMiddleware, async (req, res, next) => {
-  const { uid } = req.params;
+  const uid = String(req.params.uid || '');
 
-  if (!validateUID(uid)) {
+  if (!isValidUID(uid)) {
     console.warn(`⚠️ 无效的UID格式: ${uid}`);
-    return res.status(400).json({
+    res.status(400).json({
       error: 'Invalid UID',
       message: 'UID必须是1-20位纯数字',
     });
+    return;
   }
 
   try {
     const apiStart = Date.now();
-    const data = await getBangumiData(uid);
-    metrics.onApiCall(Date.now() - apiStart, data && data.code === 0);
+    const data = /** @type {BangumiData|null} */ (await getBangumiData(uid));
+    metrics.onApiCall(Date.now() - apiStart, !!data && data.code === 0);
     if (!data) {
-      return res.status(500).json({ error: 'Internal Server Error', message: '获取数据失败' });
+      res.status(500).json({ error: 'Internal Server Error', message: '获取数据失败' });
+      return;
     }
     if (data && typeof data.code === 'number' && data.code !== 0) {
-      if (data.code === 53013) return res.status(403).json(data);
-      return res.json(data);
+      if (data.code === 53013) {
+        res.status(403).json(data);
+        return;
+      }
+      res.json(data);
+      return;
     }
     const bodyJson = JSON.stringify(data);
     const etag = `W/"${crypto.createHash('sha1').update(bodyJson).digest('hex')}"`;
     const inm = req.headers['if-none-match'];
     if (inm && inm === etag) {
-      return res.status(304).end();
+      res.status(304).end();
+      return;
     }
     res.setHeader('ETag', etag);
     res.setHeader('Cache-Control', 'public, max-age=300');
     res.type('application/json').send(bodyJson);
   } catch (err) {
     console.error(`❌ 处理请求时出错:`, err);
-    next(err);
+    return next(err);
   }
 });
 
 // 处理 UID 路由（显式 .ics 与纯 UID）
+/**
+ * @param {Request & {params: {uid: string}}} req - Express 请求
+ * @param {Response} res - Express 响应
+ * @param {NextFunction} next - 后续中间件
+ * @returns {Promise<void>}
+ */
 const handleCalendar = async (req, res, next) => {
   const raw = req.params.uid;
   const cleanUid = raw.replace('.ics', '');
 
   // 验证 UID 格式
-  if (!validateUID(cleanUid)) {
+  if (!isValidUID(cleanUid)) {
     console.warn(`⚠️ 无效的UID格式: ${cleanUid}`);
-    return respondWithEmptyCalendar(res, cleanUid || 'invalid', 'UID必须是1-20位纯数字');
+    respondWithEmptyCalendar(res, cleanUid || 'invalid', 'UID必须是1-20位纯数字');
+    return;
   }
 
   try {
@@ -529,26 +573,24 @@ const handleCalendar = async (req, res, next) => {
 
     // 获取追番数据
     const apiStart = Date.now();
-    const data = await getBangumiData(cleanUid);
-    metrics.onApiCall(Date.now() - apiStart, data && data.code === 0);
+    const data = /** @type {BangumiData|null} */ (await getBangumiData(cleanUid));
+    metrics.onApiCall(Date.now() - apiStart, !!data && data.code === 0);
     if (!data) {
       console.error(`❌ getBangumiData 返回 null: ${cleanUid}`);
-      return respondWithEmptyCalendar(res, cleanUid, '获取数据失败，请稍后重试');
+      respondWithEmptyCalendar(res, cleanUid, '获取数据失败，请稍后重试');
+      return;
     }
 
     if (data.error) {
       console.error(`❌ B站API错误: ${data.message || data.error}`);
-      return respondWithEmptyCalendar(
-        res,
-        cleanUid,
-        `${data.error}: ${data.message || '请稍后重试'}`
-      );
+      respondWithEmptyCalendar(res, cleanUid, `${data.error}: ${data.message || '请稍后重试'}`);
+      return;
     }
 
     // 检查API返回错误
     const errorResponse = processBangumiApiError(res, data, cleanUid);
     if (errorResponse) {
-      return errorResponse;
+      return;
     }
 
     // 处理番剧列表
@@ -557,13 +599,14 @@ const handleCalendar = async (req, res, next) => {
 
     if (bangumiList.length === 0) {
       console.warn(`⚠️ 未找到正在播出的番剧: ${cleanUid}`);
-      return respondWithEmptyCalendar(res, cleanUid, '未找到正在播出的番剧');
+      respondWithEmptyCalendar(res, cleanUid, '未找到正在播出的番剧');
+      return;
     }
 
     // 生成并返回ICS日历
     console.log(`📅 生成日历文件`);
     const icsContent = generateICS(bangumiList, cleanUid);
-    return respondWithICS(res, icsContent, cleanUid);
+    respondWithICS(res, icsContent, cleanUid);
   } catch (err) {
     console.error(`❌ 处理请求时出错:`, err);
     next(err);
@@ -571,17 +614,24 @@ const handleCalendar = async (req, res, next) => {
 };
 
 // 聚合番剧 + 外部 ICS 日程
+/**
+ * @param {Request & {params: {uid: string}}} req - Express 请求
+ * @param {Response} res - Express 响应
+ * @param {NextFunction} next - 后续中间件
+ * @returns {Promise<void>}
+ */
 const handleAggregate = async (req, res, next) => {
   const raw = req.params.uid;
   const cleanUid = raw.replace('.ics', '');
 
   // 验证 UID 格式
-  if (!validateUID(cleanUid)) {
+  if (!isValidUID(cleanUid)) {
     console.warn(`⚠️ 无效的UID格式: ${cleanUid}`);
-    return res.status(400).json({
+    res.status(400).json({
       error: 'Invalid UID',
       message: 'UID必须是1-20位纯数字',
     });
+    return;
   }
 
   // 健壮的源列表解析：处理数组参数和非法编码
@@ -608,45 +658,61 @@ const handleAggregate = async (req, res, next) => {
     .filter(Boolean);
 
   if (hasInvalidSourceEncoding) {
-    return res.status(400).json({
+    res.status(400).json({
       error: 'Invalid source',
       message: 'sources 参数包含无效的编码',
     });
+    return;
   }
 
   if (sourceList.length > 5) {
-    return res
-      .status(400)
-      .json({ error: 'Too many sources', message: '最多支持 5 个外部 ICS 链接' });
+    res.status(400).json({ error: 'Too many sources', message: '最多支持 5 个外部 ICS 链接' });
+    return;
+  }
+
+  // SSRF 防御：校验外部源 URL 安全性
+  for (const sourceUrl of sourceList) {
+    const ssrfError = validateExternalSource(sourceUrl);
+    if (ssrfError) {
+      console.warn(`⚠️ SSRF 检测拦截: ${sourceUrl} - ${ssrfError}`);
+      res.status(400).json({
+        error: 'Invalid source',
+        message: ssrfError,
+      });
+      return;
+    }
   }
 
   try {
     console.log(`🔀 聚合 UID: ${cleanUid}, 外部源数量: ${sourceList.length}`);
 
     const apiStart = Date.now();
-    const data = await getBangumiData(cleanUid);
-    metrics.onApiCall(Date.now() - apiStart, data && data.code === 0);
+    const data = /** @type {BangumiData|null} */ (await getBangumiData(cleanUid));
+    metrics.onApiCall(Date.now() - apiStart, !!data && data.code === 0);
     if (!data) {
-      return res.status(500).json({ error: 'Internal Error', message: '获取数据失败，请稍后重试' });
+      res.status(500).json({ error: 'Internal Error', message: '获取数据失败，请稍后重试' });
+      return;
     }
 
     if (data.error) {
-      return res.status(502).json({
+      res.status(502).json({
         error: data.error,
         message: data.message || '获取番剧数据失败',
         code: data.code,
       });
+      return;
     }
 
     const errorResponse = processBangumiApiError(res, data, cleanUid);
-    if (errorResponse) return errorResponse;
+    if (errorResponse) return;
 
     const bangumiList = data.data?.list || [];
     const externalCalendars = await fetchExternalICS(sourceList);
 
     const merged = generateMergedICS(bangumiList, cleanUid, externalCalendars);
     if (!merged) {
-      return respondWithEmptyCalendar(res, cleanUid, '未找到可用日程');
+      respondWithEmptyCalendar(res, cleanUid, '未找到可用日程');
+      return;
     }
 
     const icsName = `bili_merge_${cleanUid}.ics`;
@@ -655,7 +721,7 @@ const handleAggregate = async (req, res, next) => {
       'Content-Disposition': `attachment; filename="${icsName}"`,
       'Cache-Control': 'public, max-age=600',
     });
-    return res.send(merged);
+    res.send(merged);
   } catch (err) {
     console.error(`❌ 聚合处理出错:`, err);
     next(err);
@@ -664,35 +730,37 @@ const handleAggregate = async (req, res, next) => {
 
 /**
  * 处理B站API返回的错误
- * @param {Object} res - Express响应对象
- * @param {Object} data - API返回的数据
+ * @param {Response} res - Express响应对象
+ * @param {BangumiData} data - API返回的数据
  * @param {string} uid - 用户UID
- * @returns {Object|undefined} 错误响应对象，如果没有错误则返回undefined
+ * @returns {boolean} 是否已经发送错误响应
  */
 function processBangumiApiError(res, data, uid) {
   if (data.code !== 0) {
     if (data.code === 53013) {
       console.warn(`⚠️ 用户隐私设置限制: ${uid}`);
-      return respondWithEmptyCalendar(res, uid, '用户设置为隐私');
+      respondWithEmptyCalendar(res, uid, '用户设置为隐私');
+      return true;
     }
     console.error(`❌ B站API错误: ${data.message} (code: ${data.code})`);
-    return res.status(500).send(`Bilibili API 错误: ${data.message} (code: ${data.code})`);
+    res.status(500).send(`Bilibili API 错误: ${data.message} (code: ${data.code})`);
+    return true;
   }
-  return undefined;
+  return false;
 }
 
 // 显式路由：robots.txt、sitemap.xml、openapi.json（避免被 /:uid 参数路由捕获）
-app.get('/robots.txt', (req, res) => {
+app.get('/robots.txt', (_req, res) => {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.sendFile(path.join(__dirname, 'public', 'robots.txt'));
 });
-app.get('/sitemap.xml', (req, res) => {
+app.get('/sitemap.xml', (_req, res) => {
   res.setHeader('Content-Type', 'application/xml; charset=utf-8');
   res.sendFile(path.join(__dirname, 'public', 'sitemap.xml'));
 });
 
 /** MPP OpenAPI — Machine Payment Protocol 支付发现 */
-app.get('/openapi.json', (req, res) => {
+app.get('/openapi.json', (_req, res) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.json({
     openapi: '3.0.3',
@@ -776,7 +844,7 @@ app.get('/aggregate/:uid', rateLimiterMiddleware, handleAggregate);
 // ===== .well-known Agent 发现端点 =====
 
 /** RFC 9727 — API 目录 */
-app.get('/.well-known/api-catalog', (req, res) => {
+app.get('/.well-known/api-catalog', (_req, res) => {
   res.setHeader('Content-Type', 'application/linkset+json; charset=utf-8');
   res.json({
     linkset: [
@@ -804,7 +872,7 @@ app.get('/.well-known/api-catalog', (req, res) => {
 });
 
 /** RFC 9728 — OAuth Protected Resource Metadata */
-app.get('/.well-known/oauth-protected-resource', (req, res) => {
+app.get('/.well-known/oauth-protected-resource', (_req, res) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.json({
     resource: 'https://calendar.cosr.eu.org',
@@ -816,7 +884,7 @@ app.get('/.well-known/oauth-protected-resource', (req, res) => {
 });
 
 /** MCP Server Card (SEP-1649) */
-app.get('/.well-known/mcp/server-card.json', (req, res) => {
+app.get('/.well-known/mcp/server-card.json', (_req, res) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.json({
     schema: 'https://modelcontextprotocol.io/schemas/2025-03-26/server-card',
@@ -844,7 +912,7 @@ app.get('/.well-known/mcp/server-card.json', (req, res) => {
 });
 
 /** Agent Skills 发现索引 */
-app.get('/.well-known/agent-skills/index.json', (req, res) => {
+app.get('/.well-known/agent-skills/index.json', (_req, res) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.json({
     $schema: 'https://agentskills.io/schemas/v0.2.0/index.json',
@@ -877,7 +945,7 @@ app.get('/.well-known/agent-skills/index.json', (req, res) => {
 });
 
 /** OpenID Connect 发现（声明无受保护端点） */
-app.get('/.well-known/openid-configuration', (req, res) => {
+app.get('/.well-known/openid-configuration', (_req, res) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.json({
     issuer: 'https://calendar.cosr.eu.org',
@@ -976,14 +1044,20 @@ app.use((req, res) => {
   }
 });
 
-// 全局错误处理中间件（放在所有路由之后确保正确捕获）
-app.use((err, req, res, _next) => {
+/**
+ * 全局错误处理中间件（放在所有路由之后确保正确捕获）。
+ * @type {(err: unknown, _req: Request, res: Response, _next: NextFunction) => void}
+ */
+const errorMiddleware = (err, _req, res, _next) => {
   console.error(`❌ 服务器错误:`, err);
+  const message = err instanceof Error ? err.message : String(err);
   res.status(500).json({
     error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'production' ? '服务器内部错误' : err.message,
+    message: process.env.NODE_ENV === 'production' ? '服务器内部错误' : message,
   });
-});
+};
+
+app.use(errorMiddleware);
 
 app.listen(PORT, () => {
   console.log(`🚀 Bili-Calendar service running on port ${PORT}`);

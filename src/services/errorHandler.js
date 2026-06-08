@@ -19,7 +19,7 @@ import { escapeHtml } from '../utils/stringUtils.js';
 
 /**
  * 错误代码映射表
- * @type {Object.<string, ErrorInfo>}
+ * @type {Record<string, ErrorInfo>}
  */
 const ERROR_CODES = {
   INVALID_UID: {
@@ -125,6 +125,7 @@ export class ErrorHandler {
    */
   showErrorModal(errorCode, customMessage = null) {
     const error = ERROR_CODES[errorCode] || ERROR_CODES.SERVER_ERROR;
+    if (!error) return;
     const modalId = 'errorModal-' + Date.now();
 
     // 创建模态框
@@ -133,12 +134,12 @@ export class ErrorHandler {
     modal.id = modalId;
 
     modal.innerHTML = `
-      <div class="error-modal-overlay" onclick="errorHandler.closeModal('${modalId}')"></div>
+      <div class="error-modal-overlay" data-error-modal-action="close"></div>
       <div class="error-modal-content">
         <div class="error-modal-header ${error.type}">
           <i class="fas ${error.icon}"></i>
           <h3>${escapeHtml(error.title)}</h3>
-          <button class="error-modal-close" onclick="errorHandler.closeModal('${modalId}')">
+          <button class="error-modal-close" data-error-modal-action="close">
             <i class="fas fa-times"></i>
           </button>
         </div>
@@ -159,13 +160,14 @@ export class ErrorHandler {
           }
         </div>
         <div class="error-modal-footer">
-          <button class="btn-retry" onclick="errorHandler.closeModal('${modalId}')">
+          <button class="btn-retry" data-error-modal-action="close">
             <i class="fas fa-times"></i> 关闭
           </button>
         </div>
       </div>
     `;
 
+    this.bindModalEvents(modal, modalId);
     document.body.appendChild(modal);
 
     // 添加到历史记录
@@ -197,7 +199,26 @@ export class ErrorHandler {
     }
   }
 
-  // 已删除重试操作，现在只保留关闭功能
+  /**
+   * 绑定错误弹窗事件委托
+   * 避免内联 onclick，统一处理弹窗关闭操作。
+   *
+   * @param {HTMLElement} modal - 错误弹窗根元素
+   * @param {string} modalId - 弹窗 DOM ID
+   * @returns {void}
+   */
+  bindModalEvents(modal, modalId) {
+    if (!modal || typeof modal.addEventListener !== 'function') return;
+
+    modal.addEventListener('click', (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      const actionEl = target
+        ? /** @type {HTMLElement|null} */ (target.closest('[data-error-modal-action]'))
+        : null;
+      if (!actionEl || actionEl.dataset.errorModalAction !== 'close') return;
+      this.closeModal(modalId);
+    });
+  }
 
   /**
    * 添加错误到历史记录
@@ -276,6 +297,7 @@ export class ErrorHandler {
    */
   analyzeErrorPattern() {
     const recentErrors = this.errorHistory.slice(0, 5);
+    /** @type {Record<string, number>} */
     const errorCounts = {};
 
     recentErrors.forEach((error) => {
@@ -304,6 +326,7 @@ export class ErrorHandler {
    * console.log(advice) // => '您的请求过于频繁...'
    */
   getPatternAdvice(errorCode) {
+    /** @type {Record<string, string>} */
     const advice = {
       RATE_LIMITED: '您的请求过于频繁，建议降低请求频率或联系管理员增加限额',
       PRIVACY_PROTECTED: '多个用户的追番列表都是隐私的，这是B站的默认设置',
@@ -357,42 +380,6 @@ export class UserGuide {
      * @type {boolean}
      */
     this.isActive = false;
-  }
-
-  /**
-   * 初始化引导步骤（旧版本）
-   * @deprecated 使用 initTourV2 代替
-   * @returns {void}
-   */
-  initTour() {
-    this.steps = [
-      {
-        element: '#uidInput',
-        title: '输入UID',
-        content: '在这里输入您的B站用户ID（UID）',
-        position: 'bottom',
-      },
-      {
-        element: '.help-text',
-        title: '查找UID',
-        content: 'UID可以在您的B站个人空间网址中找到',
-        position: 'top',
-      },
-      {
-        element: 'button[onclick="handleSubscribe()"]', // This selector might fail if handleSubscribe is not global.
-        // But wait, I don't use onclick in HTML for generateBtn. I use id="generateBtn".
-        // So I should update this selector.
-        title: '生成订阅',
-        content: '点击这个按钮生成您的追番日历订阅链接',
-        position: 'left',
-      },
-      {
-        element: '.theme-switcher',
-        title: '主题切换',
-        content: '点击这里可以切换亮色/暗色主题',
-        position: 'bottom-left',
-      },
-    ];
   }
 
   /**
@@ -475,6 +462,10 @@ export class UserGuide {
     }
 
     const step = this.steps[this.currentStep];
+    if (!step) {
+      this.endTour();
+      return;
+    }
     const element = document.querySelector(step.element);
 
     if (!element) {
@@ -493,7 +484,7 @@ export class UserGuide {
     tooltip.innerHTML = `
       <div class="guide-tooltip-header">
         <span class="guide-step-number">步骤 ${this.currentStep + 1}/${this.steps.length}</span>
-        <button class="guide-close" onclick="userGuide.endTour()">
+        <button class="guide-close" data-guide-action="end">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -502,15 +493,16 @@ export class UserGuide {
         <p>${escapeHtml(step.content)}</p>
       </div>
       <div class="guide-tooltip-footer">
-        ${this.currentStep > 0 ? '<button class="guide-prev" onclick="userGuide.prevStep()">上一步</button>' : ''}
+        ${this.currentStep > 0 ? '<button class="guide-prev" data-guide-action="prev">上一步</button>' : ''}
         ${
           this.currentStep < this.steps.length - 1
-            ? '<button class="guide-next" onclick="userGuide.nextStep()">下一步</button>'
-            : '<button class="guide-finish" onclick="userGuide.endTour()">完成</button>'
+            ? '<button class="guide-next" data-guide-action="next">下一步</button>'
+            : '<button class="guide-finish" data-guide-action="end">完成</button>'
         }
       </div>
     `;
 
+    this.bindTooltipEvents(tooltip);
     document.body.appendChild(tooltip);
 
     // 定位提示框
@@ -522,7 +514,7 @@ export class UserGuide {
    * 根据目标元素和指定位置计算提示框坐标
    *
    * @param {Element} element - 目标元素
-   * @param {Element} tooltip - 提示框元素
+   * @param {HTMLElement} tooltip - 提示框元素
    * @param {'top'|'bottom'|'left'|'right'|'bottom-left'} position - 提示框位置
    * @returns {void}
    *
@@ -567,6 +559,34 @@ export class UserGuide {
 
     tooltip.style.top = `${top}px`;
     tooltip.style.left = `${left}px`;
+  }
+
+  /**
+   * 绑定引导提示框事件委托
+   * 根据 data-guide-action 分发引导按钮操作。
+   *
+   * @param {HTMLElement} tooltip - 引导提示框根元素
+   * @returns {void}
+   */
+  bindTooltipEvents(tooltip) {
+    if (!tooltip || typeof tooltip.addEventListener !== 'function') return;
+
+    tooltip.addEventListener('click', (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      const actionEl = target
+        ? /** @type {HTMLElement|null} */ (target.closest('[data-guide-action]'))
+        : null;
+      if (!actionEl) return;
+
+      const action = actionEl.dataset.guideAction;
+      if (action === 'prev') {
+        this.prevStep();
+      } else if (action === 'next') {
+        this.nextStep();
+      } else if (action === 'end') {
+        this.endTour();
+      }
+    });
   }
 
   /**

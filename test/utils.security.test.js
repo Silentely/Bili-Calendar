@@ -1,10 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
-const { isPrivateIPAddress } = require('../utils/security.cjs');
-const { extractClientIP } = require('../utils/ip.cjs');
+import { isPrivateIPAddress } from '../utils-es/security.js';
+import { extractClientIP } from '../utils-es/ip.js';
 
 test('isPrivateIPAddress covers IPv4-mapped IPv6 addresses', () => {
   assert.equal(isPrivateIPAddress('::ffff:127.0.0.1'), true);

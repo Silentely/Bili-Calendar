@@ -2,9 +2,7 @@
 // 请求去重单元测试
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const { createRequestDedup } = require('../utils/request-dedup.cjs');
+import { createRequestDedup } from '../utils-es/request-dedup.js';
 
 describe('Request Deduplication', () => {
   let dedupManager;
