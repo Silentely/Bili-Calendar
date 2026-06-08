@@ -122,7 +122,11 @@ function parseIcsDateTime(raw, tzid = DEFAULT_TZ) {
     const y = raw.slice(0, 4);
     const m = raw.slice(4, 6);
     const d = raw.slice(6, 8);
-    return { date: new Date(`${y}-${m}-${d}T00:00:00${tzOffsetFor(tzid)}`), isAllDay: true };
+    const refDate = new Date(`${y}-${m}-${d}T12:00:00Z`);
+    return {
+      date: new Date(`${y}-${m}-${d}T00:00:00${tzOffsetFor(tzid, refDate)}`),
+      isAllDay: true,
+    };
   }
 
   if (/Z$/.test(raw)) {
@@ -143,8 +147,9 @@ function parseIcsDateTime(raw, tzid = DEFAULT_TZ) {
     const hh = raw.slice(9, 11);
     const mm = raw.slice(11, 13);
     const ss = raw.slice(13, 15);
+    const refDate = new Date(`${y}-${m}-${d}T${hh}:${mm}:${ss}Z`);
     return {
-      date: new Date(`${y}-${m}-${d}T${hh}:${mm}:${ss}${tzOffsetFor(tzid)}`),
+      date: new Date(`${y}-${m}-${d}T${hh}:${mm}:${ss}${tzOffsetFor(tzid, refDate)}`),
       isAllDay: false,
     };
   }
@@ -152,12 +157,12 @@ function parseIcsDateTime(raw, tzid = DEFAULT_TZ) {
   return null;
 }
 
-function tzOffsetFor(tzid) {
+function tzOffsetFor(tzid, refDate) {
   if (tzid === 'Asia/Shanghai' || tzid === 'Asia/Chongqing' || tzid === 'Asia/Harbin') {
     return '+08:00';
   }
   try {
-    const date = new Date();
+    const date = refDate || new Date();
     const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
     const tzDate = new Date(date.toLocaleString('en-US', { timeZone: tzid }));
     const offsetMs = tzDate.getTime() - utcDate.getTime();
