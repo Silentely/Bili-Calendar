@@ -16,7 +16,7 @@
     "test": "node --test --test-concurrency=1",
     "type-check": "tsc --noEmit",
     "type-check:watch": "tsc --noEmit --watch",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install || true"
   },
   "keywords": [
     "bilibili",
