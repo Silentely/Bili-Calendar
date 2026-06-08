@@ -26,7 +26,7 @@ export function parseAggregateSources(rawValue = '') {
   }
 
   const tokens = rawValue
-    .split(/\n/)
+    .split(/[\n,]/)
     .map((token) => token.trim())
     .filter(Boolean);
 

@@ -596,20 +596,6 @@ export class CacheManager {
   bindHistoryPanelEvents(panel) {
     if (!panel || typeof panel.addEventListener !== 'function') return;
 
-    // 同时委托 autoSuggest 容器的点击事件
-    const suggestContainer = document.getElementById('autoSuggest');
-    if (suggestContainer && typeof suggestContainer.addEventListener === 'function') {
-      suggestContainer.addEventListener('click', (event) => {
-        const target = event.target instanceof Element ? event.target : null;
-        const actionEl = target
-          ? /** @type {HTMLElement|null} */ (target.closest('[data-action]'))
-          : null;
-        if (actionEl && actionEl.dataset.action === 'select-suggestion' && actionEl.dataset.uid) {
-          this.selectSuggestion(actionEl.dataset.uid);
-        }
-      });
-    }
-
     panel.addEventListener('click', (event) => {
       const target = event.target instanceof Element ? event.target : null;
       const actionEl = target
@@ -781,6 +767,17 @@ export class CacheManager {
     suggestContainer.className = 'auto-suggest-container';
     suggestContainer.id = 'autoSuggest';
     input.parentElement.appendChild(suggestContainer);
+
+    // 建议项点击事件委托（初始化时绑定，确保首次加载即可用）
+    suggestContainer.addEventListener('click', (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      const actionEl = target
+        ? /** @type {HTMLElement|null} */ (target.closest('[data-action]'))
+        : null;
+      if (actionEl && actionEl.dataset.action === 'select-suggestion' && actionEl.dataset.uid) {
+        this.selectSuggestion(actionEl.dataset.uid);
+      }
+    });
 
     // 输入事件监听
     input.addEventListener('input', (e) => {
