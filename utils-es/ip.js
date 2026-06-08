@@ -40,8 +40,9 @@ export function extractClientIP(req) {
     candidates.push(directAddress);
   }
 
+  // remote-addr 仅在无其他来源时作为低可信度兜底，可能被客户端伪造
   const fallback = req.headers?.['remote-addr'];
-  if (fallback) {
+  if (fallback && candidates.length === 0) {
     candidates.push(fallback);
   }
 

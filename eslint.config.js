@@ -8,7 +8,10 @@ const recommendedRules = {
 };
 
 function asWarningRule(ruleConfig) {
+  // 保留 'off' 规则不转换，避免意外启用已禁用的规则
+  if (ruleConfig === 'off' || ruleConfig === 0) return 'off';
   if (Array.isArray(ruleConfig)) {
+    if (ruleConfig[0] === 'off' || ruleConfig[0] === 0) return ruleConfig;
     return ['warn', ...ruleConfig.slice(1)];
   }
   return 'warn';

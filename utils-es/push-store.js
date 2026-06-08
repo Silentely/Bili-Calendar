@@ -31,6 +31,14 @@ class PushStore {
       }
     } catch (err) {
       console.warn('⚠️ 无法读取推送订阅存储:', err.message);
+      // 备份损坏文件，避免下次 save() 覆盖丢失数据
+      try {
+        const backupPath = `${this.filePath}.corrupted-${Date.now()}`;
+        fs.copyFileSync(this.filePath, backupPath);
+        console.warn(`⚠️ 已备份损坏文件到: ${backupPath}`);
+      } catch {
+        // 备份失败不影响主流程
+      }
       this.data = [];
     }
   }

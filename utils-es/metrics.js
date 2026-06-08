@@ -105,7 +105,11 @@ export class Metrics {
     const out = [];
     for (const [route, stat] of this.routeStats.entries()) {
       const avg = stat.latencies.length
-        ? Number((stat.latencies.reduce((sum, value) => sum + value, 0) / stat.latencies.length).toFixed(2))
+        ? Number(
+            (stat.latencies.reduce((sum, value) => sum + value, 0) / stat.latencies.length).toFixed(
+              2
+            )
+          )
         : 0;
       out.push({
         route,
@@ -116,10 +120,6 @@ export class Metrics {
         p95: percentile(stat.latencies, 95),
         p99: percentile(stat.latencies, 99),
       });
-
-      if (stat.latencies.length > this.maxBuffer) {
-        stat.latencies.splice(0, stat.latencies.length - this.maxBuffer);
-      }
     }
     return out;
   }

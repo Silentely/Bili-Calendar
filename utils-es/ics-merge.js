@@ -4,6 +4,8 @@
 
 import axios from 'axios';
 import dns from 'node:dns';
+import http from 'node:http';
+import https from 'node:https';
 import { isPrivateIPAddress } from './security.js';
 import {
   parseBroadcastTime,
@@ -29,18 +31,24 @@ const safeLookup = (hostname, options, callback) => {
       return;
     }
 
-    if (isPrivateIPAddress(address)) {
-      const ssrfError = new Error(
-        `SSRF attempt blocked: request to private IP ${address} for hostname ${hostname}`
-      );
-      ssrfError.code = 'ERR_SSRF_BLOCKED';
-      callback(ssrfError);
-      return;
+    const addresses = Array.isArray(address) ? address : [{ address, family }];
+    for (const addr of addresses) {
+      if (isPrivateIPAddress(addr.address)) {
+        const ssrfError = new Error(
+          `SSRF attempt blocked: request to private IP ${addr.address} for hostname ${hostname}`
+        );
+        ssrfError.code = 'ERR_SSRF_BLOCKED';
+        callback(ssrfError);
+        return;
+      }
     }
 
     callback(null, address, family);
   });
 };
+
+const httpAgent = new http.Agent({ lookup: safeLookup, keepAlive: true });
+const httpsAgent = new https.Agent({ lookup: safeLookup, keepAlive: true });
 
 export function buildBangumiEvents(bangumis, _uid) {
   const nowIso = new Date().toISOString().replace(/[-:.]/g, '').substring(0, 15) + 'Z';
@@ -135,7 +143,10 @@ function parseIcsDateTime(raw, tzid = DEFAULT_TZ) {
     const hh = raw.slice(9, 11);
     const mm = raw.slice(11, 13);
     const ss = raw.slice(13, 15);
-    return { date: new Date(`${y}-${m}-${d}T${hh}:${mm}:${ss}${tzOffsetFor(tzid)}`), isAllDay: false };
+    return {
+      date: new Date(`${y}-${m}-${d}T${hh}:${mm}:${ss}${tzOffsetFor(tzid)}`),
+      isAllDay: false,
+    };
   }
 
   return null;
@@ -145,10 +156,22 @@ function tzOffsetFor(tzid) {
   if (tzid === 'Asia/Shanghai' || tzid === 'Asia/Chongqing' || tzid === 'Asia/Harbin') {
     return '+08:00';
   }
-  const offsetMinutes = new Date().getTimezoneOffset();
-  const hours = Math.abs(Math.floor(offsetMinutes / 60)).toString().padStart(2, '0');
-  const mins = Math.abs(offsetMinutes % 60).toString().padStart(2, '0');
-  return `${offsetMinutes <= 0 ? '+' : '-'}${hours}:${mins}`;
+  try {
+    const date = new Date();
+    const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
+    const tzDate = new Date(date.toLocaleString('en-US', { timeZone: tzid }));
+    const offsetMs = tzDate.getTime() - utcDate.getTime();
+    const offsetMinutes = offsetMs / 60000;
+    const hours = Math.abs(Math.floor(offsetMinutes / 60))
+      .toString()
+      .padStart(2, '0');
+    const mins = Math.abs(offsetMinutes % 60)
+      .toString()
+      .padStart(2, '0');
+    return `${offsetMinutes >= 0 ? '+' : '-'}${hours}:${mins}`;
+  } catch {
+    return '+08:00';
+  }
 }
 
 export function parseIcsEvents(icsText, sourceLabel) {
@@ -166,7 +189,8 @@ export function parseIcsEvents(icsText, sourceLabel) {
       current = null;
     } else if (current) {
       if (line.startsWith('SUMMARY:')) current.summary = line.replace('SUMMARY:', '').trim();
-      else if (line.startsWith('DESCRIPTION:')) current.description = line.replace('DESCRIPTION:', '').trim();
+      else if (line.startsWith('DESCRIPTION:'))
+        current.description = line.replace('DESCRIPTION:', '').trim();
       else if (line.startsWith('UID:')) current.uid = line.replace('UID:', '').trim();
       else if (line.startsWith('URL')) {
         const idx = line.indexOf(':');
@@ -182,6 +206,7 @@ export function parseIcsEvents(icsText, sourceLabel) {
           current.start = parsed.date;
           current.isAllDay = parsed.isAllDay;
           current.rawStart = value.trim();
+          current.tzid = tzMatch ? tzMatch[1] : null;
         }
       } else if (line.startsWith('DTEND')) {
         const [prefix, value] = line.split(':');
@@ -189,6 +214,7 @@ export function parseIcsEvents(icsText, sourceLabel) {
         const parsed = parseIcsDateTime(value.trim(), tzMatch ? tzMatch[1] : DEFAULT_TZ);
         if (parsed) {
           current.end = parsed.date;
+          current.rawEnd = value.trim();
         }
       }
     }
@@ -206,6 +232,8 @@ export function parseIcsEvents(icsText, sourceLabel) {
       source: sourceLabel,
       url: ev.url,
       rawStart: ev.rawStart,
+      rawEnd: ev.rawEnd,
+      tzid: ev.tzid,
       rrule: ev.rrule,
       baseUid: ev.uid || `${sourceLabel}-${idx}@merged.local`,
     };
@@ -297,18 +325,29 @@ END:VTIMEZONE`;
     const evLines = ['BEGIN:VEVENT'];
     evLines.push(`UID:${ev.uid}`);
     evLines.push(`DTSTAMP:${ev.dtstamp || now}`);
+    const tzid = ev.tzid || DEFAULT_TZ;
     if (ev.rawStart && !ev.isAllDay) {
-      evLines.push(`DTSTART;TZID=${DEFAULT_TZ}:${ev.rawStart}`);
+      evLines.push(`DTSTART;TZID=${tzid}:${ev.rawStart}`);
     } else if (ev.rawStart && ev.isAllDay) {
       evLines.push(`DTSTART;VALUE=DATE:${ev.rawStart}`);
     } else {
       const formatted = formatDateTime(ev.start, ev.isAllDay);
-      evLines.push(ev.isAllDay ? `DTSTART;VALUE=DATE:${formatted}` : `DTSTART;TZID=${DEFAULT_TZ}:${formatted}`);
+      evLines.push(
+        ev.isAllDay ? `DTSTART;VALUE=DATE:${formatted}` : `DTSTART;TZID=${tzid}:${formatted}`
+      );
     }
 
     if (ev.end) {
-      const formattedEnd = formatDateTime(ev.end, ev.isAllDay);
-      evLines.push(ev.isAllDay ? `DTEND;VALUE=DATE:${formattedEnd}` : `DTEND;TZID=${DEFAULT_TZ}:${formattedEnd}`);
+      if (ev.rawEnd && !ev.isAllDay) {
+        evLines.push(`DTEND;TZID=${tzid}:${ev.rawEnd}`);
+      } else if (ev.rawEnd && ev.isAllDay) {
+        evLines.push(`DTEND;VALUE=DATE:${ev.rawEnd}`);
+      } else {
+        const formattedEnd = formatDateTime(ev.end, ev.isAllDay);
+        evLines.push(
+          ev.isAllDay ? `DTEND;VALUE=DATE:${formattedEnd}` : `DTEND;TZID=${tzid}:${formattedEnd}`
+        );
+      }
     }
 
     if (ev.rrule) evLines.push(`RRULE:${ev.rrule}`);
@@ -374,7 +413,7 @@ export async function fetchExternalICS(urls = []) {
     }
 
     return axios
-      .get(url, { timeout: 8000, responseType: 'text', lookup: safeLookup })
+      .get(url, { timeout: 8000, responseType: 'text', httpAgent, httpsAgent })
       .then((res) => {
         if (typeof res.data === 'string') {
           return { url, ics: res.data };

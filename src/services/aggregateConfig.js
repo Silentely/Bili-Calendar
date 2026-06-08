@@ -26,7 +26,7 @@ export function parseAggregateSources(rawValue = '') {
   }
 
   const tokens = rawValue
-    .split(/[\n,]/)
+    .split(/\n/)
     .map((token) => token.trim())
     .filter(Boolean);
 
@@ -173,7 +173,9 @@ export function applyAggregateConfig({ enabled, rawSources } = {}) {
 }
 
 export function initAggregateConfig() {
-  const sourcesInput = /** @type {HTMLTextAreaElement|null} */ (document.getElementById('sourcesInput'));
+  const sourcesInput = /** @type {HTMLTextAreaElement|null} */ (
+    document.getElementById('sourcesInput')
+  );
   const aggregateToggle = /** @type {HTMLInputElement|null} */ (
     document.getElementById('aggregateToggle')
   );

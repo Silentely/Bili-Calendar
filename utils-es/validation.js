@@ -1,18 +1,12 @@
 // utils-es/validation.js
 // 统一的输入验证工具模块（ESM 版本）
 
+import { isPrivateIPAddress } from './security.js';
+
 export const UID_MIN_LENGTH = 1;
 export const UID_MAX_LENGTH = 20;
 export const UID_PATTERN = /^\d{1,20}$/;
 export const ALLOWED_URL_PROTOCOLS = ['http:', 'https:'];
-
-const BLOCKED_PRIVATE_IP_PATTERNS = [
-  /^127\./,
-  /^10\./,
-  /^172\.(1[6-9]|2[0-9]|3[01])\./,
-  /^192\.168\./,
-  /^localhost$/i,
-];
 
 export function validateUID(uid) {
   if (uid === null || uid === undefined || uid === '') {
@@ -85,16 +79,12 @@ export function validateURL(url, options = {}) {
     };
   }
 
-  if (!allowPrivateIP) {
-    for (const pattern of BLOCKED_PRIVATE_IP_PATTERNS) {
-      if (pattern.test(parsed.hostname)) {
-        return {
-          valid: false,
-          error: '不允许访问私有 IP 地址',
-          parsed: null,
-        };
-      }
-    }
+  if (!allowPrivateIP && isPrivateIPAddress(parsed.hostname)) {
+    return {
+      valid: false,
+      error: '不允许访问私有 IP 地址',
+      parsed: null,
+    };
   }
 
   return {

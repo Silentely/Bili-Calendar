@@ -596,6 +596,20 @@ export class CacheManager {
   bindHistoryPanelEvents(panel) {
     if (!panel || typeof panel.addEventListener !== 'function') return;
 
+    // 同时委托 autoSuggest 容器的点击事件
+    const suggestContainer = document.getElementById('autoSuggest');
+    if (suggestContainer && typeof suggestContainer.addEventListener === 'function') {
+      suggestContainer.addEventListener('click', (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        const actionEl = target
+          ? /** @type {HTMLElement|null} */ (target.closest('[data-action]'))
+          : null;
+        if (actionEl && actionEl.dataset.action === 'select-suggestion' && actionEl.dataset.uid) {
+          this.selectSuggestion(actionEl.dataset.uid);
+        }
+      });
+    }
+
     panel.addEventListener('click', (event) => {
       const target = event.target instanceof Element ? event.target : null;
       const actionEl = target
@@ -614,6 +628,8 @@ export class CacheManager {
         this.deleteHistory(uid);
       } else if (action === 'clear-cache') {
         this.clearAllCache();
+      } else if (action === 'select-suggestion' && uid) {
+        this.selectSuggestion(uid);
       }
     });
   }

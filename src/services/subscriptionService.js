@@ -17,10 +17,7 @@ import { showProgressBar } from './progressService.js';
 import { showLoadingOverlay } from './loadingService.js';
 import { showResultAnimation } from './animationService.js';
 import { copyFromElement } from './clipboardService.js';
-import {
-  AGG_SOURCES_STORAGE_KEY,
-  evaluateAggregateInput,
-} from './aggregateConfig.js';
+import { AGG_SOURCES_STORAGE_KEY, evaluateAggregateInput } from './aggregateConfig.js';
 
 /**
  * @typedef {{code?: number, message?: string, data?: {list?: any[]}} & Record<string, any>} ApiBody
@@ -48,7 +45,7 @@ function normalizeUidFromInput(input) {
  * @returns {boolean}
  */
 function validateUid(uid) {
-  return !!uid && /^[0-9]+$/.test(uid);
+  return !!uid && /^\d{1,20}$/.test(uid);
 }
 
 /**
@@ -67,7 +64,10 @@ function bindPreviewActions(animeData) {
       if (result.denied) {
         showToast(i18n.t('toast.reminderDenied'), 'warning');
       } else {
-        showToast(i18n.t('toast.reminderOn', { count: result.scheduled, minutes: lead }), 'success');
+        showToast(
+          i18n.t('toast.reminderOn', { count: result.scheduled, minutes: lead }),
+          'success'
+        );
       }
     });
   }
@@ -134,7 +134,10 @@ export async function precheckRate(uid) {
     /** @type {ApiBody} */
     let body = {};
     try {
-      body = await resp.json();
+      const parsed = await resp.json();
+      if (parsed && typeof parsed === 'object') {
+        body = parsed;
+      }
     } catch {
       // 如果不是 JSON 响应，继续处理状态码。
     }

@@ -2,11 +2,11 @@ pre-commit:
   parallel: true
   jobs:
     - name: eslint staged js
-      glob: '*.js'
+      glob: '**/*.js'
       run: npx eslint -- {staged_files}
 
     - name: prettier check
-      glob: '*.{js,json,md,yml,yaml,html,css,scss}'
+      glob: '**/*.{js,json,md,yml,yaml,html,css,scss}'
       run: npx prettier --check -- {staged_files}
 
 commit-msg:

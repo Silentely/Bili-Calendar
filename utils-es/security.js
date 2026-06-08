@@ -48,8 +48,9 @@ export function isPrivateIPAddress(hostname) {
     return (
       lower === '::1' ||
       lower.startsWith('fe80:') ||
-      lower.startsWith('fc00:') ||
-      lower.startsWith('fd00:') ||
+      lower.startsWith('fc') ||
+      lower.startsWith('fd') ||
+      lower.startsWith('fe') ||
       lower === '::'
     );
   }

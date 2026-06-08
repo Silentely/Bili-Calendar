@@ -107,11 +107,6 @@ export async function getBangumiData(uid) {
 
   // 使用请求去重，防止并发相同请求
   return dedupManager.dedupe(`bangumi:${sanitizedUID}`, async () => {
-    const dedupCached = getCachedBangumi(sanitizedUID);
-    if (dedupCached) {
-      return dedupCached;
-    }
-
     try {
       console.log(`🔍 获取用户 ${sanitizedUID} 的追番数据`);
       const url = `${BILIBILI_API_BASE_URL}/x/space/bangumi/follow/list?type=1&follow_status=0&vmid=${sanitizedUID}&pn=1&ps=30`;
