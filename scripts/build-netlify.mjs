@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import esbuild from 'esbuild';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,11 +30,10 @@ async function main() {
   console.log('🔨 开始构建 Netlify Functions...');
   await cleanOutput();
 
+  // 第一步：复制源文件到构建目录
   const targets = [
-    ['netlify/functions/server.js', 'server.js'],
+    ['netlify/functions/server.js', 'server.esm.js'],
     ['dist', 'dist'],
-    ['utils', 'utils'],
-    ['utils-es', 'utils-es'],
   ];
 
   for (const [src, dest] of targets) {
@@ -43,26 +43,52 @@ async function main() {
     await copyRecursive(srcPath, destPath);
   }
 
-  // Netlify 运行时会为 ESM 函数注入 __filename/__dirname，
-  // 源码中任何同名声明都会导致 SyntaxError，必须完全移除并重命名使用处
-  const builtServerPath = path.join(buildDir, 'server.js');
-  let content = await fs.readFile(builtServerPath, 'utf-8');
+  // 第二步：预处理 ESM 源码
+  const esmPath = path.join(buildDir, 'server.esm.js');
+  let content = await fs.readFile(esmPath, 'utf-8');
   // 移除 fileURLToPath import（仅 __filename 声明使用）
   content = content.replace(
     /import \{ fileURLToPath \} from 'node:url';\s*\n/,
     ''
   );
-  // 移除 __filename 和 __dirname 声明（运行时已注入，无需重复声明）
+  // 移除 __filename 和 __dirname 声明（esbuild 会处理路径）
   content = content.replace(
     /const __filename = fileURLToPath\(import\.meta\.url\);\s*\nconst __dirname = path\.dirname\(__filename\);\s*\n/,
     ''
   );
-  // 重写 import 路径：../../utils-es/ → ./utils-es/
-  // zip-it-and-ship-it 的 esbuild 无法 bundle functions 目录外的文件，
-  // 复制到 functions-build/ 后必须用相对路径才能正确 bundle
-  content = content.replace(/from '\.\.\/\.\.\/utils-es\//g, "from './utils-es/");
-  await fs.writeFile(builtServerPath, content, 'utf-8');
-  console.log('🔧 已移除 __dirname 声明并重写 utils-es import 路径');
+  await fs.writeFile(esmPath, content, 'utf-8');
+  console.log('🔧 已移除 __dirname 声明');
+
+  // 第三步：用 esbuild 将 ESM bundle 为 CJS
+  // zip-it-and-ship-it 的 CJS 转换会丢失 default export，
+  // 手动 bundle 确保正确的模块互操作
+  const cjsPath = path.join(buildDir, 'server.js');
+  await esbuild.build({
+    entryPoints: [esmPath],
+    bundle: true,
+    platform: 'node',
+    format: 'cjs',
+    target: 'node22',
+    outfile: cjsPath,
+    external: ['serverless-http', 'express', 'compression'],
+  });
+  console.log('🔧 已用 esbuild bundle 为 CJS (node22)');
+
+  // 清理临时 ESM 文件（已 bundle 进 server.js）
+  await fs.rm(esmPath, { force: true });
+
+  // 关键：在 functions-build/ 下创建 package.json 指定 CommonJS
+  // 根 package.json 有 "type": "module"，会导致 .js 文件被当作 ESM 处理
+  // 必须覆盖为 CommonJS 才能让 require() 正确加载 esbuild 产物
+  await fs.writeFile(
+    path.join(buildDir, 'package.json'),
+    JSON.stringify({ type: 'commonjs' }, null, 2) + '\n'
+  );
+
+  // 检查产物大小
+  const stat = await fs.stat(cjsPath);
+  const sizeKb = (stat.size / 1024).toFixed(1);
+  console.log(`📦 产物大小: ${sizeKb} KB`);
 
   console.log(`✅ 构建完成：${buildDir}`);
 }
