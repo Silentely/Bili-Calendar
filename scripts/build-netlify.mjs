@@ -44,20 +44,23 @@ async function main() {
   }
 
   // Netlify 运行时会为 ESM 函数注入 __filename/__dirname，
-  // 需要移除源码中的手动声明，改用 import.meta.url 直接计算 __dirname
+  // 源码中任何同名声明都会导致 SyntaxError，必须完全移除并重命名使用处
   const builtServerPath = path.join(buildDir, 'server.js');
   let content = await fs.readFile(builtServerPath, 'utf-8');
-  content = content.replace(
-    /const __filename = fileURLToPath\(import\.meta\.url\);\s*\nconst __dirname = path\.dirname\(__filename\);\s*\n/,
-    "const __dirname = path.dirname(new URL(import.meta.url).pathname);\n"
-  );
-  // fileURLToPath 仅在 __filename 声明处使用，移除未使用的 import
+  // 移除 fileURLToPath import（仅 __filename 声明使用）
   content = content.replace(
     /import \{ fileURLToPath \} from 'node:url';\s*\n/,
     ''
   );
+  // 移除 __filename 和 __dirname 声明，替换为独立变量名 _fnDir
+  content = content.replace(
+    /const __filename = fileURLToPath\(import\.meta\.url\);\s*\nconst __dirname = path\.dirname\(__filename\);\s*\n/,
+    "const _fnDir = path.dirname(new URL(import.meta.url).pathname);\n"
+  );
+  // 将所有 __dirname 引用重命名为 _fnDir（避免与运行时注入冲突）
+  content = content.replace(/\b__dirname\b/g, '_fnDir');
   await fs.writeFile(builtServerPath, content, 'utf-8');
-  console.log('🔧 已替换 __filename/__dirname 声明（避免与运行时注入冲突）');
+  console.log('🔧 已移除 __filename/__dirname 声明并重命名为 _fnDir（避免与运行时注入冲突）');
 
   console.log(`✅ 构建完成：${buildDir}`);
 }
