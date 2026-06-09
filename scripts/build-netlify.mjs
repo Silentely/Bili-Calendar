@@ -52,15 +52,13 @@ async function main() {
     /import \{ fileURLToPath \} from 'node:url';\s*\n/,
     ''
   );
-  // 移除 __filename 和 __dirname 声明，替换为独立变量名 _fnDir
+  // 移除 __filename 和 __dirname 声明（运行时已注入，无需重复声明）
   content = content.replace(
     /const __filename = fileURLToPath\(import\.meta\.url\);\s*\nconst __dirname = path\.dirname\(__filename\);\s*\n/,
-    "const _fnDir = path.dirname(new URL(import.meta.url).pathname);\n"
+    ''
   );
-  // 将所有 __dirname 引用重命名为 _fnDir（避免与运行时注入冲突）
-  content = content.replace(/\b__dirname\b/g, '_fnDir');
   await fs.writeFile(builtServerPath, content, 'utf-8');
-  console.log('🔧 已移除 __filename/__dirname 声明并重命名为 _fnDir（避免与运行时注入冲突）');
+  console.log('🔧 已移除 __filename/__dirname 声明（运行时已注入同名全局变量）');
 
   console.log(`✅ 构建完成：${buildDir}`);
 }
