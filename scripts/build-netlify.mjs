@@ -43,6 +43,22 @@ async function main() {
     await copyRecursive(srcPath, destPath);
   }
 
+  // Netlify 运行时会为 ESM 函数注入 __filename/__dirname，
+  // 需要移除源码中的手动声明，改用 import.meta.url 直接计算 __dirname
+  const builtServerPath = path.join(buildDir, 'server.js');
+  let content = await fs.readFile(builtServerPath, 'utf-8');
+  content = content.replace(
+    /const __filename = fileURLToPath\(import\.meta\.url\);\s*\nconst __dirname = path\.dirname\(__filename\);\s*\n/,
+    "const __dirname = path.dirname(new URL(import.meta.url).pathname);\n"
+  );
+  // fileURLToPath 仅在 __filename 声明处使用，移除未使用的 import
+  content = content.replace(
+    /import \{ fileURLToPath \} from 'node:url';\s*\n/,
+    ''
+  );
+  await fs.writeFile(builtServerPath, content, 'utf-8');
+  console.log('🔧 已替换 __filename/__dirname 声明（避免与运行时注入冲突）');
+
   console.log(`✅ 构建完成：${buildDir}`);
 }
 
