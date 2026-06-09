@@ -57,8 +57,12 @@ async function main() {
     /const __filename = fileURLToPath\(import\.meta\.url\);\s*\nconst __dirname = path\.dirname\(__filename\);\s*\n/,
     ''
   );
+  // 重写 import 路径：../../utils-es/ → ./utils-es/
+  // zip-it-and-ship-it 的 esbuild 无法 bundle functions 目录外的文件，
+  // 复制到 functions-build/ 后必须用相对路径才能正确 bundle
+  content = content.replace(/from '\.\.\/\.\.\/utils-es\//g, "from './utils-es/");
   await fs.writeFile(builtServerPath, content, 'utf-8');
-  console.log('🔧 已移除 __filename/__dirname 声明（运行时已注入同名全局变量）');
+  console.log('🔧 已移除 __dirname 声明并重写 utils-es import 路径');
 
   console.log(`✅ 构建完成：${buildDir}`);
 }
