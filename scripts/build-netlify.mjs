@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import esbuild from 'esbuild';
+import { build } from 'rolldown';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -59,20 +59,20 @@ async function main() {
   await fs.writeFile(esmPath, content, 'utf-8');
   console.log('🔧 已移除 __dirname 声明');
 
-  // 第三步：用 esbuild 将 ESM bundle 为 CJS
+  // 第三步：用 rolldown 将 ESM bundle 为 CJS
   // zip-it-and-ship-it 的 CJS 转换会丢失 default export，
   // 手动 bundle 确保正确的模块互操作
   const cjsPath = path.join(buildDir, 'server.js');
-  await esbuild.build({
-    entryPoints: [esmPath],
-    bundle: true,
-    platform: 'node',
-    format: 'cjs',
-    target: 'node22',
-    outfile: cjsPath,
+  await build({
+    input: esmPath,
+    output: {
+      format: 'cjs',
+      file: cjsPath,
+      codeSplitting: false,
+    },
     external: ['serverless-http', 'express', 'compression'],
   });
-  console.log('🔧 已用 esbuild bundle 为 CJS (node22)');
+  console.log('🔧 已用 rolldown bundle 为 CJS (node22)');
 
   // 清理临时 ESM 文件（已 bundle 进 server.js）
   await fs.rm(esmPath, { force: true });
