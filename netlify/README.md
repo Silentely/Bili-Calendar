@@ -1,6 +1,6 @@
 # Netlify 部署说明
 
-本目录保存 Netlify Functions 相关源码和构建产物。前端仍由 Vite 构建到 `dist/`，API 与日历订阅路由通过 Netlify Function `server` 处理。
+本目录保存 Netlify Functions 相关源码。前端仍由 Vite 构建到 `dist/`，API 与日历订阅路由通过 Netlify Function `server` 处理。
 
 ## 部署流程
 
@@ -14,7 +14,9 @@ Netlify 使用根目录的 `netlify.toml`：
 
 1. `vite build` 生成前端静态文件到 `dist/`。
 2. `node scripts/update-readme-year.js` 同步 README 版权年份。
-3. `node scripts/build-netlify.mjs` 复制函数入口、`dist/`、`utils/`、`utils-es/` 到 `netlify/functions-build/`。
+3. `node scripts/build-netlify.mjs` 用 rolldown 将函数入口 bundle 为 CJS，并复制 `dist/` 到 `netlify/functions-build/`。
+
+`utils/**` 与 `utils-es/**` 通过 `netlify.toml` 的 `functions.included_files` 在打包阶段一并带入，无需再由构建脚本手工复制到 `functions-build/`。
 
 ## 路由重写
 
@@ -29,7 +31,7 @@ Netlify 使用根目录的 `netlify.toml`：
 - `/:uid.ics`
 - `/:uid`
 
-函数入口位于 `netlify/functions/server.js`，内部复用 Express 路由并由 `serverless-http` 包装导出 `handler`。
+函数源码位于 `netlify/functions/server.js`（ES Module），构建后输出为 CJS 的 `netlify/functions-build/server.js`，并由 `serverless-http` 包装导出 `handler`。
 
 ## 环境变量
 

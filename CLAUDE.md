@@ -1,6 +1,6 @@
 # Bili-Calendar 项目指导文件
 
-> **最后更新**: 2026-05-03
+> **最后更新**: 2026-07-11
 > **版本**: v1.1.8
 > **项目类型**: Node.js Web 应用 (Express + Vite + Vanilla JS)
 
@@ -117,6 +117,10 @@
 ---
 
 ## 变更记录 (Changelog)
+
+### 2026-07-11
+- **[文档同步]** 对齐限流/HTTP 默认值、Vite 8、前端 14 服务、28 测试文件、Netlify rolldown 构建说明
+- **[测试状态]** 反映 `utils.bangumi` / `utils.http` / `netlify-functions` 已有测试（主要覆盖 utils-es 与 handler）
 
 ### 2026-05-03
 - **[文档审查]** 完成全量 CLAUDE.md 一致性审查与修复
@@ -239,7 +243,7 @@ graph TD
 
     Src --> SrcMain["main.js<br/>入口"]
     Src --> SrcComponents["components/<br/>AnimePreview"]
-    Src --> SrcServices["services/<br/>12个服务模块"]
+    Src --> SrcServices["services/<br/>14个服务模块"]
     Src --> SrcStyles["styles/<br/>SCSS样式"]
     Src --> SrcUtils["utils/<br/>工具函数"]
 
@@ -248,7 +252,7 @@ graph TD
     Utils --> RateLimiter["rate-limiter.cjs<br/>限流"]
     Utils --> RequestDedup["request-dedup.cjs<br/>去重"]
 
-    Test --> TestFiles["26个测试文件"]
+    Test --> TestFiles["28个测试文件"]
 
     UtilsCLAUDE["CLAUDE.md"] -.-> Utils
     TestCLAUDE["CLAUDE.md"] -.-> Test
@@ -265,9 +269,9 @@ graph TD
 |------|------|----------|
 | **运行时** | Node.js | **>= 22.0.0** |
 | **后端框架** | Express.js | ^5.2.1 |
-| **HTTP 客户端** | Axios | ^1.15.0 |
+| **HTTP 客户端** | Axios | ^1.16.0 |
 | **前端框架** | Vanilla JavaScript | ES2022+ |
-| **构建工具** | Vite | ^7.3.2 |
+| **构建工具** | Vite | ^8.0.16 |
 | **样式预处理** | SCSS/Sass | ^1.97.1 |
 | **部署** | Docker / Netlify Functions | - |
 | **测试** | Node.js 内置测试框架 | - |
@@ -289,8 +293,8 @@ Bili-Calendar/
 ├── src/                         # [前端] 源代码目录
 │   ├── main.js                  # 前端入口文件
 │   ├── components/              # 组件目录
-│   │   └── AnimePreview.js      # 番剧预览组件 (889行)
-│   ├── services/                # 服务模块
+│   │   └── AnimePreview.js      # 番剧预览组件
+│   ├── services/                # 服务模块（14 个）
 │   │   ├── i18n.js              # 国际化支持
 │   │   ├── cacheManager.js      # 缓存管理
 │   │   ├── errorHandler.js      # 错误处理
@@ -302,7 +306,9 @@ Bili-Calendar/
 │   │   ├── loadingService.js    # 加载状态
 │   │   ├── progressService.js   # 进度条
 │   │   ├── themeService.js      # 主题切换
-│   │   └── toastService.js      # 提示消息
+│   │   ├── toastService.js      # 提示消息
+│   │   ├── aggregateConfig.js   # 外部 ICS 聚合配置
+│   │   └── subscriptionService.js # 订阅/预检/预览编排
 │   ├── styles/                  # 样式目录 (SCSS)
 │   │   ├── app.scss             # 主样式入口
 │   │   ├── main.scss            # 样式入口（备用）
@@ -625,15 +631,15 @@ describe('utils/ics.cjs', () => {
 | `validation.cjs` | 90% | `utils.validation.test.js` | ✅ 已测试 |
 | `security.cjs` | 90% | `utils.security.test.js` | ✅ 已测试 |
 | `ip.cjs` | 90% | `utils.ip-validation.test.js` | ✅ 已测试 |
-| `bangumi.cjs` | 60% | - | ⚠️ 需要 Mock |
-| `http.cjs` | 50% | - | ⚠️ 需要集成测试 |
-| **前端服务** | 100% | `services.*.test.js` | ✅ 已覆盖 |
+| `bangumi` | - | `utils.bangumi.test.js` | ✅ 已测 `utils-es/bangumi.js`（CJS 路径未单独覆盖） |
+| `http` | - | `utils.http.test.js` | ✅ 已测 `utils-es/http.js`（CJS 路径未单独覆盖） |
+| **Netlify 函数** | - | `netlify-functions.test.js` | ✅ 已覆盖 handler 主路径 |
+| **前端服务** | - | `services.*.test.js` | ✅ 已覆盖多数服务；`aggregateConfig` / `subscriptionService` 尚无独立测试 |
 
 ### 待补充测试
 
-- [ ] `bangumi.cjs` - B站 API 调用 (需要 Mock)
-- [ ] `http.cjs` - HTTP 客户端 (需要集成测试)
-- [ ] `netlify/functions/` - Serverless 函数测试
+- [ ] `utils/bangumi.cjs` / `utils/http.cjs` - CommonJS 路径与 ES 版对齐的回归测试
+- [ ] `aggregateConfig.js` / `subscriptionService.js` - 前端编排服务单元测试
 - [ ] `scripts/` - 构建脚本测试
 - [ ] **E2E 测试** - 主要用户流程
 
@@ -653,10 +659,10 @@ describe('utils/ics.cjs', () => {
 | `VAPID_SUBJECT` | WebPush 联系邮箱 | `mailto:admin@example.com` |
 | `PUSH_ADMIN_TOKEN` | 推送管理令牌 | - |
 | `BILIBILI_COOKIE` | B站 Cookie (提高API成功率) | 空 |
-| `API_RATE_LIMIT` | API调用速率限制 | `3` |
+| `API_RATE_LIMIT` | API调用速率限制 | `100` |
 | `API_RATE_WINDOW` | 速率限制时间窗口 (ms) | `3600000` |
-| `HTTP_TIMEOUT_MS` | HTTP请求超时 (ms) | `10000` |
-| `HTTP_RETRY_MAX` | HTTP最大重试次数 | `2` |
+| `HTTP_TIMEOUT_MS` | HTTP请求超时 (ms，主服务) | `25000` |
+| `HTTP_RETRY_MAX` | HTTP最大重试次数（主服务） | `3` |
 
 ### 常用命令
 
@@ -811,29 +817,28 @@ GET /metrics/prometheus  # Prometheus 文本格式
 |------|--------|--------|------|
 | `server.js` | 1 | 95% | - |
 | `src/` | 20 | 90% | - |
-| `utils/` | 14 | 85% | bangumi.cjs, http.cjs |
-| `utils-es/` | 7 | 75% | 同 utils/ |
-| `test/` | 25 | 90% | - |
-| `netlify/` | 1 | 85% | 缺少测试 |
+| `utils/` | 14 | 85% | CJS bangumi/http 未单独测试 |
+| `utils-es/` | 14 | 75% | 与 utils/ 对应的 ESM 实现 |
+| `test/` | 28 | 90% | - |
+| `netlify/` | 1 | 85% | 已有 `netlify-functions.test.js` |
 | `scripts/` | 4 | 80% | 缺少测试 |
 | `public/` | 8 | 0% | 静态资源 |
 | `dist/` | - | N/A | 构建产物 |
 
 ### 主要缺口
 
-1. **utils/bangumi.cjs** - 需要 Mock B站 API 进行测试
-2. **utils/http.cjs** - 需要集成测试验证 HTTP 封装
+1. **utils/bangumi.cjs / utils/http.cjs** - ES 版已有 Mock 测试，CJS 路径仍缺对等覆盖
+2. **aggregateConfig / subscriptionService** - 前端编排服务缺独立单元测试
 
 ### 下一步建议
 
 **优先补扫**:
-1. 补充 `bangumi.cjs` 的 Mock 测试
-2. 补充 `http.cjs` 的集成测试
+1. 为 CJS 与 ES 共用逻辑补齐对等回归（或抽取共享测试）
+2. 补充前端聚合配置与订阅编排测试
 
 **长期规划**:
 1. 添加 E2E 测试覆盖主要用户流程
-2. 补充 `netlify/functions/` Serverless 函数测试
-3. 补充 `scripts/` 构建脚本测试
+2. 补充 `scripts/` 构建脚本测试
 
 ---
 

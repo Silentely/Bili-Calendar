@@ -6,6 +6,9 @@
 
 ## 变更记录 (Changelog)
 
+### 2026-07-11
+- **[结构同步]** 补充 `aggregateConfig.js`、`subscriptionService.js`，并更新 `main.js` 导入/挂载示例
+
 ### 2026-05-03
 - **[全面重写]** 基于 Vite 迁移后的实际目录结构完全重写文档
 - **[结构对齐]** 文件结构、代码示例、导入方式均对齐 `src/` 目录
@@ -72,7 +75,7 @@ src/
 ├── components/                # 组件目录
 │   └── AnimePreview.js        # 番剧预览组件 (模态框、搜索筛选、卡片渲染)
 │
-├── services/                  # 服务模块
+├── services/                  # 服务模块（14 个）
 │   ├── i18n.js                # 国际化支持 (中英文切换、参数化翻译)
 │   ├── cacheManager.js        # 缓存管理 (LocalStorage、历史记录、自动建议)
 │   ├── errorHandler.js        # 错误处理 (友好提示、新手引导)
@@ -84,7 +87,9 @@ src/
 │   ├── loadingService.js      # 加载遮罩 (全屏加载状态)
 │   ├── progressService.js     # 进度条 (模拟进度、完成状态)
 │   ├── themeService.js        # 主题切换 (明暗模式、持久化)
-│   └── toastService.js        # 提示消息 (Toast 通知)
+│   ├── toastService.js        # 提示消息 (Toast 通知)
+│   ├── aggregateConfig.js     # 外部 ICS 聚合配置 (开关、来源校验、持久化)
+│   └── subscriptionService.js # 订阅链接生成、预检限流、预览编排
 │
 ├── styles/                    # 样式目录 (SCSS)
 │   ├── app.scss               # 主样式入口 (@use "./modules")
@@ -119,24 +124,20 @@ import './styles/app.scss';
 import i18n from './services/i18n';
 import { errorHandler, userGuide } from './services/errorHandler';
 import cacheManager from './services/cacheManager';
+import animePreview from './components/AnimePreview';
 import { initPWA } from './services/pwa';
 import notifier from './services/notifier';
 import pushService from './services/push';
-
-// 组件
-import animePreview from './components/AnimePreview';
-
-// 工具函数
-import { toHalfWidth } from './utils/stringUtils';
-import { isMobile } from './utils/deviceDetector';
-
-// UI 服务
 import { showToast } from './services/toastService';
 import { toggleTheme, initTheme } from './services/themeService';
-import { showProgressBar } from './services/progressService';
-import { showLoadingOverlay } from './services/loadingService';
-import { showResultAnimation } from './services/animationService';
-import { copyFromElement } from './services/clipboardService';
+import { aggregateConfig, initAggregateConfig } from './services/aggregateConfig';
+import {
+  copyToClipboard,
+  handlePreview,
+  handleSubscribe,
+  precheckRate,
+  registerWebMCPTools,
+} from './services/subscriptionService';
 ```
 
 **初始化流程**:
@@ -155,9 +156,14 @@ window.notifier = notifier;
 window.pushService = pushService;
 window.showToast = showToast;
 window.toggleTheme = toggleTheme;
+window.aggregateConfig = aggregateConfig;
+window.copyToClipboard = copyToClipboard;
+window.precheckRate = precheckRate;
+window.handlePreview = handlePreview;
+window.handleSubscribe = handleSubscribe;
 ```
 
-**聚合配置管理**: `main.js` 中还包含外部 ICS 聚合功能的配置逻辑，支持用户输入最多 5 个外部 ICS 链接，生成聚合订阅地址。
+**聚合配置管理**: 外部 ICS 聚合逻辑已抽离到 `services/aggregateConfig.js`，支持最多 5 个外部 ICS 链接；订阅/预览/限流预检由 `services/subscriptionService.js` 编排。
 
 ---
 

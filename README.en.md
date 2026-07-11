@@ -209,7 +209,7 @@ Parameters:
 
 Returns: Bilibili anime list JSON data
 
-> **Rate Limit**: To prevent abuse, direct API access is limited to 3 times per IP per hour. Internal project calls are not subject to this limit. API response headers include `X-RateLimit-*` fields to understand current usage.
+> **Rate Limit**: Default is 100 requests per IP per hour (`API_RATE_LIMIT` / `API_RATE_WINDOW` are configurable). On the main server, `/api/bangumi/:uid`, `/:uid`, `/:uid.ics`, and `/aggregate/*` share the rate-limit middleware. Responses include `X-RateLimit-*` headers.
 
 ### Aggregated Subscription (experimental)
 
@@ -266,12 +266,12 @@ Returns: Service status information for health checks
 | `BILIBILI_COOKIE`          | Empty         | Bilibili Cookie, improves API access success rate     |
 | `NODE_ENV`                 | development   | Runtime environment (development/production)          |
 | `TZ`                       | Asia/Shanghai | Timezone setting                                      |
-| `API_RATE_LIMIT`           | 3             | API call rate limit (times/window)                    |
+| `API_RATE_LIMIT`           | 100           | API call rate limit (times/window)                    |
 | `API_RATE_WINDOW`          | 3600000       | Rate limit time window (milliseconds, default 1 hour) |
 | `ENABLE_RATE_LIMIT`        | true          | Enable rate limiting (true/false)                     |
-| `HTTP_TIMEOUT_MS`          | 10000         | HTTP request timeout (milliseconds)                   |
-| `HTTP_RETRY_MAX`           | 2             | HTTP request max retry count                          |
-| `HTTP_RETRY_BASE_DELAY_MS` | 300           | HTTP retry base delay (milliseconds)                  |
+| `HTTP_TIMEOUT_MS`          | 25000         | HTTP request timeout (ms; main server `utils/http.cjs`) |
+| `HTTP_RETRY_MAX`           | 3             | HTTP request max retry count (main server)            |
+| `HTTP_RETRY_BASE_DELAY_MS` | 500           | HTTP retry base delay (ms; main server)               |
 | `VAPID_PUBLIC_KEY`         | Empty         | Optional, WebPush public key                          |
 | `VAPID_PRIVATE_KEY`        | Empty         | Optional, WebPush private key                         |
 | `VAPID_SUBJECT`            | mailto:...    | Optional VAPID subject (from generator)               |
@@ -321,7 +321,9 @@ Bili-Calendar/
 │   │   ├── loadingService.js # Loading state
 │   │   ├── progressService.js # Progress bar
 │   │   ├── themeService.js # Theme switching
-│   │   └── toastService.js # Toast messages
+│   │   ├── toastService.js # Toast messages
+│   │   ├── aggregateConfig.js # External ICS aggregate config
+│   │   └── subscriptionService.js # Subscribe/preview orchestration
 │   ├── styles/            # Styles directory (SCSS)
 │   │   ├── app.scss       # Main style entry
 │   │   ├── _modules.scss  # Modular styles
@@ -342,7 +344,7 @@ Bili-Calendar/
 │   └── icons/             # App icons
 ├── netlify/
 │   ├── functions/
-│   │   └── server.js      # Netlify Functions entry (CJS)
+│   │   └── server.js      # Netlify Functions source (ESM; bundled to CJS at build)
 │   └── functions-build/   # Netlify build output
 ├── utils/                 # Backend utility functions (CommonJS)
 │   ├── time.cjs           # Time handling
@@ -365,7 +367,7 @@ Bili-Calendar/
 │   ├── update-readme-year.js
 │   ├── check-dist.js
 │   └── generate-vapid.js  # VAPID key generation
-├── test/                  # Tests (25 test files)
+├── test/                  # Tests (28 test files)
 │   └── CLAUDE.md          # Test documentation
 ├── assets/                # Documentation assets
 ├── Dockerfile             # Docker image config

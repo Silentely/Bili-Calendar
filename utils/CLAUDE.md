@@ -555,25 +555,24 @@ function getNextBroadcastDate(dayOfWeek, time) {
 
 基于 `axios` 的 HTTP 客户端实例。
 
-**配置**:
+**配置**（默认值可通过环境变量覆盖）:
 ```javascript
 {
-  timeout: 10000,              // 超时时间: 10 秒
+  timeout: 25000,              // HTTP_TIMEOUT_MS，默认 25 秒
+  // HTTP_RETRY_MAX 默认 3；HTTP_RETRY_BASE_DELAY_MS 默认 500
   headers: {
-    'User-Agent': 'BiliCalendar/1.1.8',
-    'Referer': 'https://www.bilibili.com'
-  },
-  validateStatus: (status) => status < 500  // 4xx 不抛出异常
+    'User-Agent': process.env.HTTP_UA || /* 移动 Safari UA 默认值 */,
+    'Referer': process.env.HTTP_REFERER || 'https://www.bilibili.com/',
+    'Cookie': process.env.BILIBILI_COOKIE || ''
+  }
 }
 ```
 
-**Serverless 环境优化**:
+**连接策略**:
 ```javascript
-// 在 Netlify/Vercel 等 Serverless 环境中禁用连接池
-if (process.env.NETLIFY || process.env.VERCEL) {
-  httpClient.defaults.httpAgent = new http.Agent({ keepAlive: false });
-  httpClient.defaults.httpsAgent = new https.Agent({ keepAlive: false });
-}
+// 默认禁用 keepAlive，降低 Serverless / 长连接场景下的 EPIPE 风险
+const httpAgent = new http.Agent({ keepAlive: false });
+const httpsAgent = new https.Agent({ keepAlive: false });
 ```
 
 **使用示例**:
@@ -1073,12 +1072,19 @@ graph TD
 | `ics-merge.cjs` | `test/ics-merge.test.js` | 80% | ✅ 已测试 |
 | `metrics.cjs` | `test/metrics.test.js` | 85% | ✅ 已测试 |
 
+### 已有相关测试（ES Module 路径）
+
+| 模块 | 测试文件 | 说明 |
+|------|---------|------|
+| `utils-es/bangumi.js` | `test/utils.bangumi.test.js` | Mock HTTP 覆盖拉取/缓存 |
+| `utils-es/http.js` | `test/utils.http.test.js` | 重试/拦截器 |
+
 ### 待补充测试
 
 | 模块 | 缺口 | 计划 |
 |------|------|------|
-| `bangumi.cjs` | 需要 Mock B站 API | 编写 Mock 测试 |
-| `http.cjs` | 需要集成测试 | 编写 HTTP 封装测试 |
+| `bangumi.cjs` | CJS 路径无对等用例 | 与 ES 版共享或镜像测试 |
+| `http.cjs` | CJS 路径无对等用例 | 与 ES 版共享或镜像测试 |
 | `push-store.cjs` | 文件 I/O 测试 | 编写持久化测试 |
 
 ---

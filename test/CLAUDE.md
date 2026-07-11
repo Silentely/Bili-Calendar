@@ -17,7 +17,8 @@
 - IP 验证与安全工具
 - 输入验证工具
 - 性能指标采集
-- 前端服务模块（12 个）
+- 前端服务模块（多数已覆盖；`aggregateConfig` / `subscriptionService` 待补）
+- Netlify Functions handler 主路径
 
 ---
 
@@ -32,10 +33,13 @@ test/
 ├── utils.ip-validation.test.js    # IP 验证测试
 ├── utils.security.test.js         # 安全工具测试
 ├── utils.validation.test.js       # 输入验证测试
+├── utils.bangumi.test.js          # 追番数据获取测试 (utils-es)
+├── utils.http.test.js             # HTTP 客户端测试 (utils-es)
 ├── utils-es.ics.test.js           # ICS 生成测试 (ES Module)
 ├── utils-es.time.test.js          # 时间处理测试 (ES Module)
 ├── ics-merge.test.js              # ICS 聚合测试
 ├── metrics.test.js                # 性能指标测试
+├── netlify-functions.test.js      # Netlify Functions handler 测试
 ├── services.animationService.test.js   # 动画服务测试
 ├── services.cacheManager.test.js       # 缓存管理测试
 ├── services.clipboardService.test.js   # 剪贴板服务测试
@@ -155,6 +159,18 @@ test/
 
 与 CommonJS 版本相同的测试用例，验证 ES Module 版本的一致性。
 
+#### 1.11 `utils.bangumi.test.js` / `utils.http.test.js`
+
+**测试目标**: `utils-es/bangumi.js`、`utils-es/http.js`
+
+通过 Mock HTTP 客户端覆盖追番拉取/缓存与 HTTP 重试/拦截器逻辑。当前用例针对 ES Module 实现，不是 `utils/*.cjs`。
+
+#### 1.12 `netlify-functions.test.js`
+
+**测试目标**: `netlify/functions/server.js` 的 `handler`
+
+覆盖日历与 API 主路径（配合 bangumi Mock）。
+
 ---
 
 ### 2. 前端服务层测试
@@ -255,14 +271,15 @@ node --test --experimental-test-coverage
 | `validation.cjs` | ~90% | 输入验证已覆盖 |
 | `security.cjs` | ~90% | 安全工具已覆盖 |
 | `ip.cjs` | ~90% | IP 提取已覆盖 |
-| `bangumi.cjs` | ~60% | 需要 Mock B站 API |
-| `http.cjs` | ~50% | 需要集成测试 |
-| **前端服务** | ~100% | 12 个服务模块已全覆盖 |
+| `utils-es/bangumi.js` | - | 已有 Mock 单元测试 |
+| `utils-es/http.js` | - | 已有重试/拦截器测试 |
+| `netlify/functions` | - | 已有 handler 主路径测试 |
+| **前端服务** | - | 既有 12 类服务测试；`aggregateConfig` / `subscriptionService` 未单独覆盖 |
 
 ### 待补充测试
 
-- [ ] `bangumi.cjs` - B站 API 调用 (需要 Mock)
-- [ ] `http.cjs` - HTTP 客户端 (需要集成测试)
+- [ ] `utils/bangumi.cjs` / `utils/http.cjs` - CommonJS 路径回归
+- [ ] `aggregateConfig.js` / `subscriptionService.js` - 前端编排服务
 - [ ] `push-store.cjs` - WebPush 存储 (需要文件系统 Mock)
 
 ---

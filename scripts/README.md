@@ -10,12 +10,15 @@
 node scripts/build-netlify.mjs
 ```
 
-脚本会清空并重建 `netlify/functions-build/`，然后复制：
+脚本会清空并重建 `netlify/functions-build/`，然后：
 
-- `netlify/functions/server.js` -> `netlify/functions-build/server.js`
-- `dist/` -> `netlify/functions-build/dist/`
-- `utils/` -> `netlify/functions-build/utils/`
-- `utils-es/` -> `netlify/functions-build/utils-es/`
+1. 复制 `netlify/functions/server.js` 为临时 ESM 文件，并复制 `dist/`。
+2. 预处理源码（移除 `__filename` / `__dirname` 声明，避免与 bundle 运行时冲突）。
+3. 使用 **rolldown** 将入口 bundle 为 CommonJS 的 `server.js`。
+4. 写入 `package.json`（`{"type":"commonjs"}`），覆盖根目录 `"type": "module"` 对函数产物的影响。
+5. 删除临时 ESM 文件。
+
+`utils/**` 与 `utils-es/**` 不在此脚本内复制；它们由 `netlify.toml` 的 `functions.included_files` 在 Netlify 打包阶段包含。
 
 通常不需要单独执行，`npm run build` 会自动调用。
 

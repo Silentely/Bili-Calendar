@@ -212,7 +212,7 @@ GET /api/bangumi/:uid
 
 返回：B站追番列表的 JSON 数据
 
-> **速率限制**：为防止滥用，API直接访问限制为每个IP每小时3次。项目内部调用不受此限制。API响应头中包含 `X-RateLimit-*` 系列字段，用于了解当前使用情况。
+> **速率限制**：默认每个 IP 每小时最多 100 次（`API_RATE_LIMIT` / `API_RATE_WINDOW` 可配置）。主服务中 `/api/bangumi/:uid`、`/:uid`、`/:uid.ics` 与 `/aggregate/*` 均走限流中间件；响应头包含 `X-RateLimit-*` 字段。
 >
 > **注意**：Netlify Serverless 部署环境下，由于函数实例无状态特性，速率限制可能在冷启动或横向扩容时重置。建议自行部署或使用 Docker 版本以获得更可靠的速率限制。
 
@@ -271,12 +271,12 @@ GET /status
 | `BILIBILI_COOKIE`          | 空            | B站 Cookie，用于提高API访问成功率   |
 | `NODE_ENV`                 | development   | 运行环境（development/production）  |
 | `TZ`                       | Asia/Shanghai | 时区设置                            |
-| `API_RATE_LIMIT`           | 3             | API调用速率限制（次数/时间窗口）    |
+| `API_RATE_LIMIT`           | 100           | API调用速率限制（次数/时间窗口）    |
 | `API_RATE_WINDOW`          | 3600000       | 速率限制时间窗口（毫秒，默认1小时） |
 | `ENABLE_RATE_LIMIT`        | true          | 是否启用速率限制（true/false）      |
-| `HTTP_TIMEOUT_MS`          | 10000         | HTTP请求超时时间（毫秒）            |
-| `HTTP_RETRY_MAX`           | 2             | HTTP请求最大重试次数                |
-| `HTTP_RETRY_BASE_DELAY_MS` | 300           | HTTP重试基础延迟时间（毫秒）        |
+| `HTTP_TIMEOUT_MS`          | 25000         | HTTP请求超时时间（毫秒，主服务 utils/http.cjs） |
+| `HTTP_RETRY_MAX`           | 3             | HTTP请求最大重试次数（主服务）      |
+| `HTTP_RETRY_BASE_DELAY_MS` | 500           | HTTP重试基础延迟时间（毫秒，主服务） |
 | `VAPID_PUBLIC_KEY`         | 空            | 可选，启用 WebPush 所需公钥         |
 | `VAPID_PRIVATE_KEY`        | 空            | 可选，启用 WebPush 所需私钥         |
 | `VAPID_SUBJECT`            | mailto:...    | 可选，VAPID 识别（可用生成脚本输出） |
@@ -339,7 +339,9 @@ Bili-Calendar/
 │   │   ├── loadingService.js # 加载状态
 │   │   ├── progressService.js # 进度条
 │   │   ├── themeService.js # 主题切换
-│   │   └── toastService.js # 提示消息
+│   │   ├── toastService.js # 提示消息
+│   │   ├── aggregateConfig.js # 外部 ICS 聚合配置
+│   │   └── subscriptionService.js # 订阅/预检/预览编排
 │   ├── styles/            # 样式目录 (SCSS)
 │   │   ├── app.scss       # 主样式入口
 │   │   ├── _modules.scss  # 模块化样式
@@ -360,7 +362,7 @@ Bili-Calendar/
 │   └── icons/             # 应用图标
 ├── netlify/
 │   ├── functions/
-│   │   └── server.js      # Netlify Functions 入口（CJS）
+│   │   └── server.js      # Netlify Functions 源码入口（ESM，构建时 bundle 为 CJS）
 │   └── functions-build/   # Netlify 构建产物
 ├── utils/                 # 后端工具函数目录（CommonJS）
 │   ├── time.cjs           # 时间处理
@@ -383,7 +385,7 @@ Bili-Calendar/
 │   ├── update-readme-year.js
 │   ├── check-dist.js
 │   └── generate-vapid.js  # VAPID密钥生成
-├── test/                  # 测试目录（25 个测试文件）
+├── test/                  # 测试目录（28 个测试文件）
 │   └── CLAUDE.md          # 测试模块文档
 ├── assets/                # 文档资源目录
 │   ├── light-mode.jpg
