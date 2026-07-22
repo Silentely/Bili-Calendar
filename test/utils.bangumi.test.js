@@ -112,6 +112,55 @@ describe('utils-es/bangumi.js', () => {
     );
   });
 
+  it('应该分页拉取全部追番列表后再过滤', async () => {
+    const page1 = Array.from({ length: 30 }, (_, i) => ({
+      title: `连载-${i + 1}`,
+      is_finish: 0,
+      pub_index: '每周一 10:00',
+    }));
+    const page2 = [
+      { title: '连载-31', is_finish: 0, pub_index: '每周二 20:00' },
+      { title: '完结-32', is_finish: 1, pub_index: '每周三 20:00' },
+    ];
+    const httpMock = createHttpClientMock(async (url) => {
+      if (url.includes('pn=1')) return createSuccessPayload(page1);
+      if (url.includes('pn=2')) return createSuccessPayload(page2);
+      return createSuccessPayload([]);
+    });
+    __setBangumiHttpClientForTest(httpMock);
+
+    const result = await getBangumiData('999');
+
+    assert.equal(httpMock.calls.length, 2, '应请求两页');
+    assert.equal(result.original_count, 32);
+    assert.equal(result.filtered_count, 31);
+    assert.equal(result.data.list[30].title, '连载-31');
+    assert.match(httpMock.calls[0], /pn=1&ps=30/);
+    assert.match(httpMock.calls[1], /pn=2&ps=30/);
+  });
+
+  it('后续页网络失败时应保留已拉取数据', async () => {
+    const page1 = Array.from({ length: 30 }, (_, i) => ({
+      title: `连载-${i + 1}`,
+      is_finish: 0,
+      pub_index: '每周一 10:00',
+    }));
+    const httpMock = createHttpClientMock(async (url) => {
+      if (url.includes('pn=1')) return createSuccessPayload(page1);
+      const error = new Error('timeout');
+      error.code = 'ETIMEDOUT';
+      throw error;
+    });
+    __setBangumiHttpClientForTest(httpMock);
+
+    const result = await getBangumiData('888');
+
+    assert.equal(result.code, 0);
+    assert.equal(result.original_count, 30);
+    assert.equal(result.filtered_count, 30);
+    assert.equal(httpMock.calls.length, 2);
+  });
+
   it('空数据应该返回空列表并写入缓存', async () => {
     const httpMock = createHttpClientMock(async () => createSuccessPayload([]));
     __setBangumiHttpClientForTest(httpMock);

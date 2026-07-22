@@ -1,16 +1,17 @@
 // 番剧预览功能模块
 import i18n from '../services/i18n';
 import { escapeHtml } from '../utils/stringUtils.js';
+import {
+  WEEK_KEYS,
+  formatAnimeData as formatAnimeList,
+  getAnimeStatusType,
+  formatUpdateTime,
+  getUpdateDayKey,
+  getNextEpisodeTime,
+} from './preview/formatAnime.js';
 
-const STATUS_COLORS = {
-  watching: '#00a1d6',
-  finished: '#999999',
-  completed: '#4caf50',
-  'not-started': '#ff9800',
-};
-
-const WEEK_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 const PREVIEW_MAX_EXTERNAL_SOURCES = 5;
+const LAST_PREVIEW_STORAGE_KEY = 'bili_last_preview';
 
 /**
  * @typedef {'watching'|'finished'|'completed'|'not-started'} AnimeStatusType
@@ -63,168 +64,91 @@ export class AnimePreview {
     }
   }
 
-  // 格式化番剧数据
   /**
    * @param {any} rawData - B站 API 原始响应
    * @returns {PreviewAnime[]}
    */
   formatAnimeData(rawData) {
-    if (!rawData || !rawData.data) return [];
-
-    // 处理API返回的数据结构 - data.list
-    const animeList = /** @type {any[]} */ (rawData.data.list || rawData.data || []);
-
-    return animeList.map((anime) => {
-      // 处理评分数据
-      const defaultRating = i18n.t('preview.meta.noRating');
-      let rating = defaultRating;
-      let ratingValue = null;
-      if (anime.rating) {
-        if (typeof anime.rating === 'object') {
-          rating = anime.rating.score || anime.rating.value || defaultRating;
-          ratingValue = parseFloat(anime.rating.score || anime.rating.value);
-        } else {
-          rating = anime.rating;
-          ratingValue = parseFloat(anime.rating);
-        }
-      }
-
-      if (Number.isNaN(ratingValue)) ratingValue = null;
-
-      // 处理图片防盗链 - 使用B站的referrer策略
-      let coverUrl = anime.cover || '';
-      if (coverUrl && !coverUrl.startsWith('http')) {
-        coverUrl = 'https:' + coverUrl;
-      }
-      // 添加webp格式和大小参数优化加载
-      if (coverUrl) {
-        coverUrl = coverUrl.replace('http://', 'https://');
-        if (!coverUrl.includes('@')) {
-          coverUrl += '@320w_200h.webp';
-        }
-      }
-
-      const statusType = this.getAnimeStatusType(anime);
-
-      return {
-        id: String(anime.media_id || anime.season_id || ''),
-        title: anime.title || i18n.t('preview.meta.unknownAnime'),
-        cover: coverUrl,
-        season: anime.season_title || anime.title || i18n.t('preview.meta.unknownSeason'),
-        episodes: anime.total_count || anime.new_ep?.index || i18n.t('preview.meta.unknownEpisode'),
-        currentEpisode: anime.progress || anime.new_ep?.index_show || 0,
-        statusType,
-        statusColor: STATUS_COLORS[statusType] || STATUS_COLORS.watching,
-        updateTime: this.formatUpdateTime(anime),
-        rating: rating,
-        ratingValue,
-        url: `https://www.bilibili.com/bangumi/media/md${anime.media_id}`,
-        isFinished: anime.is_finish === 1,
-        updateDayKey: this.getUpdateDayKey(anime),
-        nextEpisodeTime: this.getNextEpisodeTime(anime),
-        rawPubTime: anime.new_ep?.pub_time ? new Date(anime.new_ep.pub_time) : null,
-      };
-    });
+    return formatAnimeList(rawData);
   }
 
   /**
-   * @param {any} anime - B站番剧原始项
+   * @param {any} anime
    * @returns {AnimeStatusType}
    */
   getAnimeStatusType(anime) {
-    if (anime.is_finish === 1) {
-      return 'finished';
-    }
-    if (anime.progress && anime.total_count) {
-      if (anime.progress >= anime.total_count) {
-        return 'completed';
-      }
-      return 'watching';
-    }
-    return 'not-started';
+    return getAnimeStatusType(anime);
   }
 
-  // 格式化更新时间
   /**
-   * @param {any} anime - B站番剧原始项
+   * @param {any} anime
    * @returns {string}
    */
   formatUpdateTime(anime) {
-    if (!anime.new_ep || !anime.new_ep.pub_time) {
-      return i18n.t('preview.update.none');
-    }
-
-    const date = new Date(anime.new_ep.pub_time);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-
-    if (diff < 86400000) {
-      // 24小时内
-      const hours = Math.floor(diff / 3600000);
-      return hours > 0
-        ? i18n.t('preview.update.hoursAgo', { count: hours })
-        : i18n.t('preview.update.justNow');
-    } else if (diff < 604800000) {
-      // 7天内
-      const days = Math.floor(diff / 86400000);
-      return i18n.t('preview.update.daysAgo', { count: days });
-    } else {
-      return date.toLocaleDateString(i18n.getLanguage());
-    }
+    return formatUpdateTime(anime);
   }
 
-  // 获取更新日 key
   /**
-   * @param {any} anime - B站番剧原始项
+   * @param {any} anime
    * @returns {string}
    */
   getUpdateDayKey(anime) {
-    if (anime.is_finish === 1) return 'unknown';
-
-    if (anime.new_ep && anime.new_ep.pub_time) {
-      const date = new Date(anime.new_ep.pub_time);
-      const dayIndex = date.getDay();
-      return WEEK_KEYS[dayIndex] || 'unknown';
-    }
-
-    return 'unknown';
+    return getUpdateDayKey(anime);
   }
 
-  // 获取下一集更新时间
   /**
-   * @param {any} anime - B站番剧原始项
+   * @param {any} anime
    * @returns {string|null}
    */
   getNextEpisodeTime(anime) {
-    if (anime.is_finish === 1) return null;
+    return getNextEpisodeTime(anime);
+  }
 
-    // 这里需要根据实际API返回的数据结构调整
-    if (anime.new_ep && anime.new_ep.pub_time) {
-      const lastUpdate = new Date(anime.new_ep.pub_time);
-      const nextUpdate = new Date(lastUpdate);
-      nextUpdate.setDate(nextUpdate.getDate() + 7); // 假设每周更新
-
-      if (nextUpdate > new Date()) {
-        return nextUpdate.toLocaleString(i18n.getLanguage(), {
-          month: 'numeric',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        });
-      }
+  /**
+   * 缓存最近一次预览，供离线回看
+   * @param {PreviewAnime[]} list
+   * @param {string|number} [uid]
+   */
+  saveLastPreview(list, uid) {
+    try {
+      const payload = {
+        uid: uid ? String(uid) : null,
+        savedAt: Date.now(),
+        list,
+      };
+      localStorage.setItem(LAST_PREVIEW_STORAGE_KEY, JSON.stringify(payload));
+    } catch (err) {
+      console.warn('保存离线预览失败:', err);
     }
+  }
 
-    return null;
+  /**
+   * @returns {{uid: string|null, savedAt: number, list: PreviewAnime[]}|null}
+   */
+  loadLastPreview() {
+    try {
+      const raw = localStorage.getItem(LAST_PREVIEW_STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.list)) return null;
+      return parsed;
+    } catch {
+      return null;
+    }
   }
 
   // 显示预览模态框
   /**
    * @param {PreviewAnime[]|null} [animeData=null] - 可选预览数据
+   * @param {{uid?: string|number, persist?: boolean}} [options]
    * @returns {void}
    */
-  showPreview(animeData = null) {
+  showPreview(animeData = null, options = {}) {
     if (animeData) {
       this.animeData = animeData;
+      if (options.persist !== false) {
+        this.saveLastPreview(animeData, options.uid);
+      }
     }
     this.activeFilter = 'all';
 
@@ -596,7 +520,9 @@ export class AnimePreview {
     const recentLabel = escapeHtml(i18n.t('preview.stats.recentCount', { count: stats.recent7 }));
     const weekTitle = escapeHtml(i18n.t('preview.stats.weekTitle'));
     const ratingTitle = escapeHtml(i18n.t('preview.stats.ratingTitle'));
-    const ratingCount = escapeHtml(i18n.t('preview.stats.ratingCount', { count: stats.ratingCount }));
+    const ratingCount = escapeHtml(
+      i18n.t('preview.stats.ratingCount', { count: stats.ratingCount })
+    );
     const ratingValue = stats.avgRating ?? i18n.t('preview.meta.noRating');
 
     return `
@@ -857,7 +783,10 @@ export class AnimePreview {
   computeStats() {
     const status = { watching: 0, finished: 0, notStarted: 0 };
     /** @type {Record<string, number>} */
-    const weekMap = WEEK_KEYS.reduce((acc, key) => ({ ...acc, [key]: 0 }), { unknown: 0 });
+    const weekMap = { unknown: 0 };
+    for (const key of WEEK_KEYS) {
+      weekMap[key] = 0;
+    }
     const todayKey = WEEK_KEYS[new Date().getDay()];
     let todayCount = 0;
     let recent7 = 0;

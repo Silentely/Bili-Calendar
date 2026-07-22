@@ -4,9 +4,14 @@
 /**
  * 翻译字典结构
  * @typedef {Object} TranslationDict
- * @property {Object.<string, string>} zh-CN - 中文翻译
- * @property {Object.<string, string>} en-US - 英文翻译
+ * @property {Object.<string, string>} zh-CN - 简体中文
+ * @property {Object.<string, string>} en-US - 英文
+ * @property {Object.<string, string>} [zh-TW] - 繁体中文
+ * @property {Object.<string, string>} [ja-JP] - 日文
  */
+
+/** 语言切换顺序 */
+export const LANGUAGE_CYCLE = ['zh-CN', 'en-US', 'zh-TW', 'ja-JP'];
 
 /**
  * 翻译参数对象
@@ -31,7 +36,8 @@ export class I18n {
       'zh-CN': {
         // Page Meta
         'page.title': '追番日历 - B站番剧ICS订阅工具 | Bili-Calendar',
-        'page.description': 'Bili-Calendar 将B站追番列表转换为ICS日历订阅，支持Apple日历、Google日历、Outlook等，智能处理连载更新、时区转换，隐私保护无需注册。',
+        'page.description':
+          'Bili-Calendar 将B站追番列表转换为ICS日历订阅，支持Apple日历、Google日历、Outlook等，智能处理连载更新、时区转换，隐私保护无需注册。',
         'page.keywords': 'bilibili,追番,日历,ICS,订阅,番剧,anime,calendar,订阅工具',
 
         // Header
@@ -45,6 +51,8 @@ export class I18n {
         'language.switcher': '选择语言',
         'language.zh': '中文',
         'language.en': 'English',
+        'language.zh-TW': '繁體中文',
+        'language.ja': '日本語',
         'language.button': '语言',
 
         // Input Section
@@ -86,6 +94,12 @@ export class I18n {
         'result.google':
           '<strong>Google 日历</strong>：在左侧"我的日历"下点击"添加其他日历" &gt; "从URL添加"',
         'result.outlook': '<strong>Outlook</strong>：在日历视图中点击"添加日历" &gt; "从Internet"',
+        'result.wizardTitle': '如何添加到日历',
+        'result.wizardStep1': '1. 点击「复制链接」',
+        'result.wizardStep2': '2. 打开目标日历应用的「订阅日历 / 从 URL 添加」',
+        'result.wizardStep3': '3. 粘贴链接并确认；日历客户端会定时拉取更新',
+        'result.wizardNote':
+          '提示：连载番剧默认约一年周重复，并含 15 分钟提前提醒（VALARM）；最终以客户端支持为准。',
 
         // Features
         'features.title': '功能特色',
@@ -121,15 +135,20 @@ export class I18n {
         // FAQ
         'faq.title': '常见问题',
         'faq.q1.q': '追番列表不公开怎么办？',
-        'faq.q1.a': '请在B站 App 中进入 设置 → 安全隐私 → 开启「公开我的追番列表」。网页端可在个人空间的「账号设置」中修改。不公开的列表无法被第三方工具读取。',
+        'faq.q1.a':
+          '请在B站 App 中进入 设置 → 安全隐私 → 开启「公开我的追番列表」。网页端可在个人空间的「账号设置」中修改。不公开的列表无法被第三方工具读取。',
         'faq.q2.q': '更新频率是多少？',
-        'faq.q2.a': '日历中的番剧更新时间基于B站官方数据，连载中番剧会自动设置每周重复规则。实际更新时间以B站为准。',
+        'faq.q2.a':
+          '日历中的番剧更新时间基于B站官方数据，连载中番剧会自动设置每周重复规则。实际更新时间以B站为准。',
         'faq.q3.q': '支持哪些日历应用？',
-        'faq.q3.a': '支持所有兼容 iCal/ICS 格式的日历应用，包括 Apple 日历、Google 日历、Outlook、Thunderbird 等。',
+        'faq.q3.a':
+          '支持所有兼容 iCal/ICS 格式的日历应用，包括 Apple 日历、Google 日历、Outlook、Thunderbird 等。',
         'faq.q4.q': '如何自部署？',
-        'faq.q4.a': '项目支持 Docker 一键部署。运行 docker run -p 3000:3000 ghcr.io/silentely/bili-calendar 即可启动。详见 GitHub 仓库。',
+        'faq.q4.a':
+          '项目支持 Docker 一键部署。运行 docker run -p 3000:3000 ghcr.io/silentely/bili-calendar 即可启动。详见 GitHub 仓库。',
         'faq.q5.q': '数据是否安全？',
-        'faq.q5.a': '服务端不存储任何用户数据。您的 UID 仅用于实时查询B站 API，不会被记录或分享。项目完全开源，可自行审计。',
+        'faq.q5.a':
+          '服务端不存储任何用户数据。您的 UID 仅用于实时查询B站 API，不会被记录或分享。项目完全开源，可自行审计。',
 
         // Footer
         'footer.copyright': '保留所有权利。',
@@ -147,9 +166,12 @@ export class I18n {
         'toast.reminderOn': '已为 {count} 部番剧开启提醒 (提前 {minutes} 分钟)',
         'toast.reminderDenied': '通知权限被拒绝，无法开启提醒',
         'toast.reminderLeadSaved': '已保存提醒提前时间 {minutes} 分钟',
-        'toast.pushEnabled': '浏览器推送已启用 (实验)',
-        'toast.pushFailed': '推送启用失败，请检查权限或服务器配置',
+        'toast.pushEnabled': '浏览器推送已启用',
+        'toast.pushFailed':
+          '推送启用失败：需自托管并配置 VAPID；Netlify 无状态环境下订阅无法持久化',
+        'toast.pushUnavailable': '当前部署不支持持久化推送（实验功能仅建议自托管）',
         'toast.fetchFailed': '获取番剧列表失败，请稍后重试',
+        'toast.offlinePreview': '网络不可用，已展示上次缓存的预览',
         'toast.languageSwitched': '语言已切换为 {lang}',
 
         // Errors
@@ -247,10 +269,11 @@ export class I18n {
         'preview.actions.close': '关闭',
         'preview.actions.confirm': '确认并生成订阅',
         'preview.actions.enableReminder': '开启本地提醒',
-        'preview.actions.enablePush': '启用推送（实验）',
+        'preview.actions.enablePush': '启用推送（自托管建议）',
         'preview.actions.reminderLeadPrefix': '提前',
         'preview.actions.reminderLeadSuffix': '分钟提醒',
-        'preview.reminder.hint': '本地提醒仅在页面保持打开时有效，若需后台通知请启用推送（实验）。',
+        'preview.reminder.hint':
+          '本地提醒仅在页面保持打开时有效；后台通知需 WebPush 与 VAPID，Netlify 无状态无法持久化订阅。',
         'preview.aggregate.title': '聚合设置同步',
         'preview.aggregate.desc': '在这里直接调整外部 ICS 链接，并同步到主页中显示的聚合设置。',
         'preview.aggregate.apply': '同步到主页',
@@ -292,7 +315,8 @@ export class I18n {
       'en-US': {
         // Page Meta
         'page.title': 'Anime Calendar - Bilibili ICS Subscription | Bili-Calendar',
-        'page.description': 'Bili-Calendar converts your Bilibili anime watchlist into ICS calendar subscriptions. Compatible with Apple Calendar, Google Calendar, Outlook. Smart episode tracking, timezone conversion, privacy-first.',
+        'page.description':
+          'Bili-Calendar converts your Bilibili anime watchlist into ICS calendar subscriptions. Compatible with Apple Calendar, Google Calendar, Outlook. Smart episode tracking, timezone conversion, privacy-first.',
         'page.keywords': 'bilibili,anime,calendar,ICS,subscription,追番,日历',
 
         // Header
@@ -306,6 +330,8 @@ export class I18n {
         'language.switcher': 'Select Language',
         'language.zh': '中文',
         'language.en': 'English',
+        'language.zh-TW': '繁體中文',
+        'language.ja': '日本語',
         'language.button': 'Language',
 
         // Input Section
@@ -316,14 +342,16 @@ export class I18n {
           'Find your UID in your Bilibili profile URL, e.g., https://space.bilibili.com/<strong>614500</strong>',
         'aggregate.title': 'External ICS Merge (optional)',
         'aggregate.enable': 'Enable',
-        'aggregate.placeholder': 'One URL per line or comma separated, e.g. https://example.com/work.ics',
+        'aggregate.placeholder':
+          'One URL per line or comma separated, e.g. https://example.com/work.ics',
         'aggregate.hint':
           'Merge up to 5 http/https ICS feeds. The link will use /aggregate/:uid.ics?sources= to include them.',
         'aggregate.badge': 'Beta',
         'aggregate.sampleTemplate': 'https://example.com/work.ics\\nhttps://example.com/family.ics',
         'aggregate.syncSuccess': 'Aggregation settings synced',
         'aggregate.toggleTooltip': 'Toggle merging external ICS feeds',
-        'aggregate.feedbackDisabled': 'Aggregation disabled. A single UID subscription will be generated.',
+        'aggregate.feedbackDisabled':
+          'Aggregation disabled. A single UID subscription will be generated.',
         'aggregate.feedbackEmpty': 'Aggregation enabled, but no external links are provided yet.',
         'aggregate.feedbackCount': '{count} external ICS feeds attached.',
         'aggregate.errorTooMany': 'You can add at most {count} external ICS links',
@@ -348,6 +376,12 @@ export class I18n {
           '<strong>Google Calendar</strong>: Click "Add other calendars" on the left &gt; "From URL"',
         'result.outlook':
           '<strong>Outlook</strong>: Click "Add calendar" in calendar view &gt; "From Internet"',
+        'result.wizardTitle': 'How to add to your calendar',
+        'result.wizardStep1': '1. Click “Copy Link”',
+        'result.wizardStep2': '2. Open Subscribe / Add calendar from URL in your calendar app',
+        'result.wizardStep3': '3. Paste the link and confirm; the client will refresh periodically',
+        'result.wizardNote':
+          'Tip: airing shows use ~1 year weekly RRULE with a 15-minute VALARM; support varies by client.',
 
         // Features
         'features.title': 'Features',
@@ -365,7 +399,8 @@ export class I18n {
 
         // Privacy
         'privacy.title': 'Privacy Protection',
-        'privacy.description': 'No user data is stored on our servers. All operations happen in your browser.',
+        'privacy.description':
+          'No user data is stored on our servers. All operations happen in your browser.',
         'privacy.noStorage': 'No personal information stored',
         'privacy.browserSide': 'All data processing happens in your browser',
         'privacy.openSource': 'Open source and transparent — self-deploy anytime',
@@ -373,26 +408,34 @@ export class I18n {
         // Tutorial
         'tutorial.title': 'How to Use',
         'tutorial.step1.title': 'Make Your Watchlist Public',
-        'tutorial.step1.desc': 'Open Bilibili App → Settings → Privacy → Enable "Public My Watchlist"',
+        'tutorial.step1.desc':
+          'Open Bilibili App → Settings → Privacy → Enable "Public My Watchlist"',
         'tutorial.step2.title': 'Get Your UID',
-        'tutorial.step2.desc': 'Visit your Bilibili profile page — the number in the URL is your UID',
+        'tutorial.step2.desc':
+          'Visit your Bilibili profile page — the number in the URL is your UID',
         'tutorial.step3.title': 'Generate Subscription',
         'tutorial.step3.desc': 'Enter your UID above and click "Generate Subscription"',
         'tutorial.step4.title': 'Add to Calendar',
-        'tutorial.step4.desc': 'Copy the link and add it to Apple Calendar, Google Calendar, or Outlook',
+        'tutorial.step4.desc':
+          'Copy the link and add it to Apple Calendar, Google Calendar, or Outlook',
 
         // FAQ
         'faq.title': 'Frequently Asked Questions',
         'faq.q1.q': 'What if my watchlist is private?',
-        'faq.q1.a': 'Go to Bilibili App → Settings → Privacy → Enable "Public My Watchlist". On web, you can change this in your account settings. Private lists cannot be accessed by third-party tools.',
+        'faq.q1.a':
+          'Go to Bilibili App → Settings → Privacy → Enable "Public My Watchlist". On web, you can change this in your account settings. Private lists cannot be accessed by third-party tools.',
         'faq.q2.q': 'How often does the calendar update?',
-        'faq.q2.a': 'Episode times are based on official Bilibili data. Airing shows automatically get weekly repeat rules. Actual update times follow Bilibili\'s schedule.',
+        'faq.q2.a':
+          "Episode times are based on official Bilibili data. Airing shows automatically get weekly repeat rules. Actual update times follow Bilibili's schedule.",
         'faq.q3.q': 'Which calendar apps are supported?',
-        'faq.q3.a': 'Any app that supports iCal/ICS format: Apple Calendar, Google Calendar, Outlook, Thunderbird, and more.',
+        'faq.q3.a':
+          'Any app that supports iCal/ICS format: Apple Calendar, Google Calendar, Outlook, Thunderbird, and more.',
         'faq.q4.q': 'How to self-host?',
-        'faq.q4.a': 'Deploy with Docker: docker run -p 3000:3000 ghcr.io/silentely/bili-calendar. See the GitHub repository for details.',
+        'faq.q4.a':
+          'Deploy with Docker: docker run -p 3000:3000 ghcr.io/silentely/bili-calendar. See the GitHub repository for details.',
         'faq.q5.q': 'Is my data safe?',
-        'faq.q5.a': 'No user data is stored on the server. Your UID is only used to query the Bilibili API in real-time and is never recorded or shared. The project is fully open source.',
+        'faq.q5.a':
+          'No user data is stored on the server. Your UID is only used to query the Bilibili API in real-time and is never recorded or shared. The project is fully open source.',
 
         // Footer
         'footer.copyright': 'All rights reserved.',
@@ -410,9 +453,13 @@ export class I18n {
         'toast.reminderOn': 'Reminder enabled for {count} titles (lead {minutes} mins)',
         'toast.reminderDenied': 'Notification permission denied, cannot enable reminders',
         'toast.reminderLeadSaved': 'Lead time saved: {minutes} mins',
-        'toast.pushEnabled': 'Browser push enabled (experimental)',
-        'toast.pushFailed': 'Failed to enable push; check permissions or server config',
+        'toast.pushEnabled': 'Browser push enabled',
+        'toast.pushFailed':
+          'Failed to enable push: self-host with VAPID required; Netlify cannot persist subscriptions',
+        'toast.pushUnavailable':
+          'Persistent push is unavailable on this deploy (experimental; self-host recommended)',
         'toast.fetchFailed': 'Failed to fetch anime list, please try again later',
+        'toast.offlinePreview': 'Offline: showing last cached preview',
         'toast.languageSwitched': 'Language switched to {lang}',
 
         // Errors
@@ -518,13 +565,14 @@ export class I18n {
         'preview.actions.close': 'Close',
         'preview.actions.confirm': 'Confirm & Generate',
         'preview.actions.enableReminder': 'Enable Local Reminder',
-        'preview.actions.enablePush': 'Enable Push (experimental)',
+        'preview.actions.enablePush': 'Enable Push (self-host recommended)',
         'preview.actions.reminderLeadPrefix': 'Remind',
         'preview.actions.reminderLeadSuffix': 'minutes early',
         'preview.reminder.hint':
-          'Local reminders only work while this page stays open. Enable push (experimental) for background notifications.',
+          'Local reminders only work while this page stays open. Background push needs WebPush + VAPID; Netlify cannot persist subscriptions.',
         'preview.aggregate.title': 'Aggregation Sync',
-        'preview.aggregate.desc': 'Tweak external ICS feeds here and sync them back to the main page.',
+        'preview.aggregate.desc':
+          'Tweak external ICS feeds here and sync them back to the main page.',
         'preview.aggregate.apply': 'Sync to main page',
         'preview.aggregate.sample': 'Insert sample',
         'preview.aggregate.toastSuccess': 'Aggregation settings synced successfully',
@@ -562,6 +610,16 @@ export class I18n {
         'sw.registered': 'Service Worker registration failed:',
       },
     };
+
+    // 生成完整 zh-TW / ja-JP，避免缺键回退导致界面混语
+    /** @type {Record<string, Record<string, string>>} */
+    const catalog = /** @type {any} */ (this.translations);
+    const zhCN = catalog['zh-CN'] ?? {};
+    const enUS = catalog['en-US'] ?? {};
+    catalog['zh-TW'] = buildTraditionalChineseLocale(zhCN);
+    catalog['ja-JP'] = buildJapaneseLocale(enUS, zhCN);
+    this.translations = catalog;
+
     this.currentLang = this.detectLanguage();
   }
 
@@ -617,8 +675,11 @@ export class I18n {
   // Get translation
   t(key, params = {}) {
     const translations = /** @type {Record<string, Record<string, string>>} */ (this.translations);
-    const lang = translations[this.currentLang] || translations['zh-CN'] || {};
-    let text = lang[key] || key;
+    const lang = translations[this.currentLang] || {};
+    const zh = translations['zh-CN'] || {};
+    const en = translations['en-US'] || {};
+    // 各语言字典已在构造时补全；此处仅作最后兜底
+    let text = lang[key] || en[key] || zh[key] || key;
 
     // Replace parameters
     for (const [param, value] of Object.entries(params)) {
@@ -763,10 +824,152 @@ export class I18n {
     if (!label) return;
 
     const current = this.getLanguage();
-    const target = current === 'zh-CN' ? 'en-US' : 'zh-CN';
-    const textKey = target === 'zh-CN' ? 'language.zh' : 'language.en';
-    label.textContent = this.t(textKey);
+    const translations = /** @type {Record<string, Record<string, string>>} */ (this.translations);
+    const cycle = LANGUAGE_CYCLE.filter((code) => translations[code]);
+    const idx = cycle.indexOf(current);
+    const target = cycle[(idx + 1) % cycle.length] || 'en-US';
+    /** @type {Record<string, string>} */
+    const labelKeyMap = {
+      'zh-CN': 'language.zh',
+      'en-US': 'language.en',
+      'zh-TW': 'language.zh-TW',
+      'ja-JP': 'language.ja',
+    };
+    label.textContent = this.t(labelKeyMap[target] || 'language.en');
   }
+
+  /**
+   * 循环切换到下一语言
+   * @returns {string|null} 新语言代码
+   */
+  cycleLanguage() {
+    const translations = /** @type {Record<string, Record<string, string>>} */ (this.translations);
+    const cycle = LANGUAGE_CYCLE.filter((code) => translations[code]);
+    const idx = cycle.indexOf(this.currentLang);
+    const next = cycle[(idx + 1) % cycle.length] || cycle[0];
+    if (!next) return null;
+    return this.setLanguage(next) ? next : null;
+  }
+}
+
+/**
+ * 简易简繁转换（覆盖 UI 常用字；未覆盖字保留原字形）
+ * @param {string} input
+ * @returns {string}
+ */
+function toTraditionalChinese(input) {
+  // 用字符串对构建映射，避免对象字面量重复键 / TS 推断过窄
+  const pairs =
+    '这个们为与从时间请输获链复制历应户设账号码页选择语言换题预览剧状态连载结败错误网络频隐护开识别则区转启关闭订阅贴动纯数浏览器权务托当实验议缓记录删确认说骤点击并会钟终准见问么办进读于据际规键运详仓库储仅询审计显筛排评标布内试后过决该还发现条件长报类总单双机构传统书电视听写处响优级导帮档备注释余额钱费负责证锁钥门检测查';
+  const trad =
+    '這個們為與從時間請輸獲鏈複製曆應戶設賬號碼頁選擇語言換題預覽劇狀態連載結敗錯誤網絡頻隱護開識別則區轉啟關閉訂閱貼動純數瀏覽器權務託當實驗議緩記錄刪確認說驟點擊並會鐘終準見問麼辦進讀於據際規鍵運詳倉庫儲僅詢審計顯篩排評標佈內試後過決該還發現條件長報類總單雙機構傳統書電視聽寫處響優級導幫檔備註釋餘額錢費負責證鎖鑰門檢測查';
+  /** @type {Map<string, string>} */
+  const map = new Map();
+  const n = Math.min(pairs.length, trad.length);
+  for (let i = 0; i < n; i++) {
+    const from = pairs.charAt(i);
+    const to = trad.charAt(i);
+    if (from && to) map.set(from, to);
+  }
+  return [...String(input)].map((ch) => map.get(ch) || ch).join('');
+}
+
+/**
+ * @param {Record<string, string>} zhCN
+ * @returns {Record<string, string>}
+ */
+function buildTraditionalChineseLocale(zhCN) {
+  /** @type {Record<string, string>} */
+  const out = {};
+  for (const [key, value] of Object.entries(zhCN || {})) {
+    out[key] = toTraditionalChinese(value);
+  }
+  // 语言名等固定覆盖
+  out['language.zh-TW'] = '繁體中文';
+  out['language.ja'] = '日本語';
+  out['language.button'] = '語言';
+  out['language.switcher'] = '選擇語言';
+  return out;
+}
+
+/**
+ * 日文界面以英文为完整底稿，再覆盖关键日文 UI，避免缺键回落简体造成中日混排
+ * @param {Record<string, string>} enUS
+ * @param {Record<string, string>} zhCN
+ * @returns {Record<string, string>}
+ */
+function buildJapaneseLocale(enUS, zhCN) {
+  /** @type {Record<string, string>} */
+  const out = { ...(enUS || {}) };
+  const jaOverrides = {
+    'page.title': '追番カレンダー - Bilibili ICS 購読 | Bili-Calendar',
+    'page.description':
+      'Bili-Calendar は Bilibili の追番リストを ICS カレンダー購読に変換します。Apple/Google/Outlook 対応、プライバシー重視。',
+    'app.title': 'Bilibili 追番カレンダー',
+    'app.subtitle': 'Bilibili の UID を入力して追番カレンダー購読リンクを取得',
+    'app.githubAria': 'GitHub リポジトリを新しいウィンドウで開く',
+    'theme.switch': 'テーマ切替',
+    'language.switcher': '言語を選択',
+    'language.button': '言語',
+    'language.zh-TW': '繁體中文',
+    'language.ja': '日本語',
+    'input.placeholder': '例: 614500',
+    'input.generate': '購読を生成',
+    'input.preview': 'プレビュー',
+    'input.help':
+      'UID はプロフィール URL にあります。例: https://space.bilibili.com/<strong>614500</strong>',
+    'aggregate.title': '外部 ICS 統合（任意）',
+    'aggregate.enable': '有効',
+    'aggregate.placeholder': '1行1URL、またはカンマ区切り https://example.com/work.ics',
+    'aggregate.hint':
+      '最大 5 件の http/https ICS を追加し /aggregate/:uid.ics?sources= を生成します。',
+    'aggregate.feedbackDisabled': '統合オフ。通常の UID 購読を生成します。',
+    'aggregate.feedbackEmpty': '統合オンですが外部リンクが未入力です。',
+    'aggregate.feedbackCount': '外部 ICS を {count} 件追加済み。',
+    'aggregate.errorTooMany': '外部 ICS は最大 {count} 件です',
+    'aggregate.errorInvalid': 'リンクを解析できません: {url}',
+    'aggregate.errorProtocol': 'http/https のみ対応: {url}',
+    'loading.text': 'データを取得中...',
+    'loading.generating': '購読リンクを生成中...',
+    'loading.fetching': '作品リストを取得中...',
+    'result.success': '購読リンクを生成しました',
+    'result.description': '次のリンクをコピーしてカレンダーアプリに追加してください:',
+    'result.copy': 'リンクをコピー',
+    'result.addToCalendar': 'カレンダーに追加',
+    'result.instructions': '使い方',
+    'result.wizardTitle': 'カレンダーへの追加手順',
+    'result.wizardStep1': '1. 「リンクをコピー」を押す',
+    'result.wizardStep2': '2. カレンダーアプリの「URL から購読」を開く',
+    'result.wizardStep3': '3. 貼り付けて確定。クライアントが定期更新します',
+    'result.wizardNote': '放送中は約1年の週次 RRULE と15分前 VALARM を付与（クライアント依存）。',
+    'features.title': '特徴',
+    'features.smart': '放送中は毎週繰り返し、完結作品は初回のみ',
+    'features.compatible': 'Apple / Google / Outlook などに対応',
+    'features.privacy': '重要: 追番リストを公開にしてください',
+    'toast.copied': 'リンクをコピーしました',
+    'toast.invalidUid': '有効な UID（数字）を入力してください',
+    'toast.pushEnabled': 'ブラウザプッシュを有効化しました',
+    'toast.pushFailed':
+      'プッシュ失敗: セルフホストと VAPID が必要。Netlify では購読を永続化できません',
+    'toast.pushUnavailable': 'このデプロイでは永続プッシュ非対応（実験的・セルフホスト推奨）',
+    'toast.offlinePreview': 'オフライン: 前回のキャッシュプレビューを表示',
+    'toast.languageSwitched': '言語を {lang} に切り替えました',
+    'toast.animeCount': '{count} 作品を取得しました',
+    'toast.fetchFailed': '作品リストの取得に失敗しました',
+    'preview.actions.enablePush': 'プッシュを有効化（セルフホスト向け）',
+    'preview.reminder.hint':
+      'ローカル通知はタブを開いたままのときのみ有効。バックグラウンドには WebPush が必要で、Netlify では購読を保持できません。',
+    'footer.help': '使い方ガイドを表示',
+    'footer.history': '履歴を表示',
+  };
+  Object.assign(out, jaOverrides);
+  // 确保与 zh-CN 键集合一致（极少缺失时用英文）
+  for (const key of Object.keys(zhCN || {})) {
+    if (out[key] == null) {
+      out[key] = (enUS && enUS[key]) || zhCN[key] || key;
+    }
+  }
+  return out;
 }
 
 // Create global instance

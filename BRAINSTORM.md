@@ -672,9 +672,19 @@ type Bangumi {
 - [x] 安全增强（CSP、SSRF 防护、XSS 转义）
 - [x] 性能监控指标（Prometheus /metrics 端点）
 - [x] 外部 ICS 聚合功能
-- [ ] bangumi.cjs Mock 测试
-- [ ] http.cjs 集成测试
+- [ ] bangumi.cjs Mock 测试（CJS 已弃用，改测 utils-es）
+- [ ] http.cjs 集成测试（CJS 已弃用，改测 utils-es）
 - [ ] E2E 测试覆盖主要用户流程
+
+### Q3 2026（打磨迭代 v1.1.9）
+- [x] 追番分页拉全（最多 20 页 × 30）
+- [x] ICS：RRULE COUNT=52、DTEND、VALARM、CDN 缓存头
+- [x] 共享 `server/lib` handler/中间件，消除 Express/Netlify 双写漂移
+- [x] utils CJS 标注弃用，`utils-es` 为唯一真相源
+- [x] aggregateConfig / handlers / 订阅编排相关测试
+- [x] 订阅向导、WebPush 自托管降级说明、聚合源 X-Aggregate-* 头
+- [x] 聚合 metrics、限流 memory 后端响应头说明
+- [x] PWA 离线预览缓存、i18n 繁中/日文
 
 ---
 

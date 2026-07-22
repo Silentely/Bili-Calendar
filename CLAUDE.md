@@ -1,7 +1,7 @@
 # Bili-Calendar 项目指导文件
 
 > **最后更新**: 2026-07-11
-> **版本**: v1.1.8
+> **版本**: v1.1.9
 > **项目类型**: Node.js Web 应用 (Express + Vite + Vanilla JS)
 
 ---

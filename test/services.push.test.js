@@ -51,9 +51,7 @@ describe('services/push.js', () => {
       delete global.navigator.serviceWorker;
       global.window.PushManager = class {};
 
-      const { default: push } = await import(
-        `../src/services/push.js?t=${Date.now()}`
-      );
+      const { default: push } = await import(`../src/services/push.js?t=${Date.now()}`);
 
       await assert.rejects(
         async () => {
@@ -71,9 +69,7 @@ describe('services/push.js', () => {
       // window.PushManager 不存在
       delete global.window.PushManager;
 
-      const { default: push } = await import(
-        `../src/services/push.js?t=${Date.now()}`
-      );
+      const { default: push } = await import(`../src/services/push.js?t=${Date.now()}`);
 
       await assert.rejects(
         async () => {
@@ -86,7 +82,7 @@ describe('services/push.js', () => {
       );
     });
 
-    it('应该在获取公钥失败时抛出 no-public-key 错误', async () => {
+    it('应该在获取公钥失败时抛出 push-unavailable 错误', async () => {
       global.navigator.serviceWorker = {
         ready: Promise.resolve({}),
       };
@@ -103,9 +99,7 @@ describe('services/push.js', () => {
         throw new Error('Unexpected URL');
       };
 
-      const { default: push } = await import(
-        `../src/services/push.js?t=${Date.now()}`
-      );
+      const { default: push } = await import(`../src/services/push.js?t=${Date.now()}`);
 
       await assert.rejects(
         async () => {
@@ -113,12 +107,12 @@ describe('services/push.js', () => {
         },
         {
           name: 'Error',
-          message: 'no-public-key',
+          message: 'push-unavailable',
         }
       );
     });
 
-    it('应该在公钥响应无效时抛出 empty-key 错误', async () => {
+    it('应该在公钥响应无效时抛出 push-unavailable 错误', async () => {
       global.navigator.serviceWorker = {
         ready: Promise.resolve({}),
       };
@@ -135,9 +129,7 @@ describe('services/push.js', () => {
         throw new Error('Unexpected URL');
       };
 
-      const { default: push } = await import(
-        `../src/services/push.js?t=${Date.now()}`
-      );
+      const { default: push } = await import(`../src/services/push.js?t=${Date.now()}`);
 
       await assert.rejects(
         async () => {
@@ -145,7 +137,7 @@ describe('services/push.js', () => {
         },
         {
           name: 'Error',
-          message: 'empty-key',
+          message: 'push-unavailable',
         }
       );
     });
@@ -194,9 +186,7 @@ describe('services/push.js', () => {
         throw new Error('Unexpected URL');
       };
 
-      const { default: push } = await import(
-        `../src/services/push.js?t=${Date.now()}`
-      );
+      const { default: push } = await import(`../src/services/push.js?t=${Date.now()}`);
 
       await assert.rejects(
         async () => {
@@ -267,20 +257,14 @@ describe('services/push.js', () => {
         throw new Error('Unexpected URL');
       };
 
-      const { default: push } = await import(
-        `../src/services/push.js?t=${Date.now()}`
-      );
+      const { default: push } = await import(`../src/services/push.js?t=${Date.now()}`);
 
       const result = await push.registerPush();
 
       assert.strictEqual(result, true, '应该返回 true');
       assert.strictEqual(subscribeCalled, true, '应该调用 subscribe');
       assert.ok(subscribeOptions, '应该传递 subscribe 选项');
-      assert.strictEqual(
-        subscribeOptions.userVisibleOnly,
-        true,
-        '应该设置 userVisibleOnly'
-      );
+      assert.strictEqual(subscribeOptions.userVisibleOnly, true, '应该设置 userVisibleOnly');
       assert.ok(
         subscribeOptions.applicationServerKey instanceof Uint8Array,
         '应该设置 applicationServerKey 为 Uint8Array'
@@ -328,33 +312,16 @@ describe('services/push.js', () => {
         throw new Error('Unexpected URL');
       };
 
-      const { default: push } = await import(
-        `../src/services/push.js?t=${Date.now()}`
-      );
+      const { default: push } = await import(`../src/services/push.js?t=${Date.now()}`);
 
       await push.registerPush();
 
-      assert.ok(
-        applicationServerKey instanceof Uint8Array,
-        '应该生成 Uint8Array'
-      );
+      assert.ok(applicationServerKey instanceof Uint8Array, '应该生成 Uint8Array');
       assert.strictEqual(applicationServerKey.length, 3, '长度应该正确');
       // "ABC" 的字符码分别是 65, 66, 67
-      assert.strictEqual(
-        applicationServerKey[0],
-        65,
-        '第1个字节应该是 A (65)'
-      );
-      assert.strictEqual(
-        applicationServerKey[1],
-        66,
-        '第2个字节应该是 B (66)'
-      );
-      assert.strictEqual(
-        applicationServerKey[2],
-        67,
-        '第3个字节应该是 C (67)'
-      );
+      assert.strictEqual(applicationServerKey[0], 65, '第1个字节应该是 A (65)');
+      assert.strictEqual(applicationServerKey[1], 66, '第2个字节应该是 B (66)');
+      assert.strictEqual(applicationServerKey[2], 67, '第3个字节应该是 C (67)');
     });
 
     it('应该正确处理 URL-safe Base64 中的 - 和 _', async () => {
@@ -396,16 +363,11 @@ describe('services/push.js', () => {
         throw new Error('Unexpected URL');
       };
 
-      const { default: push } = await import(
-        `../src/services/push.js?t=${Date.now()}`
-      );
+      const { default: push } = await import(`../src/services/push.js?t=${Date.now()}`);
 
       await push.registerPush();
 
-      assert.ok(
-        applicationServerKey instanceof Uint8Array,
-        '应该生成 Uint8Array'
-      );
+      assert.ok(applicationServerKey instanceof Uint8Array, '应该生成 Uint8Array');
       assert.ok(applicationServerKey.length > 0, '应该有内容');
     });
 
@@ -445,18 +407,12 @@ describe('services/push.js', () => {
         throw new Error('Unexpected URL');
       };
 
-      const { default: push } = await import(
-        `../src/services/push.js?t=${Date.now()}`
-      );
+      const { default: push } = await import(`../src/services/push.js?t=${Date.now()}`);
 
       await push.registerPush();
 
       assert.ok(fetchOptions, '应该有 fetch 选项');
-      assert.strictEqual(
-        fetchOptions.cache,
-        'no-store',
-        '应该设置 cache: no-store'
-      );
+      assert.strictEqual(fetchOptions.cache, 'no-store', '应该设置 cache: no-store');
     });
   });
 });

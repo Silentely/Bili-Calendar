@@ -18,7 +18,7 @@ node scripts/build-netlify.mjs
 4. 写入 `package.json`（`{"type":"commonjs"}`），覆盖根目录 `"type": "module"` 对函数产物的影响。
 5. 删除临时 ESM 文件。
 
-`utils/**` 与 `utils-es/**` 不在此脚本内复制；它们由 `netlify.toml` 的 `functions.included_files` 在 Netlify 打包阶段包含。
+`utils-es/**` 与 `server/lib/**` 不在此脚本内复制；它们由 `netlify.toml` 的 `functions.included_files` 在 Netlify 打包阶段包含（v1.1.9 起已移除 `utils/*.cjs`）。
 
 通常不需要单独执行，`npm run build` 会自动调用。
 

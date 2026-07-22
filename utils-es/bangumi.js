@@ -54,20 +54,33 @@ function setCachedBangumi(uid, value, now = Date.now()) {
   }
 }
 
+/** 单页条数（与 B站 follow/list 默认一致） */
+export const BANGUMI_PAGE_SIZE = 30;
+/** 最大分页数，防止异常账号无限拉取 */
+export const BANGUMI_MAX_PAGES = 20;
+
+function isAiringWithBroadcastInfo(bangumi) {
+  const isOngoing = bangumi.is_finish === 0;
+  const hasBroadcastInfo =
+    (bangumi.pub_index && bangumi.pub_index.trim() !== '') ||
+    (bangumi.renewal_time && bangumi.renewal_time.trim() !== '') ||
+    (bangumi.new_ep && bangumi.new_ep.pub_time && bangumi.new_ep.pub_time.trim() !== '');
+  return isOngoing && hasBroadcastInfo;
+}
+
+/**
+ * 过滤正在播出且具备播出时间信息的番剧
+ * @param {Object} responseData - B站 API 响应
+ * @param {string} uid - 用户 UID
+ * @returns {Object}
+ */
 function filterAiringBangumi(responseData, uid) {
   if (!responseData.data || !Array.isArray(responseData.data.list)) {
     return responseData;
   }
 
   const originalCount = responseData.data.list.length;
-  const currentlyAiring = responseData.data.list.filter((bangumi) => {
-    const isOngoing = bangumi.is_finish === 0;
-    const hasBroadcastInfo =
-      (bangumi.pub_index && bangumi.pub_index.trim() !== '') ||
-      (bangumi.renewal_time && bangumi.renewal_time.trim() !== '') ||
-      (bangumi.new_ep && bangumi.new_ep.pub_time && bangumi.new_ep.pub_time.trim() !== '');
-    return isOngoing && hasBroadcastInfo;
-  });
+  const currentlyAiring = responseData.data.list.filter(isAiringWithBroadcastInfo);
 
   responseData.data.list = currentlyAiring;
   console.log(
@@ -77,6 +90,82 @@ function filterAiringBangumi(responseData, uid) {
   responseData.filtered_count = currentlyAiring.length;
   responseData.original_count = originalCount;
   return responseData;
+}
+
+/**
+ * 构建追番列表分页 URL
+ * @param {string} uid
+ * @param {number} page
+ * @returns {string}
+ */
+function buildFollowListUrl(uid, page) {
+  return `${BILIBILI_API_BASE_URL}/x/space/bangumi/follow/list?type=1&follow_status=0&vmid=${uid}&pn=${page}&ps=${BANGUMI_PAGE_SIZE}`;
+}
+
+/**
+ * 分页拉取用户全部追番列表（最多 BANGUMI_MAX_PAGES 页）
+ * @param {string} uid
+ * @returns {Promise<{code: number, message?: string, data?: {list: any[]}}|null>}
+ */
+async function fetchAllFollowListPages(uid) {
+  /** @type {any[]} */
+  const allItems = [];
+  /** @type {any} */
+  let firstPagePayload = null;
+
+  for (let page = 1; page <= BANGUMI_MAX_PAGES; page++) {
+    const url = buildFollowListUrl(uid, page);
+    let response;
+    try {
+      response = await activeHttpClient.get(url);
+    } catch (err) {
+      // 后续页网络失败时保留已拉取数据，避免重度用户整表失败
+      if (allItems.length > 0 && firstPagePayload) {
+        console.warn(
+          `⚠️ [UID:${uid}] 第 ${page} 页请求失败，使用已拉取 ${allItems.length} 条:`,
+          err?.message || err
+        );
+        break;
+      }
+      throw err;
+    }
+    const payload = response.data;
+
+    if (payload.code !== BILIBILI_API_SUCCESS_CODE) {
+      // 首页业务错误直接返回；后续页业务错误则截断已拉数据
+      if (page === 1 || allItems.length === 0) {
+        return payload;
+      }
+      console.warn(
+        `⚠️ [UID:${uid}] 第 ${page} 页业务错误 code=${payload.code}，使用已拉取 ${allItems.length} 条`
+      );
+      break;
+    }
+
+    if (!firstPagePayload) {
+      firstPagePayload = payload;
+    }
+
+    const list = payload?.data?.list;
+    if (!Array.isArray(list) || list.length === 0) {
+      break;
+    }
+
+    allItems.push(...list);
+
+    // 不足一页说明已到末页
+    if (list.length < BANGUMI_PAGE_SIZE) {
+      break;
+    }
+  }
+
+  if (!firstPagePayload) {
+    return null;
+  }
+
+  firstPagePayload.data = firstPagePayload.data || {};
+  firstPagePayload.data.list = allItems;
+  return firstPagePayload;
 }
 
 /**
@@ -107,32 +196,38 @@ export async function getBangumiData(uid) {
 
   // 使用请求去重，防止并发相同请求
   return dedupManager.dedupe(`bangumi:${sanitizedUID}`, async () => {
-    try {
-      console.log(`🔍 获取用户 ${sanitizedUID} 的追番数据`);
-      const url = `${BILIBILI_API_BASE_URL}/x/space/bangumi/follow/list?type=1&follow_status=0&vmid=${sanitizedUID}&pn=1&ps=30`;
+    // 去重等待期间可能已有成功缓存，避免重复打 B 站
+    const cachedInside = getCachedBangumi(sanitizedUID);
+    if (cachedInside) {
+      return cachedInside;
+    }
 
-      const response = await activeHttpClient.get(url);
+    try {
+      console.log(`🔍 获取用户 ${sanitizedUID} 的追番数据（分页拉全）`);
+      const payload = await fetchAllFollowListPages(sanitizedUID);
+
+      if (!payload) {
+        return null;
+      }
 
       // 检查B站API返回的错误码
-      if (response.data.code !== BILIBILI_API_SUCCESS_CODE) {
-        console.warn(
-          `⚠️ B站API返回业务错误: code=${response.data.code}, message=${response.data.message}`
-        );
+      if (payload.code !== BILIBILI_API_SUCCESS_CODE) {
+        console.warn(`⚠️ B站API返回业务错误: code=${payload.code}, message=${payload.message}`);
 
         // 特殊处理一些常见错误
-        if (response.data.code === BILIBILI_PRIVACY_ERROR_CODE) {
+        if (payload.code === BILIBILI_PRIVACY_ERROR_CODE) {
           return {
             error: 'Privacy Settings',
             message: '该用户的追番列表已设为隐私，无法获取',
-            code: response.data.code,
+            code: payload.code,
           };
         }
 
         // 返回原始错误
-        return response.data;
+        return payload;
       }
 
-      const data = filterAiringBangumi(response.data, sanitizedUID);
+      const data = filterAiringBangumi(payload, sanitizedUID);
       setCachedBangumi(sanitizedUID, data);
       return data;
     } catch (err) {
