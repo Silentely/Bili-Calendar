@@ -209,7 +209,9 @@ html {
   border-radius: 14px;
   padding: 16px;
   background: rgba(0, 161, 214, 0.04);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .aggregate-options:hover {
@@ -266,7 +268,9 @@ html {
   padding: 12px;
   font-size: 14px;
   line-height: 1.5;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .aggregate-options textarea:focus {
@@ -704,6 +708,19 @@ html {
 }
 
 /* 说明块 */
+.subscribe-wizard .wizard-steps {
+  margin: 0.5rem 0 0.75rem 1.25rem;
+  padding: 0;
+  color: inherit;
+  line-height: 1.6;
+}
+
+.subscribe-wizard .wizard-note {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
 .instructions {
   margin-top: 20px;
   padding: 20px;

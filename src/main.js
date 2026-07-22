@@ -36,14 +36,18 @@ window.handlePreview = handlePreview;
 window.handleSubscribe = handleSubscribe;
 
 export function cycleLanguage() {
-  const current = i18n.getLanguage();
-  const next = current === 'zh-CN' ? 'en-US' : 'zh-CN';
-  const changed = i18n.setLanguage(next);
+  const next = typeof i18n.cycleLanguage === 'function' ? i18n.cycleLanguage() : null;
+  if (!next) return;
 
-  if (changed) {
-    const langName = i18n.t(next === 'zh-CN' ? 'language.zh' : 'language.en');
-    showToast(i18n.t('toast.languageSwitched', { lang: langName }), 'success', 2000);
-  }
+  /** @type {Record<string, string>} */
+  const labelKeyMap = {
+    'zh-CN': 'language.zh',
+    'en-US': 'language.en',
+    'zh-TW': 'language.zh-TW',
+    'ja-JP': 'language.ja',
+  };
+  const langName = i18n.t(labelKeyMap[next] || 'language.en');
+  showToast(i18n.t('toast.languageSwitched', { lang: langName }), 'success', 2000);
 }
 window.cycleLanguage = cycleLanguage;
 

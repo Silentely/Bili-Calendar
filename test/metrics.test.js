@@ -11,6 +11,7 @@ test('metrics records requests and api calls', () => {
   metrics.onRateLimited();
   metrics.onApiCall(100, true);
   metrics.onApiCall(200, false);
+  metrics.onAggregateSources({ requested: 3, fetched: 2, failed: 1 });
 
   const snap = metrics.snapshot();
   assert.equal(snap.requests.total, 2);
@@ -23,4 +24,7 @@ test('metrics records requests and api calls', () => {
   assert.ok(snap.api.p95Ms >= 100 && snap.api.p95Ms <= 200);
   assert.ok(snap.api.p99Ms >= 100 && snap.api.p99Ms <= 200);
   assert.ok(snap.api.avgLatencyMs >= 100 && snap.api.avgLatencyMs <= 200);
+  assert.equal(snap.aggregate.sourcesRequested, 3);
+  assert.equal(snap.aggregate.sourcesFetched, 2);
+  assert.equal(snap.aggregate.sourcesFailed, 1);
 });

@@ -14,10 +14,12 @@ import {
   formatDate,
   escapeICSText,
 } from './time.js';
+import { buildAiringRrule, buildValarmLines, DEFAULT_EVENT_DURATION_MINUTES } from './ics.js';
 
 const DEFAULT_TZ = 'Asia/Shanghai';
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const ONE_DAY_MS = 24 * ONE_HOUR_MS;
+const EVENT_DURATION_MS = DEFAULT_EVENT_DURATION_MINUTES * 60 * 1000;
 
 const safeLookup = (hostname, options, callback) => {
   if (typeof options === 'function') {
@@ -102,13 +104,14 @@ export function buildBangumiEvents(bangumis, _uid) {
       summary: titleWithSeason,
       description,
       start: firstDate,
-      end: new Date(firstDate.getTime() + ONE_HOUR_MS),
+      end: new Date(firstDate.getTime() + EVENT_DURATION_MS),
       isAllDay: false,
       source: 'bilibili',
       url: `https://www.bilibili.com/bangumi/play/ss${item.season_id}`,
-      rrule: item.is_finish === 0 ? `FREQ=WEEKLY;COUNT=2;BYDAY=${info.rruleDay}` : undefined,
+      rrule: item.is_finish === 0 ? buildAiringRrule(info.rruleDay) : undefined,
       rawStart: formatDate(firstDate),
       dtstamp: nowIso,
+      includeAlarm: true,
     });
   }
 
@@ -367,6 +370,10 @@ END:VTIMEZONE`;
     if (desc) evLines.push(`DESCRIPTION:${escapeICSText(desc)}`);
     if (ev.url) evLines.push(`URL;VALUE=URI:${ev.url}`);
     evLines.push(`X-BC-SOURCE:${ev.source}`);
+    // B站番剧事件默认带提前提醒，与 generateICS 行为对齐
+    if (ev.includeAlarm) {
+      evLines.push(...buildValarmLines());
+    }
     evLines.push('END:VEVENT');
     lines.push(...evLines);
   }

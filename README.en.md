@@ -48,7 +48,7 @@
 - 📱 **Mobile Optimization**: Perfect mobile device adaptation, touch optimized
 - 🔔 **Reminder Upgrade**: Choose 5/10/15 min lead time for browser notifications in preview; optional WebPush (requires VAPID)
 - 📊 **Monitoring Metrics**: `/metrics` JSON and `/metrics/prometheus` (Prometheus text) with p95/p99 and per-route stats
-- 🌍 **Internationalization**: Supports multiple languages (Chinese, English), easy to switch
+- 🌍 **Internationalization**: Chinese (Simplified/Traditional), English, Japanese — cycle via the language button
 - 🔀 **External Calendar Merge**: `/aggregate/:uid.ics?sources=` merges up to 5 external ICS feeds into one subscription
 
 ### 🔐 Security & Compliance
@@ -95,13 +95,15 @@
 
 The website supports multiple languages:
 
-- **Chinese (中文)**: Default language
+- **Chinese (简体中文)**: Default language
 - **English**: Full English interface
+- **Traditional Chinese (繁體中文)**: Key UI strings
+- **Japanese (日本語)**: Key UI strings
 
 **How to Switch Language:**
 
 1. Locate the language button in the top-right corner
-2. Click it to toggle between English and 中文
+2. Click it to cycle: 简体中文 → English → 繁體中文 → 日本語
 3. Page content updates instantly to the selected language
 
 Language preference is automatically saved and restored on next visit.
@@ -416,25 +418,17 @@ The project now supports multiple languages, making it accessible to users world
 
 ### Supported Languages
 
-- **Chinese (中文)**: Default language
+- **Chinese (简体中文)**: Default language
 - **English**: Full English interface
+- **Traditional Chinese / Japanese**: Key UI strings with fallback to Simplified Chinese
 
 ### Adding New Languages
 
 To add a new language:
 
-1. Open `/public/i18n.js`
-2. Add a new language entry in the `translations` object:
-
-```javascript
-'ja-JP': {
-  'app.title': 'Bili カレンダー',
-  'app.subtitle': 'あなたのBilibili UIDを入力してアニメカレンダーの購読を取得',
-  // ... add all translation keys
-}
-```
-
-3. Update the toggle logic in `/public/app.js` (`cycleLanguage`) and `/public/i18n.js` (`updateLanguageToggleLabel`) so the new language can be reached from the header switcher.
+1. Open `src/services/i18n.js`
+2. Add a new language entry in the `translations` object and append the code to `LANGUAGE_CYCLE`
+3. Ensure `cycleLanguage` / `updateLanguageToggleLabel` can reach the new locale
 
 ### Translation Keys
 
@@ -481,6 +475,17 @@ The project automatically filters out finished anime and anime without clear bro
 ---
 
 ## 📝 Changelog
+
+### v1.1.9 (2026-07-22)
+
+- 📚 Paginate follow list (up to 20×30) so heavy watchlists are not truncated
+- 📅 ICS: airing `RRULE COUNT=52`, `DTEND`, default 15‑minute `VALARM`; CDN cache headers
+- 🧩 Shared `server/lib` handlers/middleware for Express + Netlify parity
+- 🏷️ Mark `utils/*.cjs` deprecated; runtime uses `utils-es` only
+- 🌍 i18n: Traditional Chinese + Japanese (key UI strings with zh-CN fallback)
+- 🧭 Subscription wizard steps; WebPush limited to self-host + VAPID
+- 📴 PWA cache bump; offline fallback to last preview
+- 📊 Aggregate source metrics + response headers
 
 ### v1.1.8 (2025-12-02)
 

@@ -40,3 +40,4 @@ docker-compose.override.yml
 .ace-tool/
 .omx/
 .omc/
+docs/superpowers/

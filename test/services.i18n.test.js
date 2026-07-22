@@ -40,12 +40,7 @@ describe('services/i18n.js', () => {
       clear: () => {
         localStorageData.clear();
         Object.keys(localStorageMock).forEach((key) => {
-          if (
-            key !== 'getItem' &&
-            key !== 'setItem' &&
-            key !== 'removeItem' &&
-            key !== 'clear'
-          ) {
+          if (key !== 'getItem' && key !== 'setItem' && key !== 'removeItem' && key !== 'clear') {
             delete localStorageMock[key];
           }
         });
@@ -144,9 +139,10 @@ describe('services/i18n.js', () => {
           }
         }
         if (selector === 'title[data-i18n]') {
-          return createdElements.find(
-            (el) => el.tagName === 'TITLE' && el.getAttribute('data-i18n')
-          ) || null;
+          return (
+            createdElements.find((el) => el.tagName === 'TITLE' && el.getAttribute('data-i18n')) ||
+            null
+          );
         }
         return null;
       },
@@ -205,9 +201,7 @@ describe('services/i18n.js', () => {
   describe('I18n', () => {
     describe('constructor', () => {
       it('应该正确初始化实例', async () => {
-        const { I18n } = await import(
-          `../src/services/i18n.js?t=${Date.now()}`
-        );
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
         const i18n = new I18n();
 
@@ -222,9 +216,7 @@ describe('services/i18n.js', () => {
       it('应该优先使用 localStorage 中保存的语言', async () => {
         global.localStorage.setItem('language', 'en-US');
 
-        const { I18n } = await import(
-          `../src/services/i18n.js?t=${Date.now()}`
-        );
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
         const i18n = new I18n();
         const lang = i18n.detectLanguage();
@@ -235,9 +227,7 @@ describe('services/i18n.js', () => {
       it('应该检测浏览器语言', async () => {
         global.navigator.language = 'zh-CN';
 
-        const { I18n } = await import(
-          `../src/services/i18n.js?t=${Date.now()}`
-        );
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
         const i18n = new I18n();
         const lang = i18n.detectLanguage();
@@ -248,9 +238,7 @@ describe('services/i18n.js', () => {
       it('应该处理浏览器语言前缀匹配', async () => {
         global.navigator.language = 'en-GB'; // 不完全匹配
 
-        const { I18n } = await import(
-          `../src/services/i18n.js?t=${Date.now()}`
-        );
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
         const i18n = new I18n();
         const lang = i18n.detectLanguage();
@@ -261,9 +249,7 @@ describe('services/i18n.js', () => {
       it('应该在无法匹配时回退到中文', async () => {
         global.navigator.language = 'fr-FR'; // 不支持的语言
 
-        const { I18n } = await import(
-          `../src/services/i18n.js?t=${Date.now()}`
-        );
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
         const i18n = new I18n();
         const lang = i18n.detectLanguage();
@@ -274,9 +260,7 @@ describe('services/i18n.js', () => {
 
     describe('t()', () => {
       it('应该正确翻译简单的键', async () => {
-        const { I18n } = await import(
-          `../src/services/i18n.js?t=${Date.now()}`
-        );
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
         const i18n = new I18n();
         i18n.currentLang = 'zh-CN';
@@ -286,9 +270,7 @@ describe('services/i18n.js', () => {
       });
 
       it('应该支持参数替换', async () => {
-        const { I18n } = await import(
-          `../src/services/i18n.js?t=${Date.now()}`
-        );
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
         const i18n = new I18n();
         i18n.currentLang = 'zh-CN';
@@ -298,9 +280,7 @@ describe('services/i18n.js', () => {
       });
 
       it('应该在键不存在时返回键本身', async () => {
-        const { I18n } = await import(
-          `../src/services/i18n.js?t=${Date.now()}`
-        );
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
         const i18n = new I18n();
         i18n.currentLang = 'zh-CN';
@@ -310,9 +290,7 @@ describe('services/i18n.js', () => {
       });
 
       it('应该支持多个参数替换', async () => {
-        const { I18n } = await import(
-          `../src/services/i18n.js?t=${Date.now()}`
-        );
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
         const i18n = new I18n();
         i18n.currentLang = 'zh-CN';
@@ -324,25 +302,18 @@ describe('services/i18n.js', () => {
 
     describe('setLanguage()', () => {
       it('应该成功切换语言', async () => {
-        const { I18n } = await import(
-          `../src/services/i18n.js?t=${Date.now()}`
-        );
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
         const i18n = new I18n();
         const success = i18n.setLanguage('en-US');
 
         assert.strictEqual(success, true);
         assert.strictEqual(i18n.currentLang, 'en-US');
-        assert.strictEqual(
-          global.localStorage.getItem('language'),
-          'en-US'
-        );
+        assert.strictEqual(global.localStorage.getItem('language'), 'en-US');
       });
 
       it('应该在无效语言时返回 false', async () => {
-        const { I18n } = await import(
-          `../src/services/i18n.js?t=${Date.now()}`
-        );
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
         const i18n = new I18n();
         const success = i18n.setLanguage('invalid-LANG');
@@ -351,9 +322,7 @@ describe('services/i18n.js', () => {
       });
 
       it('应该触发 languageChanged 事件', async () => {
-        const { I18n } = await import(
-          `../src/services/i18n.js?t=${Date.now()}`
-        );
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
         let eventFired = false;
         global.window.dispatchEvent = (event) => {
@@ -373,9 +342,7 @@ describe('services/i18n.js', () => {
 
     describe('getLanguage()', () => {
       it('应该返回当前语言', async () => {
-        const { I18n } = await import(
-          `../src/services/i18n.js?t=${Date.now()}`
-        );
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
         const i18n = new I18n();
         i18n.currentLang = 'en-US';
@@ -387,9 +354,7 @@ describe('services/i18n.js', () => {
 
     describe('getAvailableLanguages()', () => {
       it('应该返回所有可用语言', async () => {
-        const { I18n } = await import(
-          `../src/services/i18n.js?t=${Date.now()}`
-        );
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
         const i18n = new I18n();
         const langs = i18n.getAvailableLanguages();
@@ -397,15 +362,44 @@ describe('services/i18n.js', () => {
         assert.ok(Array.isArray(langs));
         assert.ok(langs.includes('zh-CN'));
         assert.ok(langs.includes('en-US'));
-        assert.strictEqual(langs.length, 2);
+        assert.ok(langs.includes('zh-TW'));
+        assert.ok(langs.includes('ja-JP'));
+        assert.ok(langs.length >= 4);
+      });
+    });
+
+    describe('zh-TW / ja-JP 完整字典', () => {
+      it('繁中与日文应覆盖全部简体键，避免缺键混语', async () => {
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
+        const i18n = new I18n();
+        const zh = i18n.translations['zh-CN'];
+        const tw = i18n.translations['zh-TW'];
+        const ja = i18n.translations['ja-JP'];
+        const zhKeys = Object.keys(zh);
+        assert.ok(zhKeys.length > 50);
+        for (const key of zhKeys) {
+          assert.equal(typeof tw[key], 'string', `zh-TW missing ${key}`);
+          assert.ok(tw[key].length > 0, `zh-TW empty ${key}`);
+          assert.equal(typeof ja[key], 'string', `ja-JP missing ${key}`);
+          assert.ok(ja[key].length > 0, `ja-JP empty ${key}`);
+        }
+      });
+
+      it('cycleLanguage 应在四语间循环', async () => {
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
+        const i18n = new I18n();
+        i18n.setLanguage('zh-CN');
+        const sequence = [];
+        for (let i = 0; i < 4; i++) {
+          sequence.push(i18n.cycleLanguage());
+        }
+        assert.deepEqual(sequence, ['en-US', 'zh-TW', 'ja-JP', 'zh-CN']);
       });
     });
 
     describe('updatePageContent()', () => {
       it('应该更新 HTML lang 属性', async () => {
-        const { I18n } = await import(
-          `../src/services/i18n.js?t=${Date.now()}`
-        );
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
         const i18n = new I18n();
         i18n.currentLang = 'en-US';
@@ -415,9 +409,7 @@ describe('services/i18n.js', () => {
       });
 
       it('应该更新带有 data-i18n 属性的元素', async () => {
-        const { I18n } = await import(
-          `../src/services/i18n.js?t=${Date.now()}`
-        );
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
         const element = global.document.createElement('div');
         element.setAttribute('data-i18n', 'app.title');
@@ -431,9 +423,7 @@ describe('services/i18n.js', () => {
       });
 
       it('应该更新带有 data-i18n-placeholder 属性的元素', async () => {
-        const { I18n } = await import(
-          `../src/services/i18n.js?t=${Date.now()}`
-        );
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
         const element = global.document.createElement('input');
         element.setAttribute('data-i18n-placeholder', 'input.placeholder');
@@ -447,9 +437,7 @@ describe('services/i18n.js', () => {
       });
 
       it('应该更新带有 data-i18n-title 属性的元素', async () => {
-        const { I18n } = await import(
-          `../src/services/i18n.js?t=${Date.now()}`
-        );
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
         const element = global.document.createElement('button');
         element.setAttribute('data-i18n-title', 'theme.switch');
@@ -465,9 +453,7 @@ describe('services/i18n.js', () => {
 
     describe('updateLanguageToggleLabel()', () => {
       it('应该更新语言切换按钮标签', async () => {
-        const { I18n } = await import(
-          `../src/services/i18n.js?t=${Date.now()}`
-        );
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
         const label = global.document.createElement('span');
         label.id = 'languageToggleLabel';
@@ -481,9 +467,7 @@ describe('services/i18n.js', () => {
       });
 
       it('应该在元素不存在时不报错', async () => {
-        const { I18n } = await import(
-          `../src/services/i18n.js?t=${Date.now()}`
-        );
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
         const i18n = new I18n();
         // 不创建 languageToggleLabel 元素
@@ -496,9 +480,7 @@ describe('services/i18n.js', () => {
 
   describe('全局导出', () => {
     it('应该导出 i18n 实例', async () => {
-      const { default: i18n } = await import(
-        `../src/services/i18n.js?t=${Date.now()}`
-      );
+      const { default: i18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
 
       assert.ok(i18n);
       assert.strictEqual(typeof i18n.t, 'function');

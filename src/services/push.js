@@ -1,26 +1,12 @@
 // @ts-check
 /**
  * WebPush 推送服务模块
- * 提供浏览器推送通知功能(实验性)
- */
-
-/**
- * 获取服务器的 VAPID 公钥
  *
- * @returns {Promise<string>} VAPID 公钥(base64编码)
- * @throws {Error} 当请求失败或响应无效时抛出错误
- *
- * @example
- * const key = await getPublicKey()
- * // => "Bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+ * 限制说明：
+ * - 需要服务端配置 VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY
+ * - 自托管 + 文件/持久化 push-store 时可用
+ * - Netlify Functions 无状态，内存订阅无法跨实例/冷启动保留，故生产公共站默认不可用
  */
-async function getPublicKey() {
-  const res = await fetch('/push/public-key', { cache: 'no-store' });
-  if (!res.ok) throw new Error('no-public-key');
-  const data = await res.json();
-  if (!data.key) throw new Error('empty-key');
-  return data.key;
-}
 
 /**
  * 将 URL-safe Base64 字符串转换为 Uint8Array
@@ -61,13 +47,43 @@ function urlBase64ToUint8Array(base64String) {
  *   }
  * }
  */
+/**
+ * 探测推送是否可用（公钥是否存在）
+ * @returns {Promise<{available: boolean, reason?: string, key?: string}>}
+ */
+async function probePushAvailability() {
+  try {
+    const res = await fetch('/push/public-key', { cache: 'no-store' });
+    if (res.status === 404 || res.status === 501) {
+      return { available: false, reason: 'not-configured' };
+    }
+    if (!res.ok) {
+      return { available: false, reason: 'probe-failed' };
+    }
+    const data = await res.json();
+    if (!data.key) return { available: false, reason: 'empty-key' };
+    return { available: true, key: data.key };
+  } catch {
+    return { available: false, reason: 'network' };
+  }
+}
+
 async function registerPush() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     throw new Error('push-not-supported');
   }
 
+  const probe = await probePushAvailability();
+  if (!probe.available || !probe.key) {
+    const err = new Error('push-unavailable');
+    // @ts-ignore
+    err.reason = probe.reason || 'not-configured';
+    throw err;
+  }
+
   const reg = await navigator.serviceWorker.ready;
-  const key = await getPublicKey();
+  // 复用探测阶段拿到的公钥，避免二次请求 /push/public-key
+  const key = probe.key;
   const sub = await reg.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey: /** @type {BufferSource} */ (
@@ -84,4 +100,4 @@ async function registerPush() {
   return true;
 }
 
-export default { registerPush };
+export default { registerPush, probePushAvailability };

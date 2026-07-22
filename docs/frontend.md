@@ -7,18 +7,22 @@
 ## 变更记录 (Changelog)
 
 ### 2026-07-11
+
 - **[结构同步]** 补充 `aggregateConfig.js`、`subscriptionService.js`，并更新 `main.js` 导入/挂载示例
 
 ### 2026-05-03
+
 - **[全面重写]** 基于 Vite 迁移后的实际目录结构完全重写文档
 - **[结构对齐]** 文件结构、代码示例、导入方式均对齐 `src/` 目录
 - **[链接修复]** 修复失效的面包屑导航链接
 
 ### 2025-11-30
+
 - **[导航增强]** 添加面包屑导航，便于模块间跳转
 - **[索引更新]** 更新模块索引，与根文档保持一致
 
 ### 2025-11-22
+
 - 初始文档创建，详细记录前端架构与功能实现
 
 ---
@@ -283,12 +287,12 @@ import i18n from './i18n.js';
 
 ```javascript
 const ERROR_CODES = {
-  INVALID_UID:     { title: 'UID格式错误', type: 'warning' },
-  USER_NOT_FOUND:  { title: '用户不存在', type: 'error' },
+  INVALID_UID: { title: 'UID格式错误', type: 'warning' },
+  USER_NOT_FOUND: { title: '用户不存在', type: 'error' },
   PRIVACY_PROTECTED: { title: '隐私保护', type: 'warning' },
-  NO_BANGUMI:      { title: '未找到追番数据', type: 'info' },
-  NETWORK_ERROR:   { title: '网络连接失败', type: 'error' },
-  RATE_LIMIT:      { title: '请求过于频繁', type: 'warning' },
+  NO_BANGUMI: { title: '未找到追番数据', type: 'info' },
+  NETWORK_ERROR: { title: '网络连接失败', type: 'error' },
+  RATE_LIMIT: { title: '请求过于频繁', type: 'warning' },
   // ...
 };
 ```
@@ -378,22 +382,22 @@ const THEME_CONFIG = {
 
 以下模块提供独立的 UI 功能，均通过 `main.js` 导入并挂载到 `window`：
 
-| 模块 | 文件 | 导出 | 功能 |
-|------|------|------|------|
-| **Toast 提示** | `toastService.js` | `showToast` | 多类型消息提示（success/error/warning/info），自动关闭 |
-| **加载遮罩** | `loadingService.js` | `showLoadingOverlay` | 全屏加载遮罩，支持文本更新与隐藏控制 |
-| **进度条** | `progressService.js` | `showProgressBar` | 模拟进度条，支持完成与错误状态 |
-| **结果动画** | `animationService.js` | `showResultAnimation` | 成功/失败结果动画（1.5 秒） |
-| **剪贴板** | `clipboardService.js` | `copyFromElement` | 文本复制，支持现代异步 API 与传统回退方案 |
+| 模块           | 文件                  | 导出                  | 功能                                                   |
+| -------------- | --------------------- | --------------------- | ------------------------------------------------------ |
+| **Toast 提示** | `toastService.js`     | `showToast`           | 多类型消息提示（success/error/warning/info），自动关闭 |
+| **加载遮罩**   | `loadingService.js`   | `showLoadingOverlay`  | 全屏加载遮罩，支持文本更新与隐藏控制                   |
+| **进度条**     | `progressService.js`  | `showProgressBar`     | 模拟进度条，支持完成与错误状态                         |
+| **结果动画**   | `animationService.js` | `showResultAnimation` | 成功/失败结果动画（1.5 秒）                            |
+| **剪贴板**     | `clipboardService.js` | `copyFromElement`     | 文本复制，支持现代异步 API 与传统回退方案              |
 
 ---
 
 ### 11. `utils/` - 前端工具函数
 
-| 文件 | 导出 | 功能 |
-|------|------|------|
-| `stringUtils.js` | `toHalfWidth`、`escapeHtml` | 全角转半角数字、HTML 实体转义 |
-| `deviceDetector.js` | `isMobile` | 基于 User-Agent 检测移动端设备 |
+| 文件                | 导出                        | 功能                           |
+| ------------------- | --------------------------- | ------------------------------ |
+| `stringUtils.js`    | `toHalfWidth`、`escapeHtml` | 全角转半角数字、HTML 实体转义  |
+| `deviceDetector.js` | `isMobile`                  | 基于 User-Agent 检测移动端设备 |
 
 ---
 
@@ -406,7 +410,7 @@ const THEME_CONFIG = {
 **缓存策略**:
 
 ```javascript
-const VERSION = '1.1.8';
+const VERSION = '1.1.9';
 const CACHE_NAME = `bili-calendar-v${VERSION}`;
 
 // 核心资源 (安装时预缓存)
@@ -431,7 +435,7 @@ const CORE_ASSETS = [
 
 ```scss
 // src/styles/app.scss — 主入口
-@use "./modules";
+@use './modules';
 
 // src/styles/_modules.scss — 模块聚合
 @forward './main';
@@ -446,15 +450,15 @@ Vite 在构建时将 SCSS 编译为 CSS 并注入到页面。
 
 ### 样式文件说明
 
-| 文件 | 职责 |
-|------|------|
-| `app.scss` | 主样式入口，`@use` 引入 `_modules.scss` |
-| `main.scss` | 基础布局、主题变量、通用组件样式 |
-| `_dark.scss` | 暗黑模式覆盖样式 |
-| `_loading.scss` | 加载动画样式 |
-| `_error.scss` | 错误提示卡片样式 |
-| `_preview.scss` | 番剧预览模态框与卡片样式 |
-| `_history.scss` | 历史记录列表样式 |
+| 文件            | 职责                                    |
+| --------------- | --------------------------------------- |
+| `app.scss`      | 主样式入口，`@use` 引入 `_modules.scss` |
+| `main.scss`     | 基础布局、主题变量、通用组件样式        |
+| `_dark.scss`    | 暗黑模式覆盖样式                        |
+| `_loading.scss` | 加载动画样式                            |
+| `_error.scss`   | 错误提示卡片样式                        |
+| `_preview.scss` | 番剧预览模态框与卡片样式                |
+| `_history.scss` | 历史记录列表样式                        |
 
 ### 主题变量
 
@@ -474,7 +478,7 @@ Vite 在构建时将 SCSS 编译为 CSS 并注入到页面。
 **暗黑模式** (`_dark.scss`):
 
 ```css
-[data-theme="dark"] {
+[data-theme='dark'] {
   --primary-color: #00a1d6;
   --secondary-color: #fb7299;
   --background-color: #1a1a1a;
@@ -575,20 +579,20 @@ main.js
 
 前端服务模块已有对应的单元测试文件，位于 `test/` 目录：
 
-| 模块 | 测试文件 | 覆盖率 |
-|------|---------|--------|
-| `i18n.js` | `services.i18n.test.js` | 100% |
-| `cacheManager.js` | `services.cacheManager.test.js` | 100% |
-| `errorHandler.js` | `services.errorHandler.test.js` | 100% |
-| `themeService.js` | `services.themeService.test.js` | 100% |
-| `toastService.js` | `services.toastService.test.js` | 100% |
-| `loadingService.js` | `services.loadingService.test.js` | 100% |
-| `progressService.js` | `services.progressService.test.js` | 100% |
-| `animationService.js` | `services.animationService.test.js` | 100% |
-| `clipboardService.js` | `services.clipboardService.test.js` | 100% |
-| `notifier.js` | `services.notifier.test.js` | 100% |
-| `deviceDetector.js` | `utils.deviceDetector.test.js` | 100% |
-| `stringUtils.js` | `utils.stringUtils.test.js` | 100% |
+| 模块                  | 测试文件                            | 覆盖率 |
+| --------------------- | ----------------------------------- | ------ |
+| `i18n.js`             | `services.i18n.test.js`             | 100%   |
+| `cacheManager.js`     | `services.cacheManager.test.js`     | 100%   |
+| `errorHandler.js`     | `services.errorHandler.test.js`     | 100%   |
+| `themeService.js`     | `services.themeService.test.js`     | 100%   |
+| `toastService.js`     | `services.toastService.test.js`     | 100%   |
+| `loadingService.js`   | `services.loadingService.test.js`   | 100%   |
+| `progressService.js`  | `services.progressService.test.js`  | 100%   |
+| `animationService.js` | `services.animationService.test.js` | 100%   |
+| `clipboardService.js` | `services.clipboardService.test.js` | 100%   |
+| `notifier.js`         | `services.notifier.test.js`         | 100%   |
+| `deviceDetector.js`   | `utils.deviceDetector.test.js`      | 100%   |
+| `stringUtils.js`      | `utils.stringUtils.test.js`         | 100%   |
 
 ---
 

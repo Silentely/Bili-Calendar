@@ -95,7 +95,12 @@ function bindPreviewActions(animeData) {
         showToast(i18n.t('toast.pushEnabled'), 'success');
       } catch (err) {
         console.error(err);
-        showToast(i18n.t('toast.pushFailed'), 'error');
+        const message = err instanceof Error ? err.message : '';
+        if (message === 'push-unavailable' || message === 'no-public-key') {
+          showToast(i18n.t('toast.pushUnavailable'), 'warning');
+        } else {
+          showToast(i18n.t('toast.pushFailed'), 'error');
+        }
       }
     });
   }
@@ -222,7 +227,7 @@ export async function handlePreview() {
 
     if (animeData && animeData.length > 0) {
       loadingOverlay.hide();
-      animePreview.showPreview(animeData);
+      animePreview.showPreview(animeData, { uid, persist: true });
       window.currentGenerateCallback = () => {
         handleSubscribe();
       };
@@ -235,6 +240,15 @@ export async function handlePreview() {
   } catch (error) {
     loadingOverlay.hide();
     console.error('预览失败:', error);
+    // 离线/网络失败时回退最近一次预览
+    const last =
+      typeof animePreview.loadLastPreview === 'function' ? animePreview.loadLastPreview() : null;
+    if (last?.list?.length) {
+      animePreview.showPreview(last.list, { uid: last.uid || uid, persist: false });
+      bindPreviewActions(last.list);
+      showToast(i18n.t('toast.offlinePreview'), 'warning');
+      return;
+    }
     showToast(i18n.t('toast.fetchFailed'), 'error');
   }
 }

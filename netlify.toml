@@ -5,8 +5,8 @@
 
 [functions]
   included_files = [
-    "utils/**",
-    "utils-es/**"
+    "utils-es/**",
+    "server/lib/**"
   ]
 
 # API 请求交给函数处理

@@ -21,6 +21,10 @@ export class Metrics {
     this.maxBuffer = 200;
     this.maxRoutes = 1000;
     this.routeStats = new Map();
+    // 外部 ICS 聚合源统计
+    this.aggregateSourcesRequested = 0;
+    this.aggregateSourcesFetched = 0;
+    this.aggregateSourcesFailed = 0;
   }
 
   onRequest(route = 'unknown') {
@@ -58,6 +62,16 @@ export class Metrics {
     }
   }
 
+  /**
+   * 记录聚合外部源拉取结果
+   * @param {{requested?: number, fetched?: number, failed?: number}} stats
+   */
+  onAggregateSources(stats = {}) {
+    this.aggregateSourcesRequested += Number(stats.requested) || 0;
+    this.aggregateSourcesFetched += Number(stats.fetched) || 0;
+    this.aggregateSourcesFailed += Number(stats.failed) || 0;
+  }
+
   snapshot() {
     const uptimeMs = Date.now() - this.startedAt;
     const apiAvg = this.apiCalls > 0 ? Number((this.apiLatencySum / this.apiCalls).toFixed(2)) : 0;
@@ -78,6 +92,11 @@ export class Metrics {
         maxLatencyMs: this.apiLatencyMax,
         p95Ms: percentile(this.apiLatencyBuffer, 95),
         p99Ms: percentile(this.apiLatencyBuffer, 99),
+      },
+      aggregate: {
+        sourcesRequested: this.aggregateSourcesRequested,
+        sourcesFetched: this.aggregateSourcesFetched,
+        sourcesFailed: this.aggregateSourcesFailed,
       },
       routes: this.serializeRoutes(),
     };

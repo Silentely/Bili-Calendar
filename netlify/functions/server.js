@@ -4,15 +4,17 @@ import express from 'express';
 import compression from 'compression';
 import path from 'node:path';
 import fs from 'node:fs';
-import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { createRateLimiter } from '../../utils-es/rate-limiter.js';
-import { extractClientIP, generateRequestId } from '../../utils-es/ip.js';
-import { generateICS, respondWithICS, respondWithEmptyCalendar } from '../../utils-es/ics.js';
-import { generateMergedICS, fetchExternalICS } from '../../utils-es/ics-merge.js';
-import { getBangumiData } from '../../utils-es/bangumi.js';
 import metrics from '../../utils-es/metrics.js';
-import { isValidUID, validateExternalSource } from '../../utils-es/security.js';
+import { handleBangumiApi, handleCalendar, handleAggregate } from '../../server/lib/handlers.js';
+import {
+  securityAndCorsMiddleware,
+  requestLogMiddleware,
+  createRateLimiterMiddleware,
+  formatUptime,
+} from '../../server/lib/middleware.js';
+import { registerMetricsRoutes } from '../../server/lib/metrics-routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -78,60 +80,10 @@ const requirePushAuth = (req, res) => {
 // 注意：在Netlify函数环境中，因为函数是无状态的，内存存储在每次调用之间不会保留
 // 在生产环境中应该考虑使用Redis等外部存储来实现持久化的限流
 
-// 安全头 + CORS
-app.use((req, res, next) => {
-  const CORS_HEADERS = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-  };
-  // 基础安全头
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('Referrer-Policy', 'no-referrer');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
-  res.setHeader(
-    'Content-Security-Policy',
-    "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; form-action 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'self'; connect-src 'self' https://api.bilibili.com; font-src 'self' data: https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; manifest-src 'self'"
-  );
-  // CORS
-  Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
-  if (req.method === 'OPTIONS') return res.sendStatus(200);
-  next();
-});
+app.use(securityAndCorsMiddleware);
 
 // 限流中间件
-const rateLimiterMiddleware = (req, res, next) => {
-  const ip = extractClientIP(req);
-
-  // 应用限流（所有请求）
-  if (!rateLimiter.check(ip)) {
-    const resetTime = new Date(rateLimiter.getResetTime(ip)).toISOString();
-
-    // 记录限流事件到 metrics
-    metrics.onRateLimited();
-
-    // 设置速率限制响应头
-    res.setHeader('X-RateLimit-Limit', rateLimiter.MAX_REQUESTS);
-    res.setHeader('X-RateLimit-Remaining', 0);
-    res.setHeader('X-RateLimit-Reset', resetTime);
-
-    return res.status(429).json({
-      error: '请求过于频繁',
-      message: `API调用次数已达上限，请在${resetTime}后再试`,
-      limit: rateLimiter.MAX_REQUESTS,
-      window: '1小时',
-      reset: resetTime,
-    });
-  }
-
-  // 对于允许的请求，设置剩余次数响应头
-  res.setHeader('X-RateLimit-Limit', rateLimiter.MAX_REQUESTS);
-  res.setHeader('X-RateLimit-Remaining', rateLimiter.getRemainingRequests(ip));
-  res.setHeader('X-RateLimit-Reset', new Date(rateLimiter.getResetTime(ip)).toISOString());
-
-  next();
-};
+const rateLimiterMiddleware = createRateLimiterMiddleware(rateLimiter);
 
 // 静态文件服务配置
 const STATIC_DIRS = [
@@ -162,26 +114,8 @@ if (staticDir) {
   app.use(express.static(staticDir, { dotfiles: 'ignore' }));
 }
 
-// 请求ID & 日志中间件 (简化)
-app.use((req, res, next) => {
-  const start = Date.now();
-  const routeKey = req.path || req.originalUrl || 'unknown';
-  metrics.onRequest(routeKey);
-  const ip = extractClientIP(req);
-  const requestId = generateRequestId(req);
-  res.setHeader('X-Request-Id', requestId);
-  console.log(`📥 ${req.method} ${req.originalUrl} - IP: ${ip} - id=${requestId}`);
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    const statusCode = res.statusCode;
-    const statusEmoji = statusCode >= 400 ? '❌' : '✅';
-    console.log(
-      `${statusEmoji} ${req.method} ${req.originalUrl} - ${statusCode} - ${duration}ms - id=${requestId}`
-    );
-    metrics.onResponse(statusCode, duration, routeKey);
-  });
-  next();
-});
+// 请求ID & 日志中间件
+app.use(requestLogMiddleware);
 
 // 读取版本
 let VERSION = 'dev';
@@ -204,21 +138,6 @@ try {
  * @param {number} seconds - 运行秒数
  * @return {string} 格式化的时间字符串
  */
-function formatUptime(seconds) {
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-
-  const parts = [];
-  if (days > 0) parts.push(`${days}天`);
-  if (hours > 0) parts.push(`${hours}小时`);
-  if (minutes > 0) parts.push(`${minutes}分钟`);
-  if (secs > 0 || parts.length === 0) parts.push(`${secs}秒`);
-
-  return parts.join(' ');
-}
-
 // 健康检查接口
 app.get('/status', (req, res) => {
   const uptime = process.uptime();
@@ -263,65 +182,7 @@ app.get('/status', (req, res) => {
 });
 
 // 简易指标
-app.get('/metrics', (req, res) => {
-  res.json({ status: 'ok', metrics: metrics.snapshot() });
-});
-
-// Prometheus 文本格式
-app.get('/metrics/prometheus', (req, res) => {
-  const m = metrics.snapshot();
-  const lines = [
-    '# HELP bili_requests_total Total requests',
-    '# TYPE bili_requests_total counter',
-    `bili_requests_total ${m.requests.total}`,
-    '# HELP bili_requests_errors Total error responses',
-    '# TYPE bili_requests_errors counter',
-    `bili_requests_errors ${m.requests.errors}`,
-    '# HELP bili_requests_success Total success responses',
-    '# TYPE bili_requests_success counter',
-    `bili_requests_success ${m.requests.success}`,
-    '# HELP bili_requests_rate_limited Rate limited count',
-    '# TYPE bili_requests_rate_limited counter',
-    `bili_requests_rate_limited ${m.requests.rateLimited}`,
-    '# HELP bili_api_calls Total Bilibili API calls',
-    '# TYPE bili_api_calls counter',
-    `bili_api_calls ${m.api.calls}`,
-    '# HELP bili_api_errors Bilibili API errors',
-    '# TYPE bili_api_errors counter',
-    `bili_api_errors ${m.api.errors}`,
-    '# HELP bili_api_latency_avg_ms Average API latency ms',
-    '# TYPE bili_api_latency_avg_ms gauge',
-    `bili_api_latency_avg_ms ${m.api.avgLatencyMs}`,
-    '# HELP bili_api_latency_p95_ms API latency p95 ms',
-    '# TYPE bili_api_latency_p95_ms gauge',
-    `bili_api_latency_p95_ms ${m.api.p95Ms}`,
-    '# HELP bili_api_latency_p99_ms API latency p99 ms',
-    '# TYPE bili_api_latency_p99_ms gauge',
-    `bili_api_latency_p99_ms ${m.api.p99Ms}`,
-  ];
-
-  m.routes.forEach((r) => {
-    const label = `{route="${r.route}"}`;
-    lines.push('# HELP bili_route_requests_total Requests per route');
-    lines.push('# TYPE bili_route_requests_total counter');
-    lines.push(`bili_route_requests_total${label} ${r.total}`);
-    lines.push('# HELP bili_route_requests_errors Route errors');
-    lines.push('# TYPE bili_route_requests_errors counter');
-    lines.push(`bili_route_requests_errors${label} ${r.errors}`);
-    lines.push('# HELP bili_route_latency_avg_ms Route avg latency');
-    lines.push('# TYPE bili_route_latency_avg_ms gauge');
-    lines.push(`bili_route_latency_avg_ms${label} ${r.avg}`);
-    lines.push('# HELP bili_route_latency_p95_ms Route p95 latency');
-    lines.push('# TYPE bili_route_latency_p95_ms gauge');
-    lines.push(`bili_route_latency_p95_ms${label} ${r.p95}`);
-    lines.push('# HELP bili_route_latency_p99_ms Route p99 latency');
-    lines.push('# TYPE bili_route_latency_p99_ms gauge');
-    lines.push(`bili_route_latency_p99_ms${label} ${r.p99}`);
-  });
-
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  res.send(lines.join('\n'));
-});
+registerMetricsRoutes(app);
 
 // 根路径返回前端页面
 app.get('/', (req, res) => {
@@ -335,146 +196,11 @@ app.get('/', (req, res) => {
   res.status(500).send('静态首页缺失，请检查构建配置');
 });
 
-// 获取 B站追番数据
-app.get('/api/bangumi/:uid', rateLimiterMiddleware, async (req, res, next) => {
-  const { uid } = req.params;
+app.get('/api/bangumi/:uid', rateLimiterMiddleware, handleBangumiApi);
 
-  if (!isValidUID(uid)) {
-    console.warn(`⚠️ 无效的UID格式: ${uid}`);
-    return res.status(400).json({
-      error: 'Invalid UID',
-      message: 'UID必须是1-20位纯数字',
-    });
-  }
-
-  try {
-    const apiStart = Date.now();
-    const data = await getBangumiData(uid);
-    metrics.onApiCall(Date.now() - apiStart, data && data.code === 0);
-    if (!data) {
-      return res.status(500).json({ error: 'Internal Server Error', message: '获取数据失败' });
-    }
-    if (data && typeof data.code === 'number' && data.code !== 0) {
-      if (data.code === 53013) return res.status(403).json(data);
-      return res.json(data);
-    }
-    const bodyJson = JSON.stringify(data);
-    const etag = `W/"${crypto.createHash('sha1').update(bodyJson).digest('hex')}"`;
-    const inm = req.headers['if-none-match'];
-    if (inm && inm === etag) {
-      return res.status(304).end();
-    }
-    res.setHeader('ETag', etag);
-    res.setHeader('Cache-Control', 'public, max-age=300');
-    res.type('application/json').send(bodyJson);
-  } catch (err) {
-    console.error(`❌ 处理请求时出错:`, err);
-    next(err);
-  }
-});
-
-// 处理 UID 路由（显式 .ics 与纯 UID）
-const handleCalendar = async (req, res, next) => {
-  const raw = req.params.uid;
-  const cleanUid = raw.replace('.ics', '');
-  try {
-    console.log(`🔍 处理UID: ${cleanUid}`);
-    const apiStart = Date.now();
-    const data = await getBangumiData(cleanUid);
-    metrics.onApiCall(Date.now() - apiStart, data && data.code === 0);
-    if (!data) {
-      return res.status(500).send('获取数据失败');
-    }
-    if (data.code !== 0) {
-      if (data.code === 53013) {
-        console.warn(`⚠️ 用户隐私设置限制: ${cleanUid}`);
-        return respondWithEmptyCalendar(res, cleanUid, '用户设置为隐私');
-      }
-      console.error(`❌ B站API错误: ${data.message} (code: ${data.code})`);
-      return res.status(500).send(`Bilibili API 错误: ${data.message} (code: ${data.code})`);
-    }
-    const bangumiList = data.data?.list || [];
-    console.log(`📋 获取到番剧列表数量: ${bangumiList.length}`);
-    if (bangumiList.length === 0) {
-      console.warn(`⚠️ 未找到正在播出的番剧: ${cleanUid}`);
-      return respondWithEmptyCalendar(res, cleanUid, '未找到正在播出的番剧');
-    }
-    console.log(`📅 生成日历文件`);
-    const icsContent = generateICS(bangumiList, cleanUid);
-    return respondWithICS(res, icsContent, cleanUid);
-  } catch (err) {
-    console.error(`❌ 处理请求时出错:`, err);
-    next(err);
-  }
-};
-app.get('/:uid.ics', handleCalendar);
-app.get('/:uid', handleCalendar);
-
-// 聚合番剧 + 外部 ICS 日程
-const handleAggregate = async (req, res, next) => {
-  const raw = req.params.uid;
-  const cleanUid = raw.replace('.ics', '');
-
-  const sourcesParam = req.query.sources || '';
-  const sourceList = sourcesParam
-    .split(',')
-    .map((s) => decodeURIComponent(s.trim()))
-    .filter(Boolean);
-
-  if (sourceList.length > 5) {
-    return res
-      .status(400)
-      .json({ error: 'Too many sources', message: '最多支持 5 个外部 ICS 链接' });
-  }
-
-  // SSRF 防御：校验外部源 URL 安全性
-  for (const sourceUrl of sourceList) {
-    const ssrfError = validateExternalSource(sourceUrl);
-    if (ssrfError) {
-      console.warn(`⚠️ SSRF 检测拦截: ${sourceUrl} - ${ssrfError}`);
-      return res.status(400).json({ error: 'Invalid source', message: ssrfError });
-    }
-  }
-
-  try {
-    console.log(`🔀 聚合 UID: ${cleanUid}, 外部源数量: ${sourceList.length}`);
-
-    const apiStart = Date.now();
-    const data = await getBangumiData(cleanUid);
-    metrics.onApiCall(Date.now() - apiStart, data && data.code === 0);
-    if (!data) {
-      return res.status(500).send('获取数据失败');
-    }
-
-    if (data.code !== 0) {
-      if (data.code === 53013) {
-        console.warn(`⚠️ 用户隐私设置限制: ${cleanUid}`);
-        return respondWithEmptyCalendar(res, cleanUid, '用户设置为隐私');
-      }
-      console.error(`❌ B站API错误: ${data.message} (code: ${data.code})`);
-      return res.status(500).send(`Bilibili API 错误: ${data.message} (code: ${data.code})`);
-    }
-
-    const bangumiList = data.data?.list || [];
-    const externalCalendars = await fetchExternalICS(sourceList);
-
-    const merged = generateMergedICS(bangumiList, cleanUid, externalCalendars);
-    if (!merged) {
-      return respondWithEmptyCalendar(res, cleanUid, '未找到可用日程');
-    }
-
-    res.set({
-      'Content-Type': 'text/calendar; charset=utf-8',
-      'Content-Disposition': `attachment; filename="bili_merge_${cleanUid}.ics"`,
-      'Cache-Control': 'public, max-age=600',
-    });
-    return res.send(merged);
-  } catch (err) {
-    console.error(`❌ 聚合处理出错:`, err);
-    next(err);
-  }
-};
-
+// 日历与聚合 Handler（与主服务一致，含限流）
+app.get('/:uid.ics', rateLimiterMiddleware, handleCalendar);
+app.get('/:uid', rateLimiterMiddleware, handleCalendar);
 app.get('/aggregate/:uid.ics', rateLimiterMiddleware, handleAggregate);
 app.get('/aggregate/:uid', rateLimiterMiddleware, handleAggregate);
 
