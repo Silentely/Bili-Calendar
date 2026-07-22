@@ -35,7 +35,13 @@ function resolveTrustProxySetting(rawValue) {
 
 // 导入主应用逻辑
 const app = express();
-const trustProxySetting = resolveTrustProxySetting(process.env.TRUST_PROXY);
+// Netlify Functions 默认信任 1 层代理，使 req.ip / X-Forwarded-For 可用；
+// 仍可通过 TRUST_PROXY 显式覆盖（含 false 关闭）
+const trustProxySetting = resolveTrustProxySetting(
+  process.env.TRUST_PROXY != null && String(process.env.TRUST_PROXY).trim() !== ''
+    ? process.env.TRUST_PROXY
+    : '1'
+);
 if (trustProxySetting !== undefined) {
   app.set('trust proxy', trustProxySetting);
 }

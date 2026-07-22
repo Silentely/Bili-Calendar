@@ -38,7 +38,7 @@ Netlify 使用根目录的 `netlify.toml`：
 常用变量如下：
 
 - `NODE_ENV`: 运行环境，Netlify 生产环境通常为 `production`。
-- `TRUST_PROXY`: Express `trust proxy` 配置，可为 `true`、`false`、数字或字符串。
+- `TRUST_PROXY`: Express `trust proxy` 配置，可为 `true`、`false`、数字或字符串。Netlify Functions 默认信任 1 层代理；客户端 IP 优先读取平台头 `x-nf-client-connection-ip`，缺失时再回退 `X-Forwarded-For`。
 - `ENABLE_RATE_LIMIT`: 设置为 `false` 时关闭限流。
 - `API_RATE_LIMIT`: 限流窗口内最大请求数，默认 `100`。
 - `API_RATE_WINDOW`: 限流窗口毫秒数，默认 `3600000`。

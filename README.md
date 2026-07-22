@@ -282,7 +282,7 @@ GET /status
 | `VAPID_SUBJECT`            | mailto:...    | 可选，VAPID 识别（可用生成脚本输出） |
 | `PUSH_STORE_FILE`          | ./data/push-subscriptions.json | 可选，推送订阅持久化文件路径（仅主服务） |
 | `PUSH_ADMIN_TOKEN`         | 空            | 可选，保护 `/push/test` 等管理接口的令牌 |
-| `TRUST_PROXY`              | 未启用        | 可选，配置 Express `trust proxy`（true/false/跳数/IP），仅在可信代理后启用 |
+| `TRUST_PROXY`              | 主服务未启用；Netlify 默认 `1` | 可选，配置 Express `trust proxy`（true/false/跳数/IP）。Netlify 还会优先读 `x-nf-client-connection-ip` |
 
 ### 注意事项
 
@@ -292,7 +292,7 @@ GET /status
 4. **推送提醒**：执行 `node scripts/generate-vapid.js` 生成 VAPID 公私钥并设置上述环境变量，然后前端点击"启用推送"完成订阅；未配置时按钮会提示失败
 5. **推送订阅存储**：默认将订阅写入 `./data/push-subscriptions.json`（可通过 `PUSH_STORE_FILE` 变更），Netlify 等无状态环境会回退为内存存储
 6. **推送接口安全**：`/push/test` 仅在 `NODE_ENV=development` 时可用；若需要本地调试，请设置 `PUSH_ADMIN_TOKEN` 并通过 `Authorization: Bearer <token>` 或 `?token=` 传入令牌，生产环境保持默认关闭即可
-7. **反向代理信任**：默认不信任任何 `X-Forwarded-For` 头；如部署在受控代理/CDN 后，请显式设置 `TRUST_PROXY`（如 `true`、`1` 或具体子网），再结合代理层的 IP 过滤使用
+7. **反向代理信任**：主服务默认不信任 `X-Forwarded-For`；Netlify Functions 默认信任 1 层代理，并优先使用平台头 `x-nf-client-connection-ip`。自建代理/CDN 请显式设置 `TRUST_PROXY`（如 `true`、`1` 或具体子网）
 8. **Prometheus 抓取**：使用 `/metrics/prometheus`，或 `/metrics` 获取 JSON；路由级统计为进程内指标，重启会清零
 
 ---

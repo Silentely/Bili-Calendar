@@ -60,9 +60,11 @@ utils/
 获取用户追番数据并自动过滤正在播出的番剧。
 
 **参数**:
+
 - `uid` (string|number): B站用户 UID，必须是纯数字
 
 **返回值**:
+
 ```javascript
 // 成功
 {
@@ -88,6 +90,7 @@ null
 ```
 
 **使用示例**:
+
 ```javascript
 const { getBangumiData } = require('./utils/bangumi.cjs');
 
@@ -95,7 +98,7 @@ const data = await getBangumiData('614500');
 
 if (data && data.code === 0) {
   console.log(`找到 ${data.filtered_count} 部正在播出的番剧`);
-  data.data.list.forEach(bangumi => {
+  data.data.list.forEach((bangumi) => {
     console.log(`- ${bangumi.title}`);
   });
 } else if (data && data.error === 'Privacy Settings') {
@@ -106,12 +109,13 @@ if (data && data.code === 0) {
 ```
 
 **过滤逻辑**:
+
 ```javascript
 // 过滤条件：
 // 1. is_finish === 0 (未完结)
 // 2. 具有播出时间信息 (pub_index 或 renewal_time 或 new_ep.pub_time)
 
-const currentlyAiring = bangumis.filter(bangumi => {
+const currentlyAiring = bangumis.filter((bangumi) => {
   const isOngoing = bangumi.is_finish === 0;
   const hasBroadcastInfo =
     (bangumi.pub_index && bangumi.pub_index.trim() !== '') ||
@@ -123,11 +127,13 @@ const currentlyAiring = bangumis.filter(bangumi => {
 ```
 
 **错误处理**:
+
 - **隐私设置错误** (code: -352): 用户追番列表设为隐私
 - **网络错误**: 返回 null
 - **API 错误**: 返回原始错误对象
 
 **依赖**:
+
 - `http.cjs` - HTTP 请求客户端
 - `constants.cjs` - API 常量
 - `request-dedup.cjs` - 请求去重
@@ -145,13 +151,16 @@ const currentlyAiring = bangumis.filter(bangumi => {
 生成 ICS 日历文件内容。
 
 **参数**:
+
 - `bangumis` (Array): 番剧列表
 - `uid` (string): 用户 UID
 
 **返回值**:
+
 - `string`: ICS 格式的日历文件内容
 
 **ICS 文件结构**:
+
 ```
 BEGIN:VCALENDAR
 VERSION:2.0
@@ -184,6 +193,7 @@ END:VCALENDAR
 **事件生成逻辑**:
 
 1. **解析播出时间**:
+
 ```javascript
 // 优先级: pub_index > new_ep.pub_time > renewal_time
 let info = parseBroadcastTime(item.pub_index);
@@ -196,6 +206,7 @@ if (!info && item?.renewal_time) {
 ```
 
 2. **生成重复规则**:
+
 ```javascript
 // 连载中番剧: 每周重复 2 次
 if (item.is_finish === 0) {
@@ -205,6 +216,7 @@ if (item.is_finish === 0) {
 ```
 
 3. **事件描述**:
+
 ```javascript
 let description = '';
 if (item.index_show) {
@@ -219,11 +231,13 @@ description += ` ✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
 发送 ICS 文件响应。
 
 **参数**:
+
 - `res` (Response): Express 响应对象
 - `icsContent` (string): ICS 文件内容
 - `uid` (string): 用户 UID
 
 **响应头**:
+
 ```javascript
 {
   'Content-Type': 'text/calendar; charset=utf-8',
@@ -238,6 +252,7 @@ description += ` ✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
 发送空日历响应（当没有番剧时）。
 
 **依赖**:
+
 - `time.cjs` - 时间解析与格式化
 
 ---
@@ -253,12 +268,15 @@ description += ` ✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
 安全的 DNS 查询，防止 DNS 重绑定攻击。
 
 **参数**:
+
 - `hostname` (string): 主机名
 
 **返回值**:
+
 - `Promise<string>`: 解析后的 IP 地址
 
 **安全机制**:
+
 - 使用 `dns.lookup` 解析主机名
 - 结合 `security.cjs` 的 `isPrivateIPAddress` 检测私有地址
 - 阻止对内网地址的请求，防止 SSRF
@@ -268,12 +286,15 @@ description += ` ✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
 拉取外部 ICS 源内容。
 
 **参数**:
+
 - `url` (string): 外部 ICS 链接
 
 **返回值**:
+
 - `Promise<string|null>`: ICS 内容或 null（失败时）
 
 **处理流程**:
+
 1. 解析 URL，提取主机名
 2. 调用 `safeLookup` 验证 DNS 解析结果
 3. 使用 `httpClient` 拉取 ICS 内容
@@ -284,19 +305,23 @@ description += ` ✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
 合并多个 ICS 源为一个日历文件。
 
 **参数**:
+
 - `bangumiICS` (string): B站追番 ICS 内容
 - `externalICSList` (Array<string>): 外部 ICS 内容列表
 
 **返回值**:
+
 - `string`: 合并后的 ICS 内容
 
 **合并策略**:
+
 - 保留 B站 ICS 的日历头部（VCALENDAR、VTIMEZONE）
 - 从外部源中提取 VEVENT 块
 - 通过 UID 去重，避免重复事件
 - 将外部事件追加到 B站事件之后
 
 **依赖**:
+
 - `axios` - HTTP 请求
 - `dns` - DNS 查询（Node.js 内置）
 - `security.cjs` - 私有地址检测
@@ -313,6 +338,7 @@ description += ` ✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
 #### `RateLimiter`
 
 **配置**:
+
 ```javascript
 {
   windowMs: 15 * 60 * 1000,  // 时间窗口: 15 分钟
@@ -322,6 +348,7 @@ description += ` ✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
 ```
 
 **数据结构**:
+
 ```javascript
 // 存储格式: Map<IP, RequestRecord>
 {
@@ -338,6 +365,7 @@ description += ` ✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
 检查 IP 是否超过速率限制。
 
 **返回值**:
+
 ```javascript
 {
   allowed: boolean,      // 是否允许请求
@@ -348,6 +376,7 @@ description += ` ✨ 番剧简介: ${item.evaluate || '暂无简介'}`;
 ```
 
 **使用示例**:
+
 ```javascript
 const { createRateLimiter } = require('./utils/rate-limiter.cjs');
 
@@ -361,7 +390,7 @@ app.use((req, res, next) => {
     return res.status(429).json({
       error: 'Too Many Requests',
       message: '请求过于频繁，请稍后再试',
-      retryAfter: result.retryAfter
+      retryAfter: result.retryAfter,
     });
   }
 
@@ -369,7 +398,7 @@ app.use((req, res, next) => {
   res.set({
     'X-RateLimit-Limit': 100,
     'X-RateLimit-Remaining': result.remaining,
-    'X-RateLimit-Reset': new Date(result.resetTime).toISOString()
+    'X-RateLimit-Reset': new Date(result.resetTime).toISOString(),
   });
 
   next();
@@ -386,6 +415,7 @@ setInterval(() => rateLimiter.cleanup(), 60 * 60 * 1000);
 ```
 
 **算法**:
+
 - **滑动窗口**: 每个 IP 独立计数
 - **自动重置**: 窗口过期后自动重置计数
 - **内存管理**: 定期清理过期记录
@@ -401,6 +431,7 @@ setInterval(() => rateLimiter.cleanup(), 60 * 60 * 1000);
 #### `RequestDedup`
 
 **数据结构**:
+
 ```javascript
 // 存储格式: Map<Key, Promise>
 {
@@ -417,13 +448,16 @@ setInterval(() => rateLimiter.cleanup(), 60 * 60 * 1000);
 对请求进行去重处理。
 
 **参数**:
+
 - `key` (string): 请求唯一标识 (如 `bangumi:614500`)
 - `fn` (Function): 异步函数
 
 **返回值**:
+
 - `Promise`: 请求结果
 
 **使用示例**:
+
 ```javascript
 const { createRequestDedup } = require('./utils/request-dedup.cjs');
 
@@ -438,23 +472,23 @@ async function getBangumiData(uid) {
 }
 
 // 并发调用相同 UID，只会执行一次 API 请求
-Promise.all([
-  getBangumiData('614500'),
-  getBangumiData('614500'),
-  getBangumiData('614500')
-]).then(results => {
-  // 三个结果相同，但只调用了一次 API
-  console.log(results);
-});
+Promise.all([getBangumiData('614500'), getBangumiData('614500'), getBangumiData('614500')]).then(
+  (results) => {
+    // 三个结果相同，但只调用了一次 API
+    console.log(results);
+  }
+);
 ```
 
 **工作原理**:
+
 1. 检查是否有相同 key 的请求正在执行
 2. 如果有，直接返回现有 Promise
 3. 如果没有，执行新请求并缓存 Promise
 4. 请求完成后，清理缓存
 
 **优势**:
+
 - 减少重复 API 调用
 - 降低服务器负载
 - 提升响应速度
@@ -472,11 +506,13 @@ Promise.all([
 解析播出时间字符串。
 
 **支持格式**:
+
 - `"每周六 12:00"` → `{ dayOfWeek: 6, time: '12:00', rruleDay: 'SA' }`
 - `"周日 18:30"` → `{ dayOfWeek: 0, time: '18:30', rruleDay: 'SU' }`
 - `"星期三 20:00"` → `{ dayOfWeek: 3, time: '20:00', rruleDay: 'WE' }`
 
 **返回值**:
+
 ```javascript
 {
   dayOfWeek: number,    // 0-6 (周日-周六)
@@ -490,6 +526,7 @@ Promise.all([
 解析新集播出时间。
 
 **支持格式**:
+
 - `"2025-11-23 12:00:00"` → `{ dayOfWeek: 6, time: '12:00', rruleDay: 'SA' }`
 
 #### `getNextBroadcastDate(dayOfWeek, time)`
@@ -497,13 +534,16 @@ Promise.all([
 计算下次播出日期。
 
 **参数**:
+
 - `dayOfWeek` (number): 星期几 (0-6)
 - `time` (string): 时间 (HH:MM)
 
 **返回值**:
+
 - `Date`: 下次播出的日期时间
 
 **算法**:
+
 ```javascript
 function getNextBroadcastDate(dayOfWeek, time) {
   const now = new Date();
@@ -538,6 +578,7 @@ function getNextBroadcastDate(dayOfWeek, time) {
 转义 ICS 文本中的特殊字符。
 
 **转义规则**:
+
 - `,` → `\,`
 - `;` → `\;`
 - `\n` → `\n` (保留换行)
@@ -556,6 +597,7 @@ function getNextBroadcastDate(dayOfWeek, time) {
 基于 `axios` 的 HTTP 客户端实例。
 
 **配置**（默认值可通过环境变量覆盖）:
+
 ```javascript
 {
   timeout: 25000,              // HTTP_TIMEOUT_MS，默认 25 秒
@@ -569,6 +611,7 @@ function getNextBroadcastDate(dayOfWeek, time) {
 ```
 
 **连接策略**:
+
 ```javascript
 // 默认禁用 keepAlive，降低 Serverless / 长连接场景下的 EPIPE 风险
 const httpAgent = new http.Agent({ keepAlive: false });
@@ -576,6 +619,7 @@ const httpsAgent = new https.Agent({ keepAlive: false });
 ```
 
 **使用示例**:
+
 ```javascript
 const { httpClient } = require('./utils/http.cjs');
 
@@ -595,6 +639,7 @@ const response = await httpClient.get('https://api.bilibili.com/...', {
 ```
 
 **错误处理**:
+
 ```javascript
 try {
   const response = await httpClient.get(url);
@@ -629,23 +674,28 @@ module.exports = {
   BILIBILI_PRIVACY_ERROR_CODE: -352,
 
   // 速率限制
-  RATE_LIMIT_WINDOW_MS: 15 * 60 * 1000,  // 15 分钟
-  RATE_LIMIT_MAX_REQUESTS: 100,          // 100 次
+  RATE_LIMIT_WINDOW_MS: 15 * 60 * 1000, // 15 分钟
+  RATE_LIMIT_MAX_REQUESTS: 100, // 100 次
 
   // 缓存
-  CACHE_TTL: 24 * 60 * 60 * 1000,        // 24 小时
+  CACHE_TTL: 24 * 60 * 60 * 1000, // 24 小时
 
   // 时区
   DEFAULT_TIMEZONE: 'Asia/Shanghai',
 
   // 星期映射
   DAY_MAP: {
-    '日': 0, '一': 1, '二': 2, '三': 3,
-    '四': 4, '五': 5, '六': 6
+    日: 0,
+    一: 1,
+    二: 2,
+    三: 3,
+    四: 4,
+    五: 5,
+    六: 6,
   },
 
   // RRULE 星期映射
-  RRULE_DAY_MAP: ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA']
+  RRULE_DAY_MAP: ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'],
 };
 ```
 
@@ -662,15 +712,19 @@ module.exports = {
 提取客户端 IP 地址。
 
 **优先级**:
-1. `X-Forwarded-For` (代理/CDN)
-2. `X-Real-IP` (Nginx)
-3. `req.ip` (Express)
-4. `req.connection.remoteAddress` (原始连接)
+
+1. `req.ips` / `req.ip`（Express `trust proxy` 解析结果）
+2. 平台边缘头：`x-nf-client-connection-ip`（Netlify）、`cf-connecting-ip`（Cloudflare）、`true-client-ip`
+3. 直连 `socket.remoteAddress`
+4. 可信代理/Netlify/Lambda 环境下的 `X-Forwarded-For` 最左侧
+5. `remote-addr` 低可信度兜底
 
 **返回值**:
+
 - `string`: 客户端 IP 地址
 
 **使用示例**:
+
 ```javascript
 const { extractClientIP } = require('./utils/ip.cjs');
 
@@ -686,12 +740,15 @@ app.use((req, res, next) => {
 标准化 IP 地址格式。
 
 **参数**:
+
 - `ip` (string): 原始 IP 地址（可能包含 IPv6 映射前缀）
 
 **返回值**:
+
 - `string`: 标准化后的 IP 地址
 
 **处理逻辑**:
+
 - 移除 `::ffff:` IPv6 映射前缀
 - 统一为 IPv4 格式
 
@@ -700,9 +757,11 @@ app.use((req, res, next) => {
 生成唯一请求 ID。
 
 **返回值**:
+
 - `string`: 16 位随机字符串
 
 **使用示例**:
+
 ```javascript
 const { generateRequestId } = require('./utils/ip.cjs');
 
@@ -726,9 +785,11 @@ app.use((req, res, next) => {
 验证 UID 格式是否合法。
 
 **参数**:
+
 - `uid` (string|number): 待验证的 UID
 
 **返回值**:
+
 ```javascript
 // 合法
 { valid: true, sanitized: string }
@@ -738,11 +799,13 @@ app.use((req, res, next) => {
 ```
 
 **验证规则**:
+
 - 必须为纯数字
 - 长度 1-20 位
 - 自动去除首尾空白
 
 **使用示例**:
+
 ```javascript
 const { validateUID } = require('./utils/security.cjs');
 
@@ -762,12 +825,15 @@ if (!bad.valid) {
 检测是否为私有/本地地址，防止 SSRF 攻击。
 
 **参数**:
+
 - `hostname` (string): 主机名或 IP 地址
 
 **返回值**:
+
 - `boolean`: 是否为私有地址
 
 **拦截范围**:
+
 - `127.0.0.0/8` (本地回环)
 - `10.0.0.0/8` (A 类私有)
 - `172.16.0.0/12` (B 类私有)
@@ -778,6 +844,7 @@ if (!bad.valid) {
 - `localhost` 等保留域名
 
 **依赖**:
+
 - `ip.cjs` - `normalizeIPAddress` 用于标准化 IP 格式
 
 ---
@@ -792,14 +859,14 @@ if (!bad.valid) {
 
 ```javascript
 const UID_RULES = {
-  PATTERN: /^\d{1,20}$/,    // 纯数字，1-20 位
+  PATTERN: /^\d{1,20}$/, // 纯数字，1-20 位
   MIN_LENGTH: 1,
   MAX_LENGTH: 20,
   ERROR_MESSAGES: {
     EMPTY: 'UID 不能为空',
     INVALID_FORMAT: 'UID 必须是 1-20 位纯数字',
-    TOO_LONG: 'UID 长度不能超过 20 位'
-  }
+    TOO_LONG: 'UID 长度不能超过 20 位',
+  },
 };
 ```
 
@@ -817,9 +884,11 @@ const ALLOWED_PROTOCOLS = ['http:', 'https:'];
 验证 UID 输入。
 
 **参数**:
+
 - `uid` (string|number): 待验证的 UID
 
 **返回值**:
+
 ```javascript
 { valid: boolean, sanitized?: string, error?: string }
 ```
@@ -829,14 +898,17 @@ const ALLOWED_PROTOCOLS = ['http:', 'https:'];
 验证 URL 格式与协议。
 
 **参数**:
+
 - `url` (string): 待验证的 URL
 
 **返回值**:
+
 ```javascript
 { valid: boolean, parsed?: URL, error?: string }
 ```
 
 **验证规则**:
+
 - 必须为合法 URL 格式
 - 协议必须在白名单内（http/https）
 - 拒绝 `javascript:`、`data:` 等危险协议
@@ -846,12 +918,15 @@ const ALLOWED_PROTOCOLS = ['http:', 'https:'];
 私有 IP 拦截模式，用于外部源验证。
 
 **参数**:
+
 - `hostname` (string): 主机名
 
 **返回值**:
+
 - `boolean`: 是否为私有地址
 
 **与 `security.cjs` 的关系**:
+
 - `validation.cjs` 提供上层验证接口
 - `security.cjs` 提供底层安全检测
 - 两者可独立使用，也可组合使用
@@ -867,6 +942,7 @@ const ALLOWED_PROTOCOLS = ['http:', 'https:'];
 #### `Metrics`
 
 **采集指标**:
+
 - 请求总数 (`requests_total`)
 - 成功请求数 (`requests_success`)
 - 错误请求数 (`requests_error`)
@@ -880,6 +956,7 @@ const ALLOWED_PROTOCOLS = ['http:', 'https:'];
 记录一次请求的指标数据。
 
 **参数**:
+
 - `route` (string): 路由路径
 - `statusCode` (number): HTTP 状态码
 - `duration` (number): 请求耗时（毫秒）
@@ -889,6 +966,7 @@ const ALLOWED_PROTOCOLS = ['http:', 'https:'];
 记录一次 API 调用的延迟。
 
 **参数**:
+
 - `route` (string): 路由路径
 - `duration` (number): 调用耗时（毫秒）
 - `success` (boolean): 是否成功
@@ -898,10 +976,12 @@ const ALLOWED_PROTOCOLS = ['http:', 'https:'];
 获取指定路由的延迟百分位数。
 
 **参数**:
+
 - `route` (string): 路由路径
 - `percentile` (number): 百分位（如 95、99）
 
 **返回值**:
+
 - `number`: 对应百分位的延迟值（毫秒）
 
 ##### `getMetrics()`
@@ -909,6 +989,7 @@ const ALLOWED_PROTOCOLS = ['http:', 'https:'];
 获取全部指标数据。
 
 **返回值**:
+
 ```javascript
 {
   uptime: number,              // 服务运行时长（秒）
@@ -934,9 +1015,11 @@ const ALLOWED_PROTOCOLS = ['http:', 'https:'];
 导出 Prometheus 文本格式的指标。
 
 **返回值**:
+
 - `string`: Prometheus exposition format 文本
 
 **内存保护**:
+
 - 限制最大路由数（默认 1000），超出时丢弃新路由的详细统计
 - 延迟采样窗口限制大小，防止内存无限增长
 
@@ -953,12 +1036,14 @@ const ALLOWED_PROTOCOLS = ['http:', 'https:'];
 **存储位置**: `./data/push-subscriptions.json`
 
 **构造函数**:
+
 ```javascript
 const store = new PushStore(dataDir);
 // dataDir: 可选，默认 './data'
 ```
 
 **初始化行为**:
+
 - 自动创建数据目录（如不存在）
 - 自动创建 JSON 文件（如不存在）
 - 加载已有订阅数据到内存
@@ -970,11 +1055,13 @@ const store = new PushStore(dataDir);
 添加一条推送订阅。
 
 **参数**:
+
 - `subscription` (object): WebPush 订阅对象
   - `endpoint` (string): 推送服务端点
   - `keys` (object): 加密密钥（`p256dh`、`auth`）
 
 **返回值**:
+
 - `boolean`: 是否为新增（false 表示已存在）
 
 ##### `remove(endpoint)`
@@ -982,9 +1069,11 @@ const store = new PushStore(dataDir);
 根据 endpoint 删除订阅。
 
 **参数**:
+
 - `endpoint` (string): 推送服务端点
 
 **返回值**:
+
 - `boolean`: 是否成功删除
 
 ##### `getAll()`
@@ -992,6 +1081,7 @@ const store = new PushStore(dataDir);
 获取所有订阅。
 
 **返回值**:
+
 - `Array<object>`: 订阅列表
 
 ##### `has(endpoint)`
@@ -999,12 +1089,15 @@ const store = new PushStore(dataDir);
 检查是否已存在某订阅。
 
 **参数**:
+
 - `endpoint` (string): 推送服务端点
 
 **返回值**:
+
 - `boolean`: 是否存在
 
 **持久化机制**:
+
 - 每次增删操作后自动写入文件
 - 使用同步写入确保数据一致性
 - JSON 格式便于调试与手动编辑
@@ -1060,62 +1153,68 @@ graph TD
 
 ### 已测试模块
 
-| 模块 | 测试文件 | 覆盖率 | 状态 |
-|------|---------|--------|------|
-| `ics.cjs` | `test/utils.ics.test.js` | 85% | ✅ 已测试 |
-| `time.cjs` | `test/utils.time.test.js` | 90% | ✅ 已测试 |
-| `rate-limiter.cjs` | `test/utils.rate-limiter.test.js` | 95% | ✅ 已测试 |
-| `request-dedup.cjs` | `test/utils.request-dedup.test.js` | 95% | ✅ 已测试 |
-| `ip.cjs` | `test/utils.ip-validation.test.js` | 90% | ✅ 已测试 |
-| `security.cjs` | `test/utils.security.test.js` | 90% | ✅ 已测试 |
-| `validation.cjs` | `test/utils.validation.test.js` | 90% | ✅ 已测试 |
-| `ics-merge.cjs` | `test/ics-merge.test.js` | 80% | ✅ 已测试 |
-| `metrics.cjs` | `test/metrics.test.js` | 85% | ✅ 已测试 |
+| 模块                | 测试文件                           | 覆盖率 | 状态      |
+| ------------------- | ---------------------------------- | ------ | --------- |
+| `ics.cjs`           | `test/utils.ics.test.js`           | 85%    | ✅ 已测试 |
+| `time.cjs`          | `test/utils.time.test.js`          | 90%    | ✅ 已测试 |
+| `rate-limiter.cjs`  | `test/utils.rate-limiter.test.js`  | 95%    | ✅ 已测试 |
+| `request-dedup.cjs` | `test/utils.request-dedup.test.js` | 95%    | ✅ 已测试 |
+| `ip.cjs`            | `test/utils.ip-validation.test.js` | 90%    | ✅ 已测试 |
+| `security.cjs`      | `test/utils.security.test.js`      | 90%    | ✅ 已测试 |
+| `validation.cjs`    | `test/utils.validation.test.js`    | 90%    | ✅ 已测试 |
+| `ics-merge.cjs`     | `test/ics-merge.test.js`           | 80%    | ✅ 已测试 |
+| `metrics.cjs`       | `test/metrics.test.js`             | 85%    | ✅ 已测试 |
 
 ### 已有相关测试（ES Module 路径）
 
-| 模块 | 测试文件 | 说明 |
-|------|---------|------|
+| 模块                  | 测试文件                     | 说明                    |
+| --------------------- | ---------------------------- | ----------------------- |
 | `utils-es/bangumi.js` | `test/utils.bangumi.test.js` | Mock HTTP 覆盖拉取/缓存 |
-| `utils-es/http.js` | `test/utils.http.test.js` | 重试/拦截器 |
+| `utils-es/http.js`    | `test/utils.http.test.js`    | 重试/拦截器             |
 
 ### 待补充测试
 
-| 模块 | 缺口 | 计划 |
-|------|------|------|
-| `bangumi.cjs` | CJS 路径无对等用例 | 与 ES 版共享或镜像测试 |
-| `http.cjs` | CJS 路径无对等用例 | 与 ES 版共享或镜像测试 |
-| `push-store.cjs` | 文件 I/O 测试 | 编写持久化测试 |
+| 模块             | 缺口               | 计划                   |
+| ---------------- | ------------------ | ---------------------- |
+| `bangumi.cjs`    | CJS 路径无对等用例 | 与 ES 版共享或镜像测试 |
+| `http.cjs`       | CJS 路径无对等用例 | 与 ES 版共享或镜像测试 |
+| `push-store.cjs` | 文件 I/O 测试      | 编写持久化测试         |
 
 ---
 
 ## 📊 性能优化
 
 ### 1. 请求去重
+
 - 防止并发相同请求
 - 减少 API 调用次数
 - 降低服务器负载
 
 ### 2. 速率限制
+
 - 基于 IP 的限流
 - 滑动窗口算法
 - 自动清理过期记录
 
 ### 3. HTTP 连接池
+
 - 复用 TCP 连接
 - Serverless 环境禁用 (避免连接泄漏)
 
 ### 4. 错误处理
+
 - 详细的错误日志
 - 友好的错误提示
 - 自动重试机制 (可选)
 
 ### 5. 安全防护
+
 - SSRF 防护：DNS 重绑定检测 + 私有地址拦截
 - 输入验证：UID 格式校验 + URL 协议白名单
 - 最小权限：仅允许 http/https 协议
 
 ### 6. 指标采集
+
 - 内存级采集，零外部依赖
 - 路由级统计，定位性能瓶颈
 - p95/p99 百分位，识别长尾延迟
