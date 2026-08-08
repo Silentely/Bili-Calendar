@@ -12,6 +12,8 @@ import { describe, it, beforeEach, afterEach } from 'node:test';
 // 保存原始的 document 和 setTimeout 描述符
 let originalDocumentDescriptor;
 let originalSetTimeoutDescriptor;
+// 捕获真实的 setTimeout（beforeEach 会替换为 mock 版，用于部分用例恢复）
+const realSetTimeout = setTimeout;
 
 /**
  * 模拟 document 对象
@@ -40,6 +42,21 @@ function mockDocument() {
       const element = {
         tagName,
         className: '',
+        children: [],
+        appendChild(child) {
+          this.children.push(child);
+          child.parentNode = this;
+        },
+        removeChild(child) {
+          const index = this.children.indexOf(child);
+          if (index > -1) {
+            this.children.splice(index, 1);
+            child.parentNode = null;
+          }
+        },
+        setAttribute(name, value) {
+          this['attr_' + name] = String(value);
+        },
         get innerHTML() {
           return _innerHTML;
         },
@@ -360,6 +377,70 @@ describe('toastService', () => {
 
       assert.ok(toast, 'Toast 元素应该存在');
       assert.ok(toast.innerHTML.includes('fa-info-circle'), '应该回退到 info 图标');
+    });
+  });
+
+  describe('容器与防刷屏', () => {
+    // 使用真实 setTimeout，让 Toast 保持可见以便断言（mock 版会立即移除）
+    function useRealSetTimeout() {
+      Object.defineProperty(globalThis, 'setTimeout', {
+        writable: true,
+        configurable: true,
+        value: realSetTimeout,
+      });
+    }
+
+    // 模块级状态（容器/可见列表）要求每次导入使用唯一 URL，避免同毫秒撞键复用旧状态
+    function uniqueImportUrl() {
+      return `../src/services/toastService.js?t=${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`;
+    }
+
+    it('Toast 应挂载到容器，容器带 aria-live 声明', async () => {
+      useRealSetTimeout();
+      const { showToast } = await import(uniqueImportUrl());
+
+      showToast('容器测试', 'info');
+
+      const container = elements.find((el) => el.className.includes('toast-container'));
+      assert.ok(container, '应创建 toast 容器');
+      assert.strictEqual(container.attr_role, 'status', '容器应有 role=status');
+      assert.strictEqual(container['attr_aria-live'], 'polite', '容器应有 aria-live=polite');
+      assert.strictEqual(container.children.length, 1, '容器内应包含 Toast');
+    });
+
+    it('相同消息+类型在展示期内去重', async () => {
+      useRealSetTimeout();
+      const { showToast } = await import(uniqueImportUrl());
+
+      const first = showToast('重复消息', 'info');
+      const second = showToast('重复消息', 'info');
+
+      const container = elements.find((el) => el.className.includes('toast-container'));
+      assert.ok(container, '应创建 toast 容器');
+      assert.strictEqual(first, second, '去重应返回同一 Toast 元素');
+      assert.strictEqual(container.children.length, 1, '容器内应只有一条 Toast');
+    });
+
+    it('超过 5 条时淘汰最旧 Toast', async () => {
+      useRealSetTimeout();
+      const { showToast } = await import(uniqueImportUrl());
+
+      for (let i = 0; i < 7; i += 1) {
+        showToast(`消息${i}`, 'info');
+      }
+
+      const container = elements.find((el) => el.className.includes('toast-container'));
+      assert.ok(container, '应创建 toast 容器');
+      assert.strictEqual(container.children.length, 5, '最多同时保留 5 条');
+      const htmls = container.children.map((c) => c.innerHTML);
+      assert.ok(!htmls.some((h) => h.includes('消息0')), '最旧的消息0应被淘汰');
+      assert.ok(!htmls.some((h) => h.includes('消息1')), '次旧的消息1应被淘汰');
+      assert.ok(
+        htmls.some((h) => h.includes('消息6')),
+        '最新的消息6应保留'
+      );
     });
   });
 });

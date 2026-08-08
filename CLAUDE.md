@@ -9,10 +9,12 @@
 ## 1. 基础检索（交叉验证策略）
 
 ### 核心原则
+
 - **禁止基于假设（Assumption）回答**，所有结论必须有代码依据
 - **交叉检索强制执行**：必须同时调用 `mcp__ace-tool__search_context` + `mcp__fast-context__fast_context_search`，对比结果取交集
 
 ### 工具调用顺序
+
 1. **先用 `mcp__ace-tool__search_context`** — 语义代码搜索，自然语言查询
 2. **再用 `mcp__fast-context__fast_context_search`** — 补充检索，返回文件+行号+grep关键词
 3. **对比两个工具的结果** — 取交集作为可靠上下文
@@ -21,6 +23,7 @@
 ### 使用场景优先级
 
 **必须用 fast_context_search 的场景**：
+
 - 探索性搜索（不确定代码所在文件或目录）
 - 用自然语言描述要找的逻辑（如"XX部署流程"、"XX事件处理"）
 - 理解业务逻辑和调用链路
@@ -39,17 +42,20 @@
 | 提示词增强 | `mcp__ace-tool__enhance_prompt` | 优化任务描述以获得更精准结果 |
 
 ### 参数调优指南
+
 - `tree_depth=1, max_turns=1` — 快速粗查，适合小项目或初步定位
 - `tree_depth=3, max_turns=3`（默认）— 平衡精度与速度，适合大多数场景
 - `max_turns=5` — 深度搜索，适合复杂调用链追踪
 - `project_path` — 指定搜索的项目根目录，默认为当前工作目录
 
 ### 完整性检查
+
 - 必须获取相关类、函数、变量的**完整定义与签名**
 - 若上下文不足，增加 `max_turns` 参数进行递归检索直至信息完整
 - 若两个工具结果不一致，需增加检索深度或调整查询词重新检索
 
 ### 需求对齐
+
 - 若检索后需求仍有模糊空间，必须向用户输出引导性问题列表
 - 直至需求边界清晰（无遗漏、无冗余）
 
@@ -58,57 +64,63 @@
 ## 2. 网络检索（Smart Search CLI）
 
 ### 激活条件
+
 **触发场景**：网络搜索 / 网页抓取 / 最新信息查询 / 事实核查 / 官方文档查询
 **首选工具**：`smart-search-cli` 作为默认搜索执行层
 
 ### 工具路由矩阵
 
-| 场景 | 首选命令 | 说明 |
-|------|----------|------|
-| 广度探索 / 实时综合 | `smart-search search "query" --format json` | 主搜索入口，自动路由到配置的提供商 |
-| 中文搜索 / 国内资讯 / 政策法规 | `smart-search zhipu-search "query" --format json` | 智谱 Web Search API |
-| 官方文档 / API / SDK 查询 | `smart-search context7-library/doc "query" --format json` | Context7 优先，Exa 补充 |
-| 官方域名 / 论文 / 可信站点 | `smart-search exa-search "query" --format json` | 低噪声精准发现 |
-| 抓取网页内容 | `smart-search fetch "url" --format markdown` | Tavily 优先，Firecrawl 兜底 |
-| 站点结构探索 | `smart-search map "url" --format json` | 文档站结构分析 |
-| 深度研究 / 多源验证 | `smart-search deep "question" --format json` | 离线规划 → 分步执行 → 证据收集 |
+| 场景                           | 首选命令                                                  | 说明                               |
+| ------------------------------ | --------------------------------------------------------- | ---------------------------------- |
+| 广度探索 / 实时综合            | `smart-search search "query" --format json`               | 主搜索入口，自动路由到配置的提供商 |
+| 中文搜索 / 国内资讯 / 政策法规 | `smart-search zhipu-search "query" --format json`         | 智谱 Web Search API                |
+| 官方文档 / API / SDK 查询      | `smart-search context7-library/doc "query" --format json` | Context7 优先，Exa 补充            |
+| 官方域名 / 论文 / 可信站点     | `smart-search exa-search "query" --format json`           | 低噪声精准发现                     |
+| 抓取网页内容                   | `smart-search fetch "url" --format markdown`              | Tavily 优先，Firecrawl 兜底        |
+| 站点结构探索                   | `smart-search map "url" --format json`                    | 文档站结构分析                     |
+| 深度研究 / 多源验证            | `smart-search deep "question" --format json`              | 离线规划 → 分步执行 → 证据收集     |
 
 ### 执行策略
 
 **搜索构建**：
+
 - 广度搜索：`search --extra-sources 1..3`（增加额外来源）
 - 深度验证：`search --validation strict`（严格验证模式）
 - 中文内容：`zhipu-search`（智谱 API 优化）
 - 技术文档：`context7-library/doc`（官方文档优先）
 
 **证据策略**（`fetch_before_claim`）：
+
 1. **候选 URL 发现** — 使用 `search` / `exa-search` / `zhipu-search` / `context7-*`
 2. **关键页面抓取** — 使用 `fetch` 获取完整内容
 3. **交叉验证** — 多源对比，确认信息一致性
 
 **结果整合**：
+
 - 强制标注来源格式：`[标题](URL)`
 - 区分 `primary_sources`（已验证）和 `extra_sources`（候选）
 - 时间敏感信息必须注明日期
 
 ### 错误恢复
 
-| 错误类型 | 处理方式 |
-|----------|----------|
-| 超时 | 重试 3 次 `--timeout 180`，间隔 5 秒 |
-| 全部超时 | 降级到 `exa-search` + `fetch` 手动取证 |
-| 无结果 | 放宽查询条件 / 切换提供商 |
+| 错误类型 | 处理方式                                 |
+| -------- | ---------------------------------------- |
+| 超时     | 重试 3 次 `--timeout 180`，间隔 5 秒     |
+| 全部超时 | 降级到 `exa-search` + `fetch` 手动取证   |
+| 无结果   | 放宽查询条件 / 切换提供商                |
 | 配置异常 | `smart-search doctor --format json` 诊断 |
 
 ### 核心约束
 
 ✅ **必须做到**：
+
 - 首选 smart-search-cli 作为网络搜索入口
 - 输出必须包含来源引用
 - 失败必须重试（最多 3 次）
 - 关键信息必须验证
 
 ❌ **禁止行为**：
+
 - 禁止无来源输出
 - 禁止单次放弃
 - 禁止未验证假设
@@ -118,11 +130,24 @@
 
 ## 变更记录 (Changelog)
 
+### 2026-08-08
+
+- **[文案国际化]** 错误弹窗、新手引导、预览详情文案全部接入 i18n 字典（中/英/繁/日）
+- **[无障碍]** Toast 容器 aria-live 声明、错误弹窗 Escape 关闭与焦点圈定、关闭按钮可访问
+- **[UX 打磨]** 订阅流程移除固定 800ms 人工延迟；加载指示去冗余；UID 输入框移动端键盘优化
+- **[日志规范]** 前后端 console 日志统一 emoji 前缀；请求日志合并为单行
+- **[服务端]** 限流 429 响应新增 Retry-After 与动态窗口标签；Prometheus 增加 uptime/内存 gauge
+- **[样式/离线]** Toast 容器化堆叠与去重；离线回退页暗黑适配；theme-color 明暗区分
+- **[重构]** server.js 首页/状态页 Markdown 模板提取复用；404 页暗黑适配
+- **[计数修正]** 测试文件数更新为 32
+
 ### 2026-07-11
+
 - **[文档同步]** 对齐限流/HTTP 默认值、Vite 8、前端 14 服务、28 测试文件、Netlify rolldown 构建说明
 - **[测试状态]** 反映 `utils.bangumi` / `utils.http` / `netlify-functions` 已有测试（主要覆盖 utils-es 与 handler）
 
 ### 2026-05-03
+
 - **[文档审查]** 完成全量 CLAUDE.md 一致性审查与修复
 - **[文档重写]** 重写 `docs/frontend.md`、`test/CLAUDE.md`、`utils/CLAUDE.md` 三个模块文档
 - **[计数修正]** 确认测试文件数为 26（含 11 个工具层 + 15 个服务层测试文件）
@@ -132,6 +157,7 @@
 - **[一致性验证]** 确认根文档与所有模块文档的交叉引用、模块列表、覆盖率数据一致
 
 ### 2026-04-28
+
 - **[架构扫描]** 完成全仓重新扫描，验证模块完整性与文件结构
 - **[文档同步]** 更新技术栈文档与模块索引
 - **[测试覆盖]** 确认 26 个测试文件覆盖前端服务和后端工具层
@@ -139,6 +165,7 @@
 - **[覆盖率报告]** 整体覆盖率 88%，识别出 2 个主要缺口
 
 ### 2026-01-04
+
 - **[运行时升级]** Node.js 版本要求从 >=18.0.0 升级到 **>=22.0.0**
 - **[架构扫描]** 重新扫描项目结构，验证模块完整性
 - **[文档同步]** 更新技术栈文档，反映最新的 Node.js 版本要求
@@ -148,6 +175,7 @@
 - **[覆盖率提升]** 整体覆盖率从 78% 提升至 **88%**
 
 ### 2025-12-12
+
 - **[架构扫描]** 完成项目全仓扫描，生成 `.claude/index.json` 项目索引
 - **[覆盖率报告]** 整体覆盖率 78%，识别出 4 个主要缺口
 - **[模块映射]** 识别出 9 个主要模块，89 个源文件
@@ -155,6 +183,7 @@
 - **[测试状态]** 确认 85% 测试覆盖率，待补充 Mock 测试
 
 ### 2025-12-01
+
 - **[架构重构]** 从传统静态文件迁移到 Vite 构建系统
 - **[前端工程化]** 引入 ES Module、SCSS、组件化开发
 - **[构建优化]** 添加 Vite 7.x 构建工具，支持热重载和代码分割
@@ -163,12 +192,14 @@
 - **[监控 & 推送]** 新增 Prometheus `/metrics/prometheus`，提醒支持自定义提前时间与实验 WebPush（需 VAPID）
 
 ### 2025-11-30
+
 - **[架构师初始化]** 自动生成项目索引与模块结构图
 - **[文档增强]** 添加 Mermaid 模块可视化图表
 - **[元数据]** 生成 `.claude/index.json` 项目索引文件
 - **[导航优化]** 为各模块文档添加面包屑导航
 
 ### 2025-11-23
+
 - 重构项目文档结构，统一命名规范
 - 移除 Mermaid 图表和 emoji 装饰
 - 更新代码规范、日志规范、异常处理指南
@@ -252,7 +283,7 @@ graph TD
     Utils --> RateLimiter["rate-limiter.cjs<br/>限流"]
     Utils --> RequestDedup["request-dedup.cjs<br/>去重"]
 
-    Test --> TestFiles["28个测试文件"]
+    Test --> TestFiles["32个测试文件"]
 
     UtilsCLAUDE["CLAUDE.md"] -.-> Utils
     TestCLAUDE["CLAUDE.md"] -.-> Test
@@ -265,17 +296,17 @@ graph TD
 
 ## 项目技术栈
 
-| 层级 | 技术 | 版本要求 |
-|------|------|----------|
-| **运行时** | Node.js | **>= 22.0.0** |
-| **后端框架** | Express.js | ^5.2.1 |
-| **HTTP 客户端** | Axios | ^1.16.0 |
-| **前端框架** | Vanilla JavaScript | ES2022+ |
-| **构建工具** | Vite | ^8.0.16 |
-| **样式预处理** | SCSS/Sass | ^1.97.1 |
-| **部署** | Docker / Netlify Functions | - |
-| **测试** | Node.js 内置测试框架 | - |
-| **代码检查** | ESLint + Prettier | ESLint 9.x |
+| 层级            | 技术                       | 版本要求      |
+| --------------- | -------------------------- | ------------- |
+| **运行时**      | Node.js                    | **>= 22.0.0** |
+| **后端框架**    | Express.js                 | ^5.2.1        |
+| **HTTP 客户端** | Axios                      | ^1.16.0       |
+| **前端框架**    | Vanilla JavaScript         | ES2022+       |
+| **构建工具**    | Vite                       | ^8.0.16       |
+| **样式预处理**  | SCSS/Sass                  | ^1.97.1       |
+| **部署**        | Docker / Netlify Functions | -             |
+| **测试**        | Node.js 内置测试框架       | -             |
+| **代码检查**    | ESLint + Prettier          | ESLint 9.x    |
 
 ---
 
@@ -379,17 +410,17 @@ Bili-Calendar/
 
 ## 模块索引
 
-| 模块名称 | 路径 | 职责描述 | 覆盖率 | 文档链接 |
-|---------|------|---------|--------|---------|
-| **服务器入口** | `server.js` | Express服务器、路由、中间件、API端点 | 95% | - |
-| **前端源代码** | `src/` | 用户界面、交互逻辑、组件、样式（Vite构建） | 90% | [查看文档](./docs/frontend.md) |
-| **静态资源** | `public/` | 图标、PWA清单、Service Worker、管理后台 | 0% | - |
-| **后端工具层 (CommonJS)** | `utils/` | B站API、ICS生成、限流、去重、时间处理 | 85% | [查看文档](./utils/CLAUDE.md) |
-| **后端工具层 (ES Module)** | `utils-es/` | Netlify Serverless环境专用 | 75% | - |
-| **测试套件** | `test/` | 单元测试、集成测试 | 90% | [查看文档](./test/CLAUDE.md) |
-| **Serverless 部署** | `netlify/` | Netlify Functions配置与构建产物 | 85% | - |
-| **构建脚本** | `scripts/` | Netlify构建、README更新、VAPID生成 | 80% | - |
-| **Vite 配置** | `vite.config.js` | 前端构建与开发服务器配置 | 100% | - |
+| 模块名称                   | 路径             | 职责描述                                   | 覆盖率 | 文档链接                       |
+| -------------------------- | ---------------- | ------------------------------------------ | ------ | ------------------------------ |
+| **服务器入口**             | `server.js`      | Express服务器、路由、中间件、API端点       | 95%    | -                              |
+| **前端源代码**             | `src/`           | 用户界面、交互逻辑、组件、样式（Vite构建） | 90%    | [查看文档](./docs/frontend.md) |
+| **静态资源**               | `public/`        | 图标、PWA清单、Service Worker、管理后台    | 0%     | -                              |
+| **后端工具层 (CommonJS)**  | `utils/`         | B站API、ICS生成、限流、去重、时间处理      | 85%    | [查看文档](./utils/CLAUDE.md)  |
+| **后端工具层 (ES Module)** | `utils-es/`      | Netlify Serverless环境专用                 | 75%    | -                              |
+| **测试套件**               | `test/`          | 单元测试、集成测试                         | 90%    | [查看文档](./test/CLAUDE.md)   |
+| **Serverless 部署**        | `netlify/`       | Netlify Functions配置与构建产物            | 85%    | -                              |
+| **构建脚本**               | `scripts/`       | Netlify构建、README更新、VAPID生成         | 80%    | -                              |
+| **Vite 配置**              | `vite.config.js` | 前端构建与开发服务器配置                   | 100%   | -                              |
 
 ---
 
@@ -421,15 +452,15 @@ Bili-Calendar/
 
 ### 关键模块职责
 
-| 模块 | 文件 | 职责 |
-|------|------|------|
-| **B站 API** | `utils/bangumi.cjs` | 获取用户追番列表，过滤连载番剧 |
-| **ICS 生成** | `utils/ics.cjs` | 将番剧数据转换为 ICS 格式 |
-| **ICS 聚合** | `utils/ics-merge.cjs` | 拉取并合并外部 ICS 源 |
-| **限流器** | `utils/rate-limiter.cjs` | 基于 IP 的请求速率限制 |
-| **去重器** | `utils/request-dedup.cjs` | 防止相同请求并发执行 |
-| **时间处理** | `utils/time.cjs` | 解析播出时间，计算下次更新 |
-| **性能指标** | `utils/metrics.cjs` | 收集性能数据，Prometheus导出 |
+| 模块         | 文件                      | 职责                           |
+| ------------ | ------------------------- | ------------------------------ |
+| **B站 API**  | `utils/bangumi.cjs`       | 获取用户追番列表，过滤连载番剧 |
+| **ICS 生成** | `utils/ics.cjs`           | 将番剧数据转换为 ICS 格式      |
+| **ICS 聚合** | `utils/ics-merge.cjs`     | 拉取并合并外部 ICS 源          |
+| **限流器**   | `utils/rate-limiter.cjs`  | 基于 IP 的请求速率限制         |
+| **去重器**   | `utils/request-dedup.cjs` | 防止相同请求并发执行           |
+| **时间处理** | `utils/time.cjs`          | 解析播出时间，计算下次更新     |
+| **性能指标** | `utils/metrics.cjs`       | 收集性能数据，Prometheus导出   |
 
 ---
 
@@ -437,16 +468,16 @@ Bili-Calendar/
 
 ### 命名约定
 
-| 类型 | 约定 | 示例 |
-|------|------|------|
-| **变量** | camelCase | `rateLimiter`, `bangumiData` |
-| **函数** | camelCase | `getBangumiData()`, `generateICS()` |
-| **常量** | SCREAMING_SNAKE_CASE | `BILIBILI_API_BASE_URL`, `CACHE_TTL` |
-| **类** | PascalCase | `RateLimiter`, `CacheManager` |
-| **文件 (后端)** | kebab-case + .cjs | `rate-limiter.cjs`, `request-dedup.cjs` |
-| **文件 (前端)** | kebab-case + .js | `cache-manager.js`, `error-handler.js` |
-| **CSS 类** | kebab-case | `.error-container`, `.anime-card` |
-| **HTML ID** | kebab-case | `uid-input`, `generate-btn` |
+| 类型            | 约定                 | 示例                                    |
+| --------------- | -------------------- | --------------------------------------- |
+| **变量**        | camelCase            | `rateLimiter`, `bangumiData`            |
+| **函数**        | camelCase            | `getBangumiData()`, `generateICS()`     |
+| **常量**        | SCREAMING_SNAKE_CASE | `BILIBILI_API_BASE_URL`, `CACHE_TTL`    |
+| **类**          | PascalCase           | `RateLimiter`, `CacheManager`           |
+| **文件 (后端)** | kebab-case + .cjs    | `rate-limiter.cjs`, `request-dedup.cjs` |
+| **文件 (前端)** | kebab-case + .js     | `cache-manager.js`, `error-handler.js`  |
+| **CSS 类**      | kebab-case           | `.error-container`, `.anime-card`       |
+| **HTML ID**     | kebab-case           | `uid-input`, `generate-btn`             |
 
 ### 代码风格
 
@@ -464,7 +495,8 @@ Bili-Calendar/
 
 #### Import 规则
 
-**后端 (utils/*.cjs) - CommonJS**:
+**后端 (utils/\*.cjs) - CommonJS**:
+
 ```javascript
 // 1. Node.js 内置模块
 const { createRequire } = require('module');
@@ -478,7 +510,8 @@ const { httpClient } = require('./http.cjs');
 const { parseBroadcastTime } = require('./time.cjs');
 ```
 
-**前端 (src/*.js) - ES Module**:
+**前端 (src/\*.js) - ES Module**:
+
 ```javascript
 // ES Module 导入
 import './styles/app.scss';
@@ -487,6 +520,7 @@ import { errorHandler } from './services/errorHandler';
 ```
 
 **服务器入口 (server.js) - ES Module + CommonJS 混合**:
+
 ```javascript
 // ES Module 导入
 import express from 'express';
@@ -529,6 +563,7 @@ console.log(`📊 [UID:${uid}] 总共 ${total} 部番剧，过滤后 ${filtered}
 #### 异常处理
 
 **后端异常处理模式**:
+
 ```javascript
 async function getBangumiData(uid) {
   try {
@@ -539,7 +574,7 @@ async function getBangumiData(uid) {
       return {
         error: 'API Error',
         message: response.data.message,
-        code: response.data.code
+        code: response.data.code,
       };
     }
 
@@ -553,6 +588,7 @@ async function getBangumiData(uid) {
 ```
 
 **前端异常处理模式**:
+
 ```javascript
 async function generateSubscription(uid) {
   try {
@@ -573,6 +609,7 @@ async function generateSubscription(uid) {
 #### 参数校验
 
 **UID 校验**:
+
 ```javascript
 // 纯数字，长度 1-20
 function validateUID(uid) {
@@ -603,6 +640,7 @@ function validateUID(uid) {
 **测试文件命名**: `{模块名}.test.js`
 
 **测试示例**:
+
 ```javascript
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -620,21 +658,21 @@ describe('utils/ics.cjs', () => {
 
 ### 测试覆盖范围
 
-| 模块 | 覆盖率 | 文件 | 状态 |
-|------|--------|------|------|
-| `ics.cjs` | 85% | `utils.ics.test.js` | ✅ 已测试 |
-| `time.cjs` | 90% | `utils.time.test.js` | ✅ 已测试 |
-| `rate-limiter.cjs` | 95% | `utils.rate-limiter.test.js` | ✅ 已测试 |
-| `request-dedup.cjs` | 95% | `utils.request-dedup.test.js` | ✅ 已测试 |
-| `ics-merge.cjs` | 80% | `ics-merge.test.js` | ✅ 已测试 |
-| `metrics.cjs` | 85% | `metrics.test.js` | ✅ 已测试 |
-| `validation.cjs` | 90% | `utils.validation.test.js` | ✅ 已测试 |
-| `security.cjs` | 90% | `utils.security.test.js` | ✅ 已测试 |
-| `ip.cjs` | 90% | `utils.ip-validation.test.js` | ✅ 已测试 |
-| `bangumi` | - | `utils.bangumi.test.js` | ✅ 已测 `utils-es/bangumi.js`（CJS 路径未单独覆盖） |
-| `http` | - | `utils.http.test.js` | ✅ 已测 `utils-es/http.js`（CJS 路径未单独覆盖） |
-| **Netlify 函数** | - | `netlify-functions.test.js` | ✅ 已覆盖 handler 主路径 |
-| **前端服务** | - | `services.*.test.js` | ✅ 已覆盖多数服务；`aggregateConfig` / `subscriptionService` 尚无独立测试 |
+| 模块                | 覆盖率 | 文件                          | 状态                                                                      |
+| ------------------- | ------ | ----------------------------- | ------------------------------------------------------------------------- |
+| `ics.cjs`           | 85%    | `utils.ics.test.js`           | ✅ 已测试                                                                 |
+| `time.cjs`          | 90%    | `utils.time.test.js`          | ✅ 已测试                                                                 |
+| `rate-limiter.cjs`  | 95%    | `utils.rate-limiter.test.js`  | ✅ 已测试                                                                 |
+| `request-dedup.cjs` | 95%    | `utils.request-dedup.test.js` | ✅ 已测试                                                                 |
+| `ics-merge.cjs`     | 80%    | `ics-merge.test.js`           | ✅ 已测试                                                                 |
+| `metrics.cjs`       | 85%    | `metrics.test.js`             | ✅ 已测试                                                                 |
+| `validation.cjs`    | 90%    | `utils.validation.test.js`    | ✅ 已测试                                                                 |
+| `security.cjs`      | 90%    | `utils.security.test.js`      | ✅ 已测试                                                                 |
+| `ip.cjs`            | 90%    | `utils.ip-validation.test.js` | ✅ 已测试                                                                 |
+| `bangumi`           | -      | `utils.bangumi.test.js`       | ✅ 已测 `utils-es/bangumi.js`（CJS 路径未单独覆盖）                       |
+| `http`              | -      | `utils.http.test.js`          | ✅ 已测 `utils-es/http.js`（CJS 路径未单独覆盖）                          |
+| **Netlify 函数**    | -      | `netlify-functions.test.js`   | ✅ 已覆盖 handler 主路径                                                  |
+| **前端服务**        | -      | `services.*.test.js`          | ✅ 已覆盖多数服务；`aggregateConfig` / `subscriptionService` 尚无独立测试 |
 
 ### 待补充测试
 
@@ -649,20 +687,20 @@ describe('utils/ics.cjs', () => {
 
 ### 环境与配置
 
-| 环境变量 | 说明 | 默认值 |
-|----------|------|--------|
-| `PORT` | 服务器端口 | `3000` |
-| `NODE_ENV` | 运行环境 (`development` / `production`) | `development` |
-| `TRUST_PROXY` | 代理信任设置 | `undefined` |
-| `VAPID_PUBLIC_KEY` | WebPush 公钥 | - |
-| `VAPID_PRIVATE_KEY` | WebPush 私钥 | - |
-| `VAPID_SUBJECT` | WebPush 联系邮箱 | `mailto:admin@example.com` |
-| `PUSH_ADMIN_TOKEN` | 推送管理令牌 | - |
-| `BILIBILI_COOKIE` | B站 Cookie (提高API成功率) | 空 |
-| `API_RATE_LIMIT` | API调用速率限制 | `100` |
-| `API_RATE_WINDOW` | 速率限制时间窗口 (ms) | `3600000` |
-| `HTTP_TIMEOUT_MS` | HTTP请求超时 (ms，主服务) | `25000` |
-| `HTTP_RETRY_MAX` | HTTP最大重试次数（主服务） | `3` |
+| 环境变量            | 说明                                    | 默认值                     |
+| ------------------- | --------------------------------------- | -------------------------- |
+| `PORT`              | 服务器端口                              | `3000`                     |
+| `NODE_ENV`          | 运行环境 (`development` / `production`) | `development`              |
+| `TRUST_PROXY`       | 代理信任设置                            | `undefined`                |
+| `VAPID_PUBLIC_KEY`  | WebPush 公钥                            | -                          |
+| `VAPID_PRIVATE_KEY` | WebPush 私钥                            | -                          |
+| `VAPID_SUBJECT`     | WebPush 联系邮箱                        | `mailto:admin@example.com` |
+| `PUSH_ADMIN_TOKEN`  | 推送管理令牌                            | -                          |
+| `BILIBILI_COOKIE`   | B站 Cookie (提高API成功率)              | 空                         |
+| `API_RATE_LIMIT`    | API调用速率限制                         | `100`                      |
+| `API_RATE_WINDOW`   | 速率限制时间窗口 (ms)                   | `3600000`                  |
+| `HTTP_TIMEOUT_MS`   | HTTP请求超时 (ms，主服务)               | `25000`                    |
+| `HTTP_RETRY_MAX`    | HTTP最大重试次数（主服务）              | `3`                        |
 
 ### 常用命令
 
@@ -720,6 +758,7 @@ GET /:uid.ics
 ```
 
 参数：
+
 - `uid`: B站用户 UID
 
 返回：ICS 格式的日历文件
@@ -731,6 +770,7 @@ GET /api/bangumi/:uid
 ```
 
 参数：
+
 - `uid`: B站用户 UID
 
 返回：B站追番列表的 JSON 数据
@@ -743,6 +783,7 @@ GET /aggregate/:uid?sources=<url1>,<url2>
 ```
 
 参数：
+
 - `uid`：B站用户 UID
 - `sources`：可选，额外外部 ICS 链接，需 URL 编码
   - 最多 5 个外部源，超出会返回 `400`
@@ -770,12 +811,12 @@ GET /metrics/prometheus  # Prometheus 文本格式
 
 ### 分支策略
 
-| 分支 | 用途 |
-|------|------|
-| `main` | 主分支，稳定版本 |
-| `feature/*` | 功能开发分支 |
-| `fix/*` | Bug 修复分支 |
-| `docs/*` | 文档更新分支 |
+| 分支        | 用途             |
+| ----------- | ---------------- |
+| `main`      | 主分支，稳定版本 |
+| `feature/*` | 功能开发分支     |
+| `fix/*`     | Bug 修复分支     |
+| `docs/*`    | 文档更新分支     |
 
 ### 提交规范
 
@@ -813,17 +854,17 @@ GET /metrics/prometheus  # Prometheus 文本格式
 
 ### 模块覆盖率
 
-| 模块 | 文件数 | 覆盖率 | 缺口 |
-|------|--------|--------|------|
-| `server.js` | 1 | 95% | - |
-| `src/` | 20 | 90% | - |
-| `utils/` | 14 | 85% | CJS bangumi/http 未单独测试 |
-| `utils-es/` | 14 | 75% | 与 utils/ 对应的 ESM 实现 |
-| `test/` | 28 | 90% | - |
-| `netlify/` | 1 | 85% | 已有 `netlify-functions.test.js` |
-| `scripts/` | 4 | 80% | 缺少测试 |
-| `public/` | 8 | 0% | 静态资源 |
-| `dist/` | - | N/A | 构建产物 |
+| 模块        | 文件数 | 覆盖率 | 缺口                             |
+| ----------- | ------ | ------ | -------------------------------- |
+| `server.js` | 1      | 95%    | -                                |
+| `src/`      | 20     | 90%    | -                                |
+| `utils/`    | 14     | 85%    | CJS bangumi/http 未单独测试      |
+| `utils-es/` | 14     | 75%    | 与 utils/ 对应的 ESM 实现        |
+| `test/`     | 32     | 90%    | -                                |
+| `netlify/`  | 1      | 85%    | 已有 `netlify-functions.test.js` |
+| `scripts/`  | 4      | 80%    | 缺少测试                         |
+| `public/`   | 8      | 0%     | 静态资源                         |
+| `dist/`     | -      | N/A    | 构建产物                         |
 
 ### 主要缺口
 
@@ -833,10 +874,12 @@ GET /metrics/prometheus  # Prometheus 文本格式
 ### 下一步建议
 
 **优先补扫**:
+
 1. 为 CJS 与 ES 共用逻辑补齐对等回归（或抽取共享测试）
 2. 补充前端聚合配置与订阅编排测试
 
 **长期规划**:
+
 1. 添加 E2E 测试覆盖主要用户流程
 2. 补充 `scripts/` 构建脚本测试
 
@@ -867,14 +910,14 @@ GET /metrics/prometheus  # Prometheus 文本格式
 
 ### 文档索引
 
-| 文档 | 路径 | 说明 |
-|------|------|------|
-| **项目指导** | `/CLAUDE.md` | 项目整体架构与规范（本文件） |
-| **前端模块** | `/docs/frontend.md` | 前端源代码详细文档 |
-| **工具模块** | `/utils/CLAUDE.md` | 后端工具层详细文档 |
-| **测试模块** | `/test/CLAUDE.md` | 测试套件详细文档 |
-| **项目索引** | `/.claude/index.json` | AI上下文元数据 |
-| **用户文档** | `/README.md` | 面向用户的使用说明 |
+| 文档         | 路径                  | 说明                         |
+| ------------ | --------------------- | ---------------------------- |
+| **项目指导** | `/CLAUDE.md`          | 项目整体架构与规范（本文件） |
+| **前端模块** | `/docs/frontend.md`   | 前端源代码详细文档           |
+| **工具模块** | `/utils/CLAUDE.md`    | 后端工具层详细文档           |
+| **测试模块** | `/test/CLAUDE.md`     | 测试套件详细文档             |
+| **项目索引** | `/.claude/index.json` | AI上下文元数据               |
+| **用户文档** | `/README.md`          | 面向用户的使用说明           |
 
 ---
 

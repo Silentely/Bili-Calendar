@@ -7,11 +7,7 @@ import { fileURLToPath } from 'url';
 import { createRateLimiter } from './utils-es/rate-limiter.js';
 import metrics from './utils-es/metrics.js';
 import createPushStore from './utils-es/push-store.js';
-import {
-  handleBangumiApi,
-  handleCalendar,
-  handleAggregate,
-} from './server/lib/handlers.js';
+import { handleBangumiApi, handleCalendar, handleAggregate } from './server/lib/handlers.js';
 import {
   securityAndCorsMiddleware,
   requestLogMiddleware,
@@ -151,7 +147,61 @@ app.use((req, res, next) => {
 
   if (req.path === '/') {
     res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
-    return res.send(`# Bili-Calendar — B站追番日历订阅
+    return res.send(buildHomeMarkdown());
+  }
+
+  if (req.path === '/status') {
+    const uptime = process.uptime();
+    const mem = Math.round(process.memoryUsage().rss / 1024 / 1024);
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    return res.send(
+      buildStatusMarkdown({
+        uptimeFormatted: formatUptime(uptime),
+        memoryMB: mem,
+        env: process.env.NODE_ENV || 'development',
+        version: VERSION,
+        port: PORT,
+        metrics: metrics.snapshot(),
+      })
+    );
+  }
+
+  next();
+});
+
+app.use(express.static(path.join(__dirname, 'dist'), { dotfiles: 'ignore' }));
+// 开发环境备用：dist/ 不存在时从 public/ 提供静态文件
+app.use(express.static(path.join(__dirname, 'public'), { dotfiles: 'ignore' }));
+
+// 请求ID & 日志中间件
+app.use(requestLogMiddleware);
+
+// 读取版本（增强版）
+let VERSION = 'dev';
+try {
+  const pkgPath = path.join(__dirname, 'package.json');
+  const pkgContent = fs.readFileSync(pkgPath, 'utf-8');
+  const pkg = JSON.parse(pkgContent);
+
+  if (pkg.version && typeof pkg.version === 'string') {
+    const trimmedVersion = pkg.version.trim();
+    if (trimmedVersion && trimmedVersion !== 'dev') {
+      VERSION = trimmedVersion;
+    }
+  }
+} catch (err) {
+  const message = err instanceof Error ? err.message : String(err);
+  console.warn('⚠️ 无法读取版本信息:', message);
+}
+
+const rateLimiterMiddleware = createRateLimiterMiddleware(rateLimiter);
+
+/**
+ * 生成首页 Markdown 描述（供 text/markdown 内容协商与 Agent 使用）
+ * @returns {string}
+ */
+function buildHomeMarkdown() {
+  return `# Bili-Calendar — B站追番日历订阅
 
 将B站追番列表转换为ICS日历订阅，兼容Apple/Google/Outlook等主流日历应用。
 
@@ -174,55 +224,27 @@ app.use((req, res, next) => {
 - [GitHub 仓库](https://github.com/Silentely/Bili-Calendar)
 - [API 目录](/.well-known/api-catalog)
 - [站点地图](/sitemap.xml)
-`);
-  }
-
-  if (req.path === '/status') {
-    const uptime = process.uptime();
-    const days = Math.floor(uptime / 86400);
-    const hours = Math.floor((uptime % 86400) / 3600);
-    const minutes = Math.floor((uptime % 3600) / 60);
-    const uptimeStr = [days > 0 ? `${days}天` : '', hours > 0 ? `${hours}小时` : '', `${minutes}分钟`].filter(Boolean).join(' ');
-    const mem = Math.round(process.memoryUsage().rss / 1024 / 1024);
-    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
-    return res.send(`# Bili-Calendar 服务状态
-
-- **状态**: ok
-- **运行时间**: ${uptimeStr}
-- **内存使用**: ${mem} MB
-- **版本**: ${VERSION}
-`);
-  }
-
-  next();
-});
-
-app.use(express.static(path.join(__dirname, 'dist'), { dotfiles: 'ignore' }));
-// 开发环境备用：dist/ 不存在时从 public/ 提供静态文件
-app.use(express.static(path.join(__dirname, 'public'), { dotfiles: 'ignore' }));
-
-// 请求ID & 日志中间件
-app.use(requestLogMiddleware);
-
-// 读取版本（增强版）
-let VERSION = 'dev';
-try {
-  const pkgPath = path.join(__dirname, 'package.json');
-  const pkgContent = fs.readFileSync(pkgPath, 'utf-8');
-  const pkg = JSON.parse(pkgContent);
-  
-  if (pkg.version && typeof pkg.version === 'string') {
-    const trimmedVersion = pkg.version.trim();
-    if (trimmedVersion && trimmedVersion !== 'dev') {
-      VERSION = trimmedVersion;
-    }
-  }
-} catch (err) {
-  const message = err instanceof Error ? err.message : String(err);
-  console.warn('⚠️ 无法读取版本信息:', message);
+`;
 }
 
-const rateLimiterMiddleware = createRateLimiterMiddleware(rateLimiter);
+/**
+ * 生成状态页 Markdown 描述
+ * @param {{uptimeFormatted: string, memoryMB: number, env: string, version: string, port: string|number, metrics: {requests: {total?: number, success?: number, errors?: number, rateLimited?: number}, api: {calls?: number, errors?: number, avgLatencyMs?: number, maxLatencyMs?: number}}}} data - 状态数据
+ * @returns {string}
+ */
+function buildStatusMarkdown({ uptimeFormatted, memoryMB, env, version, port, metrics }) {
+  return `# Bili-Calendar 服务状态
+
+- **状态**: ok
+- **运行时间**: ${uptimeFormatted}
+- **内存使用**: ${memoryMB} MB
+- **环境**: ${env}
+- **版本**: ${version}
+- **端口**: ${port}
+- **请求统计**: 总计 ${metrics.requests.total}, 成功 ${metrics.requests.success}, 错误 ${metrics.requests.errors}, 限流 ${metrics.requests.rateLimited}
+- **B站API**: 调用 ${metrics.api.calls}, 错误 ${metrics.api.errors}, 平均耗时 ${metrics.api.avgLatencyMs}ms, 最大耗时 ${metrics.api.maxLatencyMs}ms
+`;
+}
 
 // 健康检查接口
 app.get('/status', (req, res) => {
@@ -251,17 +273,16 @@ app.get('/status', (req, res) => {
     res.json(data);
   } else if (wantMarkdown) {
     res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
-    res.send(`# Bili-Calendar 服务状态
-
-- **状态**: ok
-- **运行时间**: ${uptimeFormatted}
-- **内存使用**: ${mem} MB
-- **环境**: ${env}
-- **版本**: ${VERSION}
-- **端口**: ${PORT}
-- **请求统计**: 总计 ${data.metrics.requests.total}, 成功 ${data.metrics.requests.success}, 错误 ${data.metrics.requests.errors}, 限流 ${data.metrics.requests.rateLimited}
-- **B站API**: 调用 ${data.metrics.api.calls}, 错误 ${data.metrics.api.errors}, 平均耗时 ${data.metrics.api.avgLatencyMs}ms, 最大耗时 ${data.metrics.api.maxLatencyMs}ms
-`);
+    res.send(
+      buildStatusMarkdown({
+        uptimeFormatted: data.uptime,
+        memoryMB: data.memoryMB,
+        env: data.env,
+        version: data.version,
+        port: data.port,
+        metrics: data.metrics,
+      })
+    );
   } else {
     const statusMessage = `✅ Bili-Calendar Service is running.
 
@@ -331,30 +352,7 @@ app.get('/', (req, res) => {
   const accept = req.headers.accept || '';
   if (accept.includes('text/markdown')) {
     res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
-    res.send(`# Bili-Calendar — B站追番日历订阅
-
-将B站追番列表转换为ICS日历订阅，兼容Apple/Google/Outlook等主流日历应用。
-
-## API 端点
-
-- **GET /api/bangumi/:uid** — 获取用户追番数据（JSON）
-- **GET /:uid.ics** — 获取用户追番日历（ICS格式）
-- **GET /aggregate/:uid.ics?sources=...** — 聚合外部ICS日历
-- **GET /status** — 服务健康状态
-- **GET /metrics** — 性能指标（JSON）
-
-## 使用方法
-
-1. 输入B站用户UID（纯数字，1-20位）
-2. 获取ICS日历订阅链接
-3. 添加到Apple日历/Google日历/Outlook
-
-## 链接
-
-- [GitHub 仓库](https://github.com/Silentely/Bili-Calendar)
-- [API 目录](/.well-known/api-catalog)
-- [站点地图](/sitemap.xml)
-`);
+    res.send(buildHomeMarkdown());
     return;
   }
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
@@ -395,12 +393,18 @@ app.get('/openapi.json', (_req, res) => {
           description: '根据B站用户UID获取追番列表的JSON数据',
           tags: ['bangumi'],
           parameters: [
-            { name: 'uid', in: 'path', required: true, schema: { type: 'string', pattern: '^\\d{1,20}$' }, description: 'B站用户UID' },
+            {
+              name: 'uid',
+              in: 'path',
+              required: true,
+              schema: { type: 'string', pattern: '^\\d{1,20}$' },
+              description: 'B站用户UID',
+            },
           ],
           responses: {
-            '200': { description: '追番数据 JSON' },
-            '400': { description: 'UID 格式无效' },
-            '429': { description: '请求过于频繁' },
+            200: { description: '追番数据 JSON' },
+            400: { description: 'UID 格式无效' },
+            429: { description: '请求过于频繁' },
           },
         },
       },
@@ -411,10 +415,19 @@ app.get('/openapi.json', (_req, res) => {
           description: '根据B站用户UID生成 ICS 格式的日历订阅文件',
           tags: ['calendar'],
           parameters: [
-            { name: 'uid', in: 'path', required: true, schema: { type: 'string', pattern: '^\\d{1,20}$' }, description: 'B站用户UID' },
+            {
+              name: 'uid',
+              in: 'path',
+              required: true,
+              schema: { type: 'string', pattern: '^\\d{1,20}$' },
+              description: 'B站用户UID',
+            },
           ],
           responses: {
-            '200': { description: 'ICS 日历文件', content: { 'text/calendar': { schema: { type: 'string', format: 'binary' } } } },
+            200: {
+              description: 'ICS 日历文件',
+              content: { 'text/calendar': { schema: { type: 'string', format: 'binary' } } },
+            },
           },
         },
       },
@@ -425,12 +438,24 @@ app.get('/openapi.json', (_req, res) => {
           description: '合并B站追番与外部 ICS 源的聚合日历',
           tags: ['calendar', 'aggregate'],
           parameters: [
-            { name: 'uid', in: 'path', required: true, schema: { type: 'string' }, description: 'B站用户UID' },
-            { name: 'sources', in: 'query', required: false, schema: { type: 'string' }, description: '外部ICS链接（URL编码，逗号分隔，最多5个）' },
+            {
+              name: 'uid',
+              in: 'path',
+              required: true,
+              schema: { type: 'string' },
+              description: 'B站用户UID',
+            },
+            {
+              name: 'sources',
+              in: 'query',
+              required: false,
+              schema: { type: 'string' },
+              description: '外部ICS链接（URL编码，逗号分隔，最多5个）',
+            },
           ],
           responses: {
-            '200': { description: '聚合 ICS 日历文件' },
-            '400': { description: '参数错误' },
+            200: { description: '聚合 ICS 日历文件' },
+            400: { description: '参数错误' },
           },
         },
       },
@@ -439,7 +464,7 @@ app.get('/openapi.json', (_req, res) => {
           operationId: 'getStatus',
           summary: '服务健康状态',
           tags: ['system'],
-          responses: { '200': { description: '服务状态信息' } },
+          responses: { 200: { description: '服务状态信息' } },
         },
       },
     },
@@ -643,6 +668,16 @@ app.use((req, res) => {
               border-top: 1px solid #eee;
               color: #9aa0a6;
               font-size: 12px;
+            }
+            /* 暗黑模式适配：跟随系统偏好，避免夜间访问刺眼 */
+            @media (prefers-color-scheme: dark) {
+              body { background-color: #1a1a1a; }
+              .container { background: #2a2a2a; box-shadow: 0 2px 10px rgba(0,0,0,0.4); }
+              h1 { color: #ff6b6b; }
+              p { color: #bbb; }
+              a { color: #64b5f6; }
+              .error-code { color: #444; }
+              .footer { border-top-color: #333; color: #777; }
             }
           </style>
         </head>

@@ -200,6 +200,7 @@ export class I18n {
         'error.precheckFailed': '预检失败，请稍后重试',
         'error.previewModuleNotLoaded': '预览模块未加载',
         'error.close': '关闭',
+        'error.helpLink': '查看帮助文档',
 
         // Error Patterns
         'error.pattern.rateLimit': '您的请求过于频繁，建议降低请求频率或联系管理员增加限额',
@@ -209,6 +210,8 @@ export class I18n {
 
         // User Guide
         'guide.step': '步骤',
+        'guide.stepCount': '步骤 {current}/{total}',
+        'guide.close': '关闭',
         'guide.inputUid.title': '输入UID',
         'guide.inputUid.content': '在这里输入您的B站用户ID（UID）',
         'guide.findUid.title': '查找UID',
@@ -264,6 +267,9 @@ export class I18n {
         'preview.meta.episodes': '{current}/{total} 集',
         'preview.meta.updateDay': '{day} 更新',
         'preview.meta.nextEpisode': '下集：{time}',
+        'preview.detail.title': '《{title}》',
+        'preview.detail.status': '状态：{status}',
+        'preview.detail.progress': '进度：{current}/{total}',
         'preview.actions.filter': '筛选',
         'preview.actions.sort': '排序',
         'preview.actions.close': '关闭',
@@ -491,6 +497,7 @@ export class I18n {
         'error.precheckFailed': 'Precheck failed, please try again later',
         'error.previewModuleNotLoaded': 'Preview module not loaded',
         'error.close': 'Close',
+        'error.helpLink': 'View Help',
 
         // Error Patterns
         'error.pattern.rateLimit':
@@ -504,6 +511,8 @@ export class I18n {
 
         // User Guide
         'guide.step': 'Step',
+        'guide.stepCount': 'Step {current}/{total}',
+        'guide.close': 'Close',
         'guide.inputUid.title': 'Enter UID',
         'guide.inputUid.content': 'Enter your Bilibili user ID (UID) here',
         'guide.findUid.title': 'Find UID',
@@ -560,6 +569,9 @@ export class I18n {
         'preview.meta.episodes': '{current}/{total} episodes',
         'preview.meta.updateDay': '{day} update',
         'preview.meta.nextEpisode': 'Next episode: {time}',
+        'preview.detail.title': '"{title}"',
+        'preview.detail.status': 'Status: {status}',
+        'preview.detail.progress': 'Progress: {current}/{total}',
         'preview.actions.filter': 'Filter',
         'preview.actions.sort': 'Sort',
         'preview.actions.close': 'Close',

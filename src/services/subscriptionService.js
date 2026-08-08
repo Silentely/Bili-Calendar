@@ -94,7 +94,7 @@ function bindPreviewActions(animeData) {
         await pushService.registerPush();
         showToast(i18n.t('toast.pushEnabled'), 'success');
       } catch (err) {
-        console.error(err);
+        console.error('❌ 推送启用失败:', err);
         const message = err instanceof Error ? err.message : '';
         if (message === 'push-unavailable' || message === 'no-public-key') {
           showToast(i18n.t('toast.pushUnavailable'), 'warning');
@@ -126,7 +126,7 @@ export function copyToClipboard() {
 export async function precheckRate(uid) {
   const cachedData = cacheManager.getFromCache('bangumi', uid);
   if (cachedData) {
-    console.log('使用缓存数据');
+    console.log('✅ 使用缓存数据');
     return { ...cachedData, fromCache: true };
   }
 
@@ -198,13 +198,12 @@ export async function precheckRate(uid) {
 export async function handlePreview() {
   const input = getUidInput();
   if (!input) {
-    console.error('未找到输入框');
+    console.error('❌ 未找到输入框');
     return;
   }
 
   const uid = normalizeUidFromInput(input);
   if (!validateUid(uid)) {
-    showToast(i18n.t('toast.invalidUid'), 'warning');
     errorHandler.showErrorModal('INVALID_UID');
     return;
   }
@@ -214,7 +213,7 @@ export async function handlePreview() {
   try {
     let animeData = cacheManager.getFromCache('anime_list', uid);
     if (animeData) {
-      console.log('使用缓存的番剧列表');
+      console.log('✅ 使用缓存的番剧列表');
       showToast(i18n.t('toast.cacheLoaded'), 'info');
     }
 
@@ -239,7 +238,7 @@ export async function handlePreview() {
     }
   } catch (error) {
     loadingOverlay.hide();
-    console.error('预览失败:', error);
+    console.error('❌ 预览失败:', error);
     // 离线/网络失败时回退最近一次预览
     const last =
       typeof animePreview.loadLastPreview === 'function' ? animePreview.loadLastPreview() : null;
@@ -253,9 +252,14 @@ export async function handlePreview() {
   }
 }
 
+/**
+ * 订阅链接由前端拼装，无网络请求；保留最小展示时间让进度反馈可感知，
+ * 同时避免固定延迟带来的"卡顿感"。
+ */
+const MIN_SUBSCRIBE_FEEDBACK_MS = 350;
+
 export async function handleSubscribe() {
   const input = getUidInput();
-  const loading = /** @type {HTMLElement|null} */ (document.getElementById('loadingIndicator'));
   const resultBox = /** @type {HTMLElement|null} */ (document.getElementById('resultBox'));
   const subscribeUrl = document.getElementById('subscribeUrl');
   const subscribeLink = /** @type {HTMLAnchorElement|null} */ (
@@ -268,14 +272,13 @@ export async function handleSubscribe() {
     document.getElementById('aggregateToggle')
   );
 
-  if (!input || !loading || !resultBox || !subscribeUrl || !subscribeLink) {
-    console.error('未找到订阅流程必要元素');
+  if (!input || !resultBox || !subscribeUrl || !subscribeLink) {
+    console.error('❌ 未找到订阅流程必要元素');
     return;
   }
 
   const uid = normalizeUidFromInput(input);
   if (!validateUid(uid)) {
-    showToast(i18n.t('toast.invalidUid'), 'warning');
     errorHandler.showErrorModal('INVALID_UID');
     return;
   }
@@ -284,7 +287,6 @@ export async function handleSubscribe() {
 
   const progressBar = showProgressBar();
   const loadingOverlay = showLoadingOverlay(i18n.t('loading.generating'));
-  loading.style.display = 'block';
   resultBox.style.display = 'none';
 
   try {
@@ -295,7 +297,6 @@ export async function handleSubscribe() {
     if (aggregateState.error) {
       progressBar.error();
       loadingOverlay.hide();
-      loading.style.display = 'none';
       showResultAnimation(false);
       showToast(aggregateState.error, 'warning');
       return;
@@ -321,14 +322,14 @@ export async function handleSubscribe() {
       url = `${window.location.origin}/${uid}.ics`;
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    // 无真实网络等待，仅保证进度反馈最短可感知时长
+    await new Promise((resolve) => setTimeout(resolve, MIN_SUBSCRIBE_FEEDBACK_MS));
 
     progressBar.complete();
     loadingOverlay.hide();
 
     if (isMobile()) {
       setTimeout(() => {
-        loading.style.display = 'none';
         showToast(i18n.t('toast.redirecting'), 'info');
         window.location.href = url;
       }, 300);
@@ -336,7 +337,6 @@ export async function handleSubscribe() {
     }
 
     setTimeout(() => {
-      loading.style.display = 'none';
       subscribeUrl.textContent = url;
       subscribeLink.href = url;
 
@@ -357,7 +357,6 @@ export async function handleSubscribe() {
   } catch (error) {
     progressBar.error();
     loadingOverlay.hide();
-    loading.style.display = 'none';
     const message = error instanceof Error ? error.message : i18n.t('error.server.message');
     showToast(message, 'error');
     showResultAnimation(false);

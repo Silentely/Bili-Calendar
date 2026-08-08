@@ -5,70 +5,71 @@
  */
 
 import { escapeHtml } from '../utils/stringUtils.js';
+import i18n from './i18n.js';
 
 /**
  * 错误信息定义
  * @typedef {Object} ErrorInfo
- * @property {string} title - 错误标题
- * @property {string} message - 错误消息
- * @property {string} solution - 解决方案建议
+ * @property {string} titleKey - 错误标题的 i18n 键
+ * @property {string} messageKey - 错误消息的 i18n 键
+ * @property {string} solutionKey - 解决方案建议的 i18n 键
  * @property {string} icon - FontAwesome 图标类名
  * @property {'warning'|'error'|'info'} type - 错误类型
  * @property {string} [helpLink] - 可选的帮助链接
  */
 
 /**
- * 错误代码映射表
+ * 错误代码映射表（文案统一走 i18n 字典，保证英/繁/日界面不混中文）
  * @type {Record<string, ErrorInfo>}
  */
 const ERROR_CODES = {
   INVALID_UID: {
-    title: 'UID格式错误',
-    message: '请输入有效的B站用户ID',
-    solution: 'UID应该是纯数字，例如：672328094',
+    titleKey: 'error.invalidUid.title',
+    messageKey: 'error.invalidUid.message',
+    solutionKey: 'error.invalidUid.solution',
     icon: 'fa-exclamation-triangle',
     type: 'warning',
   },
   USER_NOT_FOUND: {
-    title: '用户不存在',
-    message: '未找到该用户的B站账号',
-    solution: '请检查UID是否正确，可以在B站个人空间网址中找到',
+    titleKey: 'error.userNotFound.title',
+    messageKey: 'error.userNotFound.message',
+    solutionKey: 'error.userNotFound.solution',
     icon: 'fa-user-times',
     type: 'error',
   },
   PRIVACY_PROTECTED: {
-    title: '隐私保护',
-    message: '该用户的追番列表设置为隐私',
-    solution: '需要用户在B站设置中将追番列表设为公开',
+    titleKey: 'error.privacy.title',
+    messageKey: 'error.privacy.message',
+    solutionKey: 'error.privacy.solution',
     icon: 'fa-lock',
     type: 'error',
     helpLink: 'https://www.bilibili.com/account/privacy',
   },
   RATE_LIMITED: {
-    title: '请求频率限制',
-    message: '请求过于频繁，请稍后再试',
-    solution: '请等待几分钟后再尝试',
+    titleKey: 'error.rateLimit.title',
+    messageKey: 'error.rateLimit.message',
+    solutionKey: 'error.rateLimit.solution',
     icon: 'fa-clock',
     type: 'warning',
   },
   NETWORK_ERROR: {
-    title: '网络连接错误',
-    message: '无法连接到服务器',
-    solution: '请检查您的网络连接或稍后再试',
+    titleKey: 'error.network.title',
+    messageKey: 'error.network.message',
+    solutionKey: 'error.network.solution',
     icon: 'fa-wifi',
     type: 'error',
   },
   SERVER_ERROR: {
-    title: '服务器错误',
-    message: '服务器处理请求时发生错误',
-    solution: '这可能是临时问题，请稍后再试',
+    titleKey: 'error.server.title',
+    messageKey: 'error.server.message',
+    solutionKey: 'error.server.solution',
     icon: 'fa-server',
     type: 'error',
   },
   NO_ANIME_FOUND: {
-    title: '未找到追番记录',
-    message: '该用户没有追番记录',
-    solution: '请确认用户已在B站追番，或尝试其他UID',
+    titleKey: 'error.noAnime.title',
+    messageKey: 'error.noAnime.message',
+    solutionKey: 'error.noAnime.solution',
     icon: 'fa-film',
     type: 'info',
   },
@@ -109,6 +110,18 @@ export class ErrorHandler {
      * @type {number}
      */
     this.maxHistorySize = 10;
+
+    /**
+     * 各弹窗的键盘监听（modalId -> handler），关闭时清理
+     * @type {Map<string, (event: KeyboardEvent) => void>}
+     */
+    this._keydownHandlers = new Map();
+
+    /**
+     * 打开弹窗前处于焦点的元素，关闭后恢复
+     * @type {HTMLElement|null}
+     */
+    this._lastFocusedElement = null;
   }
 
   /**
@@ -128,32 +141,42 @@ export class ErrorHandler {
     if (!error) return;
     const modalId = 'errorModal-' + Date.now();
 
+    // 文案统一从 i18n 字典读取，customMessage 优先覆盖消息正文
+    const title = i18n.t(error.titleKey);
+    const message = customMessage || i18n.t(error.messageKey);
+    const solution = i18n.t(error.solutionKey);
+    const closeLabel = escapeHtml(i18n.t('error.close'));
+    const helpLinkLabel = escapeHtml(i18n.t('error.helpLink'));
+
     // 创建模态框
     const modal = document.createElement('div');
     modal.className = 'error-modal';
     modal.id = modalId;
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', `${modalId}-title`);
 
     modal.innerHTML = `
       <div class="error-modal-overlay" data-error-modal-action="close"></div>
       <div class="error-modal-content">
         <div class="error-modal-header ${error.type}">
           <i class="fas ${error.icon}"></i>
-          <h3>${escapeHtml(error.title)}</h3>
-          <button class="error-modal-close" data-error-modal-action="close">
+          <h3 id="${modalId}-title">${escapeHtml(title)}</h3>
+          <button class="error-modal-close" data-error-modal-action="close" aria-label="${closeLabel}">
             <i class="fas fa-times"></i>
           </button>
         </div>
         <div class="error-modal-body">
-          <p class="error-message">${escapeHtml(customMessage || error.message)}</p>
+          <p class="error-message">${escapeHtml(message)}</p>
           <div class="error-solution">
             <i class="fas fa-lightbulb"></i>
-            <span>${escapeHtml(error.solution)}</span>
+            <span>${escapeHtml(solution)}</span>
           </div>
           ${
             error.helpLink
               ? `
             <a href="${error.helpLink}" target="_blank" class="error-help-link">
-              <i class="fas fa-external-link-alt"></i> 查看帮助文档
+              <i class="fas fa-external-link-alt"></i> ${helpLinkLabel}
             </a>
           `
               : ''
@@ -161,14 +184,20 @@ export class ErrorHandler {
         </div>
         <div class="error-modal-footer">
           <button class="btn-retry" data-error-modal-action="close">
-            <i class="fas fa-times"></i> 关闭
+            <i class="fas fa-times"></i> ${closeLabel}
           </button>
         </div>
       </div>
     `;
 
     this.bindModalEvents(modal, modalId);
+    this.bindModalKeyboard(modal, modalId);
     document.body.appendChild(modal);
+
+    // 记住打开前的焦点元素，关闭时恢复（不依赖全局 HTMLElement 构造器）
+    const activeElement = /** @type {HTMLElement|null} */ (document.activeElement);
+    this._lastFocusedElement =
+      activeElement && typeof activeElement.focus === 'function' ? activeElement : null;
 
     // 添加到历史记录
     this.addToHistory(errorCode, customMessage);
@@ -177,6 +206,56 @@ export class ErrorHandler {
     setTimeout(() => {
       modal.classList.add('show');
     }, 10);
+  }
+
+  /**
+   * 绑定弹窗键盘交互：Escape 关闭、Tab 焦点圈定
+   *
+   * @param {HTMLElement} modal - 错误弹窗根元素
+   * @param {string} modalId - 弹窗 DOM ID
+   * @returns {void}
+   */
+  bindModalKeyboard(modal, modalId) {
+    if (!modal || typeof modal.addEventListener !== 'function') return;
+
+    /** @type {(event: KeyboardEvent) => void} */
+    const handler = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        this.closeModal(modalId);
+        return;
+      }
+      if (event.key === 'Tab') {
+        this.trapModalFocus(modal, event);
+      }
+    };
+
+    modal.addEventListener('keydown', handler);
+    this._keydownHandlers.set(modalId, handler);
+  }
+
+  /**
+   * 弹窗内 Tab 焦点圈定：焦点到边界时循环回弹
+   *
+   * @param {HTMLElement} modal - 错误弹窗根元素
+   * @param {KeyboardEvent} event - 键盘事件
+   * @returns {void}
+   */
+  trapModalFocus(modal, event) {
+    if (!modal || typeof modal.querySelectorAll !== 'function') return;
+    const focusable = modal.querySelectorAll('button, [href], [tabindex]:not([tabindex="-1"])');
+    if (!focusable || focusable.length === 0) return;
+    const first = /** @type {HTMLElement|null} */ (focusable[0] || null);
+    const last = /** @type {HTMLElement|null} */ (focusable[focusable.length - 1] || null);
+    if (!first || !last) return;
+    const active = document.activeElement;
+    if (event.shiftKey && active === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 
   /**
@@ -190,13 +269,26 @@ export class ErrorHandler {
    * errorHandler.closeModal('errorModal-1234567890')
    */
   closeModal(modalId) {
+    // 移除键盘监听，避免关闭后仍响应 Escape
+    const handler = this._keydownHandlers.get(modalId);
     const modal = document.getElementById(modalId);
+    if (modal && handler && typeof modal.removeEventListener === 'function') {
+      modal.removeEventListener('keydown', handler);
+    }
+    this._keydownHandlers.delete(modalId);
+
     if (modal) {
       modal.classList.remove('show');
       setTimeout(() => {
         modal.remove();
       }, 300);
     }
+
+    // 恢复打开前的焦点
+    if (this._lastFocusedElement && typeof this._lastFocusedElement.focus === 'function') {
+      this._lastFocusedElement.focus();
+    }
+    this._lastFocusedElement = null;
   }
 
   /**
@@ -259,7 +351,7 @@ export class ErrorHandler {
     try {
       localStorage.setItem('errorHistory', JSON.stringify(this.errorHistory));
     } catch (e) {
-      console.warn('无法保存错误历史:', e);
+      console.warn('⚠️ 无法保存错误历史:', e);
     }
   }
 
@@ -279,7 +371,7 @@ export class ErrorHandler {
         this.errorHistory = JSON.parse(saved);
       }
     } catch (e) {
-      console.warn('无法加载错误历史:', e);
+      console.warn('⚠️ 无法加载错误历史:', e);
     }
   }
 
@@ -327,14 +419,15 @@ export class ErrorHandler {
    */
   getPatternAdvice(errorCode) {
     /** @type {Record<string, string>} */
-    const advice = {
-      RATE_LIMITED: '您的请求过于频繁，建议降低请求频率或联系管理员增加限额',
-      PRIVACY_PROTECTED: '多个用户的追番列表都是隐私的，这是B站的默认设置',
-      NETWORK_ERROR: '持续的网络错误，请检查防火墙设置或代理配置',
-      INVALID_UID: '请确保输入的是数字UID，不是用户名或其他标识',
+    const adviceKeys = {
+      RATE_LIMITED: 'error.pattern.rateLimit',
+      PRIVACY_PROTECTED: 'error.pattern.privacy',
+      NETWORK_ERROR: 'error.pattern.network',
+      INVALID_UID: 'error.pattern.invalidUid',
     };
 
-    return advice[errorCode] || null;
+    const key = adviceKeys[errorCode];
+    return key ? i18n.t(key) : null;
   }
 }
 
@@ -392,29 +485,29 @@ export class UserGuide {
    * userGuide.initTourV2()
    */
   initTourV2() {
-      this.steps = [
+    this.steps = [
       {
         element: '#uidInput',
-        title: '输入UID',
-        content: '在这里输入您的B站用户ID（UID）',
+        title: i18n.t('guide.inputUid.title'),
+        content: i18n.t('guide.inputUid.content'),
         position: 'bottom',
       },
       {
         element: '.help-text',
-        title: '查找UID',
-        content: 'UID可以在您的B站个人空间网址中找到',
+        title: i18n.t('guide.findUid.title'),
+        content: i18n.t('guide.findUid.content'),
         position: 'top',
       },
       {
         element: '#generateBtn', // Use ID instead of onclick selector
-        title: '生成订阅',
-        content: '点击这个按钮生成您的追番日历订阅链接',
+        title: i18n.t('guide.generate.title'),
+        content: i18n.t('guide.generate.content'),
         position: 'left',
       },
       {
         element: '.theme-switcher',
-        title: '主题切换',
-        content: '点击这里可以切换亮色/暗色主题',
+        title: i18n.t('guide.theme.title'),
+        content: i18n.t('guide.theme.content'),
         position: 'bottom-left',
       },
     ];
@@ -480,11 +573,24 @@ export class UserGuide {
     const tooltip = document.createElement('div');
     tooltip.className = 'guide-tooltip';
     tooltip.id = 'guideTooltip';
+    tooltip.setAttribute('role', 'dialog');
+    tooltip.setAttribute('aria-label', i18n.t('guide.step'));
+
+    const stepLabel = escapeHtml(
+      i18n.t('guide.stepCount', {
+        current: this.currentStep + 1,
+        total: this.steps.length,
+      })
+    );
+    const closeLabel = escapeHtml(i18n.t('guide.close'));
+    const prevLabel = escapeHtml(i18n.t('guide.prev'));
+    const nextLabel = escapeHtml(i18n.t('guide.next'));
+    const finishLabel = escapeHtml(i18n.t('guide.finish'));
 
     tooltip.innerHTML = `
       <div class="guide-tooltip-header">
-        <span class="guide-step-number">步骤 ${this.currentStep + 1}/${this.steps.length}</span>
-        <button class="guide-close" data-guide-action="end">
+        <span class="guide-step-number">${stepLabel}</span>
+        <button class="guide-close" data-guide-action="end" aria-label="${closeLabel}">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -493,11 +599,11 @@ export class UserGuide {
         <p>${escapeHtml(step.content)}</p>
       </div>
       <div class="guide-tooltip-footer">
-        ${this.currentStep > 0 ? '<button class="guide-prev" data-guide-action="prev">上一步</button>' : ''}
+        ${this.currentStep > 0 ? `<button class="guide-prev" data-guide-action="prev">${prevLabel}</button>` : ''}
         ${
           this.currentStep < this.steps.length - 1
-            ? '<button class="guide-next" data-guide-action="next">下一步</button>'
-            : '<button class="guide-finish" data-guide-action="end">完成</button>'
+            ? `<button class="guide-next" data-guide-action="next">${nextLabel}</button>`
+            : `<button class="guide-finish" data-guide-action="end">${finishLabel}</button>`
         }
       </div>
     `;

@@ -6,7 +6,8 @@
     <title data-i18n="page.title">追番日历 - B站番剧ICS订阅工具 | Bili-Calendar</title>
     <link rel="icon" href="/favicon.ico" type="image/x-icon" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#00a1d6" />
+    <meta name="theme-color" content="#00a1d6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="追番日历" />
@@ -14,8 +15,16 @@
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
 
     <!-- SEO Meta Tags -->
-    <meta name="description" data-i18n-content="page.description" content="Bili-Calendar 将B站追番列表转换为ICS日历订阅，支持Apple日历、Google日历、Outlook等，智能处理连载更新、时区转换，隐私保护无需注册。" />
-    <meta name="keywords" data-i18n-content="page.keywords" content="bilibili,追番,日历,ICS,订阅,番剧,anime,calendar,订阅工具" />
+    <meta
+      name="description"
+      data-i18n-content="page.description"
+      content="Bili-Calendar 将B站追番列表转换为ICS日历订阅，支持Apple日历、Google日历、Outlook等，智能处理连载更新、时区转换，隐私保护无需注册。"
+    />
+    <meta
+      name="keywords"
+      data-i18n-content="page.keywords"
+      content="bilibili,追番,日历,ICS,订阅,番剧,anime,calendar,订阅工具"
+    />
     <link rel="canonical" href="https://calendar.cosr.eu.org/" />
     <link rel="alternate" hreflang="zh-CN" href="https://calendar.cosr.eu.org/" />
     <link rel="alternate" hreflang="en" href="https://calendar.cosr.eu.org/" />
@@ -23,30 +32,50 @@
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://calendar.cosr.eu.org/" />
-    <meta property="og:title" data-i18n-content="page.title" content="追番日历 - B站番剧ICS订阅工具 | Bili-Calendar" />
-    <meta property="og:description" data-i18n-content="page.description" content="Bili-Calendar 将B站追番列表转换为ICS日历订阅，支持Apple日历、Google日历、Outlook等。" />
+    <meta
+      property="og:title"
+      data-i18n-content="page.title"
+      content="追番日历 - B站番剧ICS订阅工具 | Bili-Calendar"
+    />
+    <meta
+      property="og:description"
+      data-i18n-content="page.description"
+      content="Bili-Calendar 将B站追番列表转换为ICS日历订阅，支持Apple日历、Google日历、Outlook等。"
+    />
     <meta property="og:site_name" content="Bili-Calendar" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" data-i18n-content="page.title" content="追番日历 - B站番剧ICS订阅工具 | Bili-Calendar" />
-    <meta name="twitter:description" data-i18n-content="page.description" content="Bili-Calendar 将B站追番列表转换为ICS日历订阅。" />
+    <meta
+      name="twitter:title"
+      data-i18n-content="page.title"
+      content="追番日历 - B站番剧ICS订阅工具 | Bili-Calendar"
+    />
+    <meta
+      name="twitter:description"
+      data-i18n-content="page.description"
+      content="Bili-Calendar 将B站追番列表转换为ICS日历订阅。"
+    />
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "Bili-Calendar",
-      "url": "https://calendar.cosr.eu.org",
-      "description": "将B站追番列表转换为ICS日历订阅，支持Apple日历、Google日历、Outlook等",
-      "applicationCategory": "UtilitiesApplication",
-      "operatingSystem": "Web",
-      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" },
-      "featureList": ["智能重复规则", "时区转换", "ICS聚合", "PWA支持", "暗黑模式"],
-      "inLanguage": ["zh-CN", "en-US"],
-      "sourceOrganization": { "@type": "Organization", "name": "Bili-Calendar", "url": "https://github.com/Silentely/Bili-Calendar" }
-    }
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Bili-Calendar",
+        "url": "https://calendar.cosr.eu.org",
+        "description": "将B站追番列表转换为ICS日历订阅，支持Apple日历、Google日历、Outlook等",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Web",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" },
+        "featureList": ["智能重复规则", "时区转换", "ICS聚合", "PWA支持", "暗黑模式"],
+        "inLanguage": ["zh-CN", "en-US"],
+        "sourceOrganization": {
+          "@type": "Organization",
+          "name": "Bili-Calendar",
+          "url": "https://github.com/Silentely/Bili-Calendar"
+        }
+      }
     </script>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
@@ -118,6 +147,13 @@
             class="form-control"
             data-i18n-placeholder="input.placeholder"
             placeholder="例如: 614500"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            maxlength="20"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            enterkeyhint="go"
           />
           <button
             class="btn-primary"
@@ -142,44 +178,44 @@
             <span data-i18n="input.preview">预览番剧</span>
           </button>
         </div>
-      <div class="help-text">
-        <i class="fas fa-info-circle"></i>
-        <span data-i18n-html="input.help">
-          UID可在B站个人空间网址中找到，例如：https://space.bilibili.com/<strong>614500</strong>
-        </span>
-      </div>
+        <div class="help-text">
+          <i class="fas fa-info-circle"></i>
+          <span data-i18n-html="input.help">
+            UID可在B站个人空间网址中找到，例如：https://space.bilibili.com/<strong>614500</strong>
+          </span>
+        </div>
 
-      <div class="aggregate-options" id="aggregateOptions">
-        <div class="aggregate-options-header">
-          <div class="aggregate-title">
-            <span class="beta-badge" data-i18n="aggregate.badge">Beta</span>
-            <span data-i18n="aggregate.title">外部 ICS 聚合（可选）</span>
+        <div class="aggregate-options" id="aggregateOptions">
+          <div class="aggregate-options-header">
+            <div class="aggregate-title">
+              <span class="beta-badge" data-i18n="aggregate.badge">Beta</span>
+              <span data-i18n="aggregate.title">外部 ICS 聚合（可选）</span>
+            </div>
+            <label
+              class="aggregate-toggle"
+              data-i18n-title="aggregate.toggleTooltip"
+              title="启用/关闭外部聚合"
+            >
+              <input type="checkbox" id="aggregateToggle" />
+              <span class="aggregate-toggle-slider"></span>
+              <span class="aggregate-toggle-text" data-i18n="aggregate.enable">启用</span>
+            </label>
           </div>
-          <label class="aggregate-toggle" data-i18n-title="aggregate.toggleTooltip" title="启用/关闭外部聚合">
-            <input type="checkbox" id="aggregateToggle" />
-            <span class="aggregate-toggle-slider"></span>
-            <span class="aggregate-toggle-text" data-i18n="aggregate.enable">启用</span>
-          </label>
+          <div class="aggregate-body">
+            <textarea
+              id="sourcesInput"
+              class="form-control aggregate-textarea"
+              rows="3"
+              data-i18n-placeholder="aggregate.placeholder"
+              placeholder="每行或使用逗号分隔多个 https://example.com/work.ics"
+            ></textarea>
+            <p class="aggregate-hint" data-i18n="aggregate.hint">
+              可一次性合并最多 5 个 http/https 外部 ICS 链接，将自动生成
+              /aggregate/:uid.ics?sources= 订阅地址。
+            </p>
+            <p class="aggregate-feedback" id="aggregateFeedback"></p>
+          </div>
         </div>
-        <div class="aggregate-body">
-          <textarea
-            id="sourcesInput"
-            class="form-control aggregate-textarea"
-            rows="3"
-            data-i18n-placeholder="aggregate.placeholder"
-            placeholder="每行或使用逗号分隔多个 https://example.com/work.ics"
-          ></textarea>
-          <p class="aggregate-hint" data-i18n="aggregate.hint">
-            可一次性合并最多 5 个 http/https 外部 ICS 链接，将自动生成 /aggregate/:uid.ics?sources= 订阅地址。
-          </p>
-          <p class="aggregate-feedback" id="aggregateFeedback"></p>
-        </div>
-      </div>
-    </div>
-
-      <div class="loading" id="loadingIndicator">
-        <span class="spinner"></span>
-        <span data-i18n="loading.text">正在获取数据，请稍候...</span>
       </div>
 
       <div class="result-box" id="resultBox">
@@ -284,7 +320,9 @@
         <ul>
           <li>
             <strong data-i18n="tutorial.step1.title">公开追番列表</strong> —
-            <span data-i18n="tutorial.step1.desc">打开B站 App → 设置 → 安全隐私 → 开启「公开我的追番列表」</span>
+            <span data-i18n="tutorial.step1.desc"
+              >打开B站 App → 设置 → 安全隐私 → 开启「公开我的追番列表」</span
+            >
           </li>
           <li>
             <strong data-i18n="tutorial.step2.title">获取 UID</strong> —
@@ -296,7 +334,9 @@
           </li>
           <li>
             <strong data-i18n="tutorial.step4.title">添加到日历</strong> —
-            <span data-i18n="tutorial.step4.desc">复制链接并添加到 Apple 日历、Google 日历或 Outlook</span>
+            <span data-i18n="tutorial.step4.desc"
+              >复制链接并添加到 Apple 日历、Google 日历或 Outlook</span
+            >
           </li>
         </ul>
       </div>
@@ -309,9 +349,18 @@
         </h3>
         <p data-i18n="privacy.description">服务端不存储任何用户数据，所有操作在浏览器端完成</p>
         <ul>
-          <li><i class="fas fa-check"></i> <span data-i18n="privacy.noStorage">不存储任何个人信息</span></li>
-          <li><i class="fas fa-check"></i> <span data-i18n="privacy.browserSide">所有数据处理在浏览器端完成</span></li>
-          <li><i class="fas fa-check"></i> <span data-i18n="privacy.openSource">开源透明，可自行部署</span></li>
+          <li>
+            <i class="fas fa-check"></i>
+            <span data-i18n="privacy.noStorage">不存储任何个人信息</span>
+          </li>
+          <li>
+            <i class="fas fa-check"></i>
+            <span data-i18n="privacy.browserSide">所有数据处理在浏览器端完成</span>
+          </li>
+          <li>
+            <i class="fas fa-check"></i>
+            <span data-i18n="privacy.openSource">开源透明，可自行部署</span>
+          </li>
         </ul>
       </div>
 
@@ -324,23 +373,37 @@
         <div class="faq-list">
           <details>
             <summary data-i18n="faq.q1.q">追番列表不公开怎么办？</summary>
-            <p data-i18n="faq.q1.a">请在B站 App 中进入 设置 → 安全隐私 → 开启「公开我的追番列表」。网页端可在个人空间的「账号设置」中修改。不公开的列表无法被第三方工具读取。</p>
+            <p data-i18n="faq.q1.a">
+              请在B站 App 中进入 设置 → 安全隐私 →
+              开启「公开我的追番列表」。网页端可在个人空间的「账号设置」中修改。不公开的列表无法被第三方工具读取。
+            </p>
           </details>
           <details>
             <summary data-i18n="faq.q2.q">更新频率是多少？</summary>
-            <p data-i18n="faq.q2.a">日历中的番剧更新时间基于B站官方数据，连载中番剧会自动设置每周重复规则。实际更新时间以B站为准。</p>
+            <p data-i18n="faq.q2.a">
+              日历中的番剧更新时间基于B站官方数据，连载中番剧会自动设置每周重复规则。实际更新时间以B站为准。
+            </p>
           </details>
           <details>
             <summary data-i18n="faq.q3.q">支持哪些日历应用？</summary>
-            <p data-i18n="faq.q3.a">支持所有兼容 iCal/ICS 格式的日历应用，包括 Apple 日历、Google 日历、Outlook、Thunderbird 等。</p>
+            <p data-i18n="faq.q3.a">
+              支持所有兼容 iCal/ICS 格式的日历应用，包括 Apple 日历、Google
+              日历、Outlook、Thunderbird 等。
+            </p>
           </details>
           <details>
             <summary data-i18n="faq.q4.q">如何自部署？</summary>
-            <p data-i18n="faq.q4.a">项目支持 Docker 一键部署。运行 docker run -p 3000:3000 ghcr.io/silentely/bili-calendar 即可启动。详见 GitHub 仓库。</p>
+            <p data-i18n="faq.q4.a">
+              项目支持 Docker 一键部署。运行 docker run -p 3000:3000 ghcr.io/silentely/bili-calendar
+              即可启动。详见 GitHub 仓库。
+            </p>
           </details>
           <details>
             <summary data-i18n="faq.q5.q">数据是否安全？</summary>
-            <p data-i18n="faq.q5.a">服务端不存储任何用户数据。您的 UID 仅用于实时查询B站 API，不会被记录或分享。项目完全开源，可自行审计。</p>
+            <p data-i18n="faq.q5.a">
+              服务端不存储任何用户数据。您的 UID 仅用于实时查询B站
+              API，不会被记录或分享。项目完全开源，可自行审计。
+            </p>
           </details>
         </div>
       </div>

@@ -147,7 +147,7 @@ export class CacheManager {
       // 检查缓存大小
       const dataSize = JSON.stringify(cacheData).length;
       if (dataSize > this.maxCacheSize) {
-        console.warn('数据过大，无法缓存');
+        console.warn('⚠️ 数据过大，无法缓存');
         return false;
       }
 
@@ -158,7 +158,7 @@ export class CacheManager {
       this.invalidateKeysCache(); // 使键缓存失效
       return true;
     } catch (e) {
-      console.error('保存缓存失败:', e);
+      console.error('❌ 保存缓存失败:', e);
       // 如果是存储空间不足，清理所有缓存
       if (e instanceof Error && e.name === 'QuotaExceededError') {
         this.clearAllCache();
@@ -200,7 +200,7 @@ export class CacheManager {
 
       return cacheData.data;
     } catch (e) {
-      console.error('读取缓存失败:', e);
+      console.error('❌ 读取缓存失败:', e);
       return null;
     }
   }
@@ -271,7 +271,7 @@ export class CacheManager {
         console.log(`🧹 清理了 ${deletedCount} 个过期缓存`);
       }
     } catch (e) {
-      console.error('清理缓存失败:', e);
+      console.error('❌ 清理缓存失败:', e);
     }
   }
 
@@ -300,7 +300,7 @@ export class CacheManager {
       console.log(`🧹 已清理 ${deletedCount} 个缓存项`);
       if (window.showToast) window.showToast(i18n.t('cache.cleared'), 'success');
     } catch (e) {
-      console.error('清除缓存失败:', e);
+      console.error('❌ 清除缓存失败:', e);
     }
   }
 
@@ -340,7 +340,7 @@ export class CacheManager {
         }
       });
     } catch (e) {
-      console.error('获取缓存统计失败:', e);
+      console.error('❌ 获取缓存统计失败:', e);
     }
 
     return {
@@ -414,7 +414,7 @@ export class CacheManager {
       localStorage.setItem('uid_history', JSON.stringify(history));
       return true;
     } catch (e) {
-      console.error('保存历史记录失败:', e);
+      console.error('❌ 保存历史记录失败:', e);
       return false;
     }
   }
@@ -434,7 +434,7 @@ export class CacheManager {
       const history = localStorage.getItem('uid_history');
       return history ? JSON.parse(history) : [];
     } catch (e) {
-      console.error('获取历史记录失败:', e);
+      console.error('❌ 获取历史记录失败:', e);
       return [];
     }
   }
@@ -456,7 +456,7 @@ export class CacheManager {
       localStorage.setItem('uid_history', JSON.stringify(history));
       return true;
     } catch (e) {
-      console.error('删除历史记录失败:', e);
+      console.error('❌ 删除历史记录失败:', e);
       return false;
     }
   }
@@ -476,7 +476,7 @@ export class CacheManager {
       if (window.showToast) window.showToast(i18n.t('toast.historyCleared'), 'success');
       return true;
     } catch (e) {
-      console.error('清除历史记录失败:', e);
+      console.error('❌ 清除历史记录失败:', e);
       return false;
     }
   }

@@ -113,11 +113,10 @@ async function showNotification(title, body) {
     new Notification(title, { body });
     return true;
   } catch (err) {
-    console.warn('通知展示失败:', err);
+    console.warn('⚠️ 通知展示失败:', err);
     return false;
   }
 }
-
 
 /**
  * 番剧提醒选项

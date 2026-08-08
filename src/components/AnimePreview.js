@@ -57,7 +57,7 @@ export class AnimePreview {
 
       return this.animeData;
     } catch (error) {
-      console.error('获取番剧数据失败:', error);
+      console.error('❌ 获取番剧数据失败:', error);
       throw error;
     } finally {
       this.isLoading = false;
@@ -118,7 +118,7 @@ export class AnimePreview {
       };
       localStorage.setItem(LAST_PREVIEW_STORAGE_KEY, JSON.stringify(payload));
     } catch (err) {
-      console.warn('保存离线预览失败:', err);
+      console.warn('⚠️ 保存离线预览失败:', err);
     }
   }
 
@@ -878,11 +878,15 @@ export class AnimePreview {
     // Use window.showToast which will be exposed in main.js
     if (window.showToast) {
       const statusText = i18n.t(`preview.status.${anime.statusType}`);
-      window.showToast(
-        `《${anime.title}》\n状态：${statusText}\n进度：${anime.currentEpisode}/${anime.episodes}`,
-        'info',
-        5000
-      );
+      const detail = [
+        i18n.t('preview.detail.title', { title: anime.title }),
+        i18n.t('preview.detail.status', { status: statusText }),
+        i18n.t('preview.detail.progress', {
+          current: anime.currentEpisode,
+          total: anime.episodes,
+        }),
+      ].join('\n');
+      window.showToast(detail, 'info', 5000);
     }
   }
 

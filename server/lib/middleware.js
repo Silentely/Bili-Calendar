@@ -48,13 +48,13 @@ export function requestLogMiddleware(req, res, next) {
   const ip = extractClientIP(req);
   const requestId = generateRequestId(req);
   res.setHeader('X-Request-Id', requestId);
-  console.log(`📥 ${req.method} ${req.originalUrl} - IP: ${ip} - id=${requestId}`);
   res.on('finish', () => {
     const duration = Date.now() - start;
     const statusCode = res.statusCode;
     const statusEmoji = statusCode >= 400 ? '❌' : '✅';
+    // 单行结构化日志：方法/路径/状态/耗时/IP/请求ID，降低日志量与解析成本
     console.log(
-      `${statusEmoji} ${req.method} ${req.originalUrl} - ${statusCode} - ${duration}ms - id=${requestId}`
+      `${statusEmoji} ${req.method} ${req.originalUrl} - ${statusCode} - ${duration}ms - ip=${ip} - id=${requestId}`
     );
     metrics.onResponse(statusCode, duration, routeKey);
   });
@@ -63,7 +63,7 @@ export function requestLogMiddleware(req, res, next) {
 
 /**
  * 创建限流中间件
- * @param {{check: (ip: string) => boolean, getResetTime: (ip: string) => number, getRemainingRequests: (ip: string) => number, MAX_REQUESTS: number}} rateLimiter
+ * @param {{check: (ip: string) => boolean, getResetTime: (ip: string) => number, getRemainingRequests: (ip: string) => number, MAX_REQUESTS: number, TIME_WINDOW?: number}} rateLimiter
  * @returns {import('express').RequestHandler}
  */
 export function createRateLimiterMiddleware(rateLimiter) {
@@ -71,7 +71,9 @@ export function createRateLimiterMiddleware(rateLimiter) {
     const ip = extractClientIP(req);
 
     if (!rateLimiter.check(ip)) {
-      const resetTime = new Date(rateLimiter.getResetTime(ip)).toISOString();
+      const resetMs = rateLimiter.getResetTime(ip);
+      const resetTime = new Date(resetMs).toISOString();
+      const retryAfterSeconds = Math.max(1, Math.ceil((resetMs - Date.now()) / 1000));
       metrics.onRateLimited();
 
       res.setHeader('X-RateLimit-Limit', rateLimiter.MAX_REQUESTS);
@@ -79,12 +81,19 @@ export function createRateLimiterMiddleware(rateLimiter) {
       res.setHeader('X-RateLimit-Reset', resetTime);
       // 标明限流实现为进程内存，Serverless 多实例下仅尽力而为
       res.setHeader('X-RateLimit-Backend', 'memory');
+      // 客户端可按 Retry-After 自动退避
+      res.setHeader('Retry-After', String(retryAfterSeconds));
+
+      const windowMinutes = Math.max(
+        1,
+        Math.round((rateLimiter.TIME_WINDOW || 60 * 60 * 1000) / 60000)
+      );
 
       res.status(429).json({
         error: '请求过于频繁',
         message: `API调用次数已达上限，请在${resetTime}后再试`,
         limit: rateLimiter.MAX_REQUESTS,
-        window: '1小时',
+        window: `${windowMinutes}分钟`,
         reset: resetTime,
         note: '限流基于进程内存；Serverless 多实例下为尽力而为，生产可接 Redis/边缘限流',
       });

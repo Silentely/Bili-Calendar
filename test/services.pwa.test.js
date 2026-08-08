@@ -79,9 +79,7 @@ describe('services/pwa.js', () => {
         },
       };
 
-      const { initPWA } = await import(
-        `../src/services/pwa.js?t=${Date.now()}`
-      );
+      const { initPWA } = await import(`../src/services/pwa.js?t=${Date.now()}`);
       initPWA();
 
       // 触发 load 事件
@@ -100,9 +98,7 @@ describe('services/pwa.js', () => {
 
       let registerCalled = false;
 
-      const { initPWA } = await import(
-        `../src/services/pwa.js?t=${Date.now()}`
-      );
+      const { initPWA } = await import(`../src/services/pwa.js?t=${Date.now()}`);
       initPWA();
 
       global.window._triggerLoad();
@@ -110,11 +106,7 @@ describe('services/pwa.js', () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       assert.strictEqual(registerCalled, false, '不应该调用 register');
-      assert.strictEqual(
-        consoleWarnings.length,
-        0,
-        '不应该输出 console.warn'
-      );
+      assert.strictEqual(consoleWarnings.length, 0, '不应该输出 console.warn');
     });
 
     it('应该在 load 事件后注册 Service Worker', async () => {
@@ -129,9 +121,7 @@ describe('services/pwa.js', () => {
         },
       };
 
-      const { initPWA } = await import(
-        `../src/services/pwa.js?t=${Date.now()}`
-      );
+      const { initPWA } = await import(`../src/services/pwa.js?t=${Date.now()}`);
       initPWA();
 
       // 在触发 load 前，不应该调用 register
@@ -155,9 +145,7 @@ describe('services/pwa.js', () => {
         },
       };
 
-      const { initPWA } = await import(
-        `../src/services/pwa.js?t=${Date.now()}`
-      );
+      const { initPWA } = await import(`../src/services/pwa.js?t=${Date.now()}`);
       initPWA();
 
       global.window._triggerLoad();
@@ -166,15 +154,8 @@ describe('services/pwa.js', () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       assert.strictEqual(consoleWarnings.length, 1, '应该调用一次 console.warn');
-      assert.strictEqual(
-        consoleWarnings[0][0],
-        'Service Worker 注册失败:',
-        '警告消息应该正确'
-      );
-      assert.ok(
-        consoleWarnings[0][1] instanceof Error,
-        '应该输出错误对象'
-      );
+      assert.strictEqual(consoleWarnings[0][0], '⚠️ Service Worker 注册失败:', '警告消息应该正确');
+      assert.ok(consoleWarnings[0][1] instanceof Error, '应该输出错误对象');
     });
 
     it('应该多次调用 initPWA 时只注册一次', async () => {
@@ -187,9 +168,7 @@ describe('services/pwa.js', () => {
         },
       };
 
-      const { initPWA } = await import(
-        `../src/services/pwa.js?t=${Date.now()}`
-      );
+      const { initPWA } = await import(`../src/services/pwa.js?t=${Date.now()}`);
 
       // 多次调用 initPWA
       initPWA();
@@ -211,9 +190,7 @@ describe('services/pwa.js', () => {
       // 完全删除 serviceWorker 属性
       global.navigator = {};
 
-      const { initPWA } = await import(
-        `../src/services/pwa.js?t=${Date.now()}`
-      );
+      const { initPWA } = await import(`../src/services/pwa.js?t=${Date.now()}`);
 
       // 不应该抛出错误
       assert.doesNotThrow(() => {
@@ -227,9 +204,7 @@ describe('services/pwa.js', () => {
         register: () => Promise.resolve({ scope: '/' }),
       };
 
-      const { initPWA } = await import(
-        `../src/services/pwa.js?t=${Date.now()}`
-      );
+      const { initPWA } = await import(`../src/services/pwa.js?t=${Date.now()}`);
 
       const result = initPWA();
 

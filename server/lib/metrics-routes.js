@@ -15,7 +15,14 @@ export function registerMetricsRoutes(app) {
 
   app.get('/metrics/prometheus', (_req, res) => {
     const m = metrics.snapshot();
+    const mem = process.memoryUsage();
     const lines = [
+      '# HELP bili_uptime_seconds Process uptime seconds',
+      '# TYPE bili_uptime_seconds gauge',
+      `bili_uptime_seconds ${Math.floor(process.uptime())}`,
+      '# HELP bili_memory_rss_bytes Process RSS memory bytes',
+      '# TYPE bili_memory_rss_bytes gauge',
+      `bili_memory_rss_bytes ${mem.rss}`,
       '# HELP bili_requests_total Total requests',
       '# TYPE bili_requests_total counter',
       `bili_requests_total ${m.requests.total}`,

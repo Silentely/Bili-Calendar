@@ -31,6 +31,10 @@ describe('services/errorHandler.js', () => {
       clear: () => localStorageData.clear(),
     };
 
+    // 固定默认语言为简体中文：errorHandler 文案已接入 i18n 字典，
+    // 既有断言基于中文文案，测试环境语言需与之一致。
+    localStorageData.set('language', 'zh-CN');
+
     // Mock window
     global.window = {
       innerWidth: 1920,
@@ -39,6 +43,7 @@ describe('services/errorHandler.js', () => {
 
     // Mock document
     global.document = {
+      activeElement: null,
       createElement: (tagName) => {
         const element = {
           tagName: tagName.toUpperCase(),
@@ -47,6 +52,29 @@ describe('services/errorHandler.js', () => {
           innerHTML: '',
           style: {},
           children: [],
+          setAttribute: function (name, value) {
+            this['attr_' + name] = String(value);
+          },
+          _eventListeners: {},
+          addEventListener: function (type, fn) {
+            if (!this._eventListeners[type]) {
+              this._eventListeners[type] = [];
+            }
+            this._eventListeners[type].push(fn);
+          },
+          removeEventListener: function (type, fn) {
+            const list = this._eventListeners[type] || [];
+            const index = list.indexOf(fn);
+            if (index > -1) {
+              list.splice(index, 1);
+            }
+          },
+          dispatchEvent: function (event) {
+            (this._eventListeners[event.type] || []).forEach((fn) => fn.call(this, event));
+          },
+          focus: function () {
+            this._focused = true;
+          },
           classList: {
             add: function (...classes) {
               const current = element.className ? element.className.split(' ') : [];
@@ -59,9 +87,7 @@ describe('services/errorHandler.js', () => {
             },
             remove: function (...classes) {
               const current = element.className ? element.className.split(' ') : [];
-              element.className = current
-                .filter((cls) => !classes.includes(cls))
-                .join(' ');
+              element.className = current.filter((cls) => !classes.includes(cls)).join(' ');
             },
             contains: function (cls) {
               const current = element.className ? element.className.split(' ') : [];
@@ -107,9 +133,7 @@ describe('services/errorHandler.js', () => {
         }
         if (selector.startsWith('.')) {
           const className = selector.substring(1);
-          return (
-            createdElements.find((el) => el.classList.contains(className)) || null
-          );
+          return createdElements.find((el) => el.classList.contains(className)) || null;
         }
         return null;
       },
@@ -153,111 +177,133 @@ describe('services/errorHandler.js', () => {
   describe('ErrorHandler', () => {
     describe('constructor', () => {
       it('应该正确初始化实例', async () => {
-        const { ErrorHandler } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { ErrorHandler } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const handler = new ErrorHandler();
 
         assert.ok(Array.isArray(handler.errorHistory), '应该有 errorHistory 数组');
-        assert.strictEqual(
-          handler.errorHistory.length,
-          0,
-          'errorHistory 应该为空'
-        );
-        assert.strictEqual(
-          handler.maxHistorySize,
-          10,
-          'maxHistorySize 应该为 10'
-        );
+        assert.strictEqual(handler.errorHistory.length, 0, 'errorHistory 应该为空');
+        assert.strictEqual(handler.maxHistorySize, 10, 'maxHistorySize 应该为 10');
       });
     });
 
     describe('showErrorModal()', () => {
       it('应该创建并显示错误弹窗', async () => {
-        const { ErrorHandler } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { ErrorHandler } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const handler = new ErrorHandler();
         handler.showErrorModal('INVALID_UID');
 
         // 验证弹窗已创建
-        const modal = createdElements.find((el) =>
-          el.className.includes('error-modal')
-        );
+        const modal = createdElements.find((el) => el.className.includes('error-modal'));
         assert.ok(modal, '应该创建错误弹窗');
         assert.ok(modal.innerHTML.includes('UID格式错误'), '应该包含错误标题');
-        assert.ok(
-          modal.innerHTML.includes('请输入有效的B站用户ID'),
-          '应该包含错误消息'
-        );
+        assert.ok(modal.innerHTML.includes('请输入有效的B站用户ID'), '应该包含错误消息');
       });
 
       it('应该使用自定义错误消息', async () => {
-        const { ErrorHandler } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { ErrorHandler } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const handler = new ErrorHandler();
         handler.showErrorModal('NETWORK_ERROR', '连接超时，请重试');
 
-        const modal = createdElements.find((el) =>
-          el.className.includes('error-modal')
-        );
+        const modal = createdElements.find((el) => el.className.includes('error-modal'));
         assert.ok(modal, '应该创建错误弹窗');
-        assert.ok(
-          modal.innerHTML.includes('连接超时，请重试'),
-          '应该使用自定义消息'
-        );
+        assert.ok(modal.innerHTML.includes('连接超时，请重试'), '应该使用自定义消息');
       });
 
       it('应该处理未知错误代码', async () => {
-        const { ErrorHandler } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { ErrorHandler } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const handler = new ErrorHandler();
         handler.showErrorModal('UNKNOWN_ERROR');
 
-        const modal = createdElements.find((el) =>
-          el.className.includes('error-modal')
-        );
+        const modal = createdElements.find((el) => el.className.includes('error-modal'));
         assert.ok(modal, '应该创建错误弹窗');
         assert.ok(modal.innerHTML.includes('服务器错误'), '应该使用默认错误');
       });
 
       it('应该显示帮助链接（如果有）', async () => {
-        const { ErrorHandler } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { ErrorHandler } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const handler = new ErrorHandler();
         handler.showErrorModal('PRIVACY_PROTECTED');
 
-        const modal = createdElements.find((el) =>
-          el.className.includes('error-modal')
-        );
+        const modal = createdElements.find((el) => el.className.includes('error-modal'));
         assert.ok(modal, '应该创建错误弹窗');
         assert.ok(
           modal.innerHTML.includes('https://www.bilibili.com/account/privacy'),
           '应该包含帮助链接'
         );
       });
+
+      it('错误弹窗文案应来自 i18n 字典（英文环境输出英文）', async () => {
+        const { default: i18n } = await import(`../src/services/i18n.js?fresh=${Date.now()}`);
+        // 直接切换语言，避免 setLanguage 触发 DOM 更新（单测环境无 documentElement）
+        i18n.currentLang = 'en-US';
+        assert.equal(i18n.t('error.invalidUid.title'), 'Invalid UID Format');
+        assert.equal(i18n.t('error.invalidUid.message'), 'Please enter a valid Bilibili user ID');
+        assert.equal(i18n.t('error.helpLink'), 'View Help');
+        assert.equal(i18n.t('guide.stepCount', { current: 1, total: 4 }), 'Step 1/4');
+        assert.equal(i18n.t('guide.prev'), 'Previous');
+      });
     });
 
     describe('closeModal()', () => {
-      it('应该关闭指定的弹窗', async () => {
-        const { ErrorHandler } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+      it('按 Escape 键应关闭弹窗', async () => {
+        const { ErrorHandler } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const handler = new ErrorHandler();
         handler.showErrorModal('INVALID_UID');
 
-        const modal = createdElements.find((el) =>
-          el.className.includes('error-modal')
-        );
+        const modal = createdElements.find((el) => el.className.includes('error-modal'));
+        assert.ok(modal, '应该创建错误弹窗');
+
+        modal.dispatchEvent({ type: 'keydown', key: 'Escape', preventDefault() {} });
+
+        assert.ok(!modal.classList.contains('show'), 'Escape 后弹窗应进入关闭状态');
+      });
+
+      it('关闭弹窗时应移除键盘监听', async () => {
+        const { ErrorHandler } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
+
+        const handler = new ErrorHandler();
+        handler.showErrorModal('NETWORK_ERROR');
+
+        const modal = createdElements.find((el) => el.className.includes('error-modal'));
+        assert.strictEqual(handler._keydownHandlers.size, 1, '应注册键盘监听');
+        assert.ok(modal._eventListeners.keydown?.length >= 1, '弹窗应绑定 keydown');
+
+        handler.closeModal(modal.id);
+
+        assert.strictEqual(handler._keydownHandlers.size, 0, '关闭后应移除键盘监听');
+      });
+
+      it('Tab 焦点圈定在弹窗边界内循环', async () => {
+        const { ErrorHandler } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
+
+        const handler = new ErrorHandler();
+        handler.showErrorModal('RATE_LIMITED');
+
+        const modal = createdElements.find((el) => el.className.includes('error-modal'));
+        // 无焦点元素时 Tab 不抛错
+        assert.doesNotThrow(() => {
+          modal.dispatchEvent({
+            type: 'keydown',
+            key: 'Tab',
+            shiftKey: false,
+            preventDefault() {},
+          });
+        });
+      });
+
+      it('应该关闭指定的弹窗', async () => {
+        const { ErrorHandler } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
+
+        const handler = new ErrorHandler();
+        handler.showErrorModal('INVALID_UID');
+
+        const modal = createdElements.find((el) => el.className.includes('error-modal'));
         const modalId = modal.id;
 
         // Mock setTimeout
@@ -270,10 +316,7 @@ describe('services/errorHandler.js', () => {
         handler.closeModal(modalId);
 
         // 验证移除了 show 类
-        assert.ok(
-          !modal.classList.contains('show'),
-          '应该移除 show 类'
-        );
+        assert.ok(!modal.classList.contains('show'), '应该移除 show 类');
 
         // 执行 setTimeout 回调
         if (timeoutCallback) {
@@ -285,9 +328,7 @@ describe('services/errorHandler.js', () => {
       });
 
       it('应该处理不存在的弹窗ID', async () => {
-        const { ErrorHandler } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { ErrorHandler } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const handler = new ErrorHandler();
 
@@ -300,30 +341,18 @@ describe('services/errorHandler.js', () => {
 
     describe('addToHistory()', () => {
       it('应该添加错误到历史记录', async () => {
-        const { ErrorHandler } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { ErrorHandler } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const handler = new ErrorHandler();
         handler.addToHistory('INVALID_UID', null);
 
         assert.strictEqual(handler.errorHistory.length, 1, '应该有1条记录');
-        assert.strictEqual(
-          handler.errorHistory[0].code,
-          'INVALID_UID',
-          '应该记录错误代码'
-        );
-        assert.strictEqual(
-          handler.errorHistory[0].resolved,
-          false,
-          'resolved 应该为 false'
-        );
+        assert.strictEqual(handler.errorHistory[0].code, 'INVALID_UID', '应该记录错误代码');
+        assert.strictEqual(handler.errorHistory[0].resolved, false, 'resolved 应该为 false');
       });
 
       it('应该限制历史记录数量', async () => {
-        const { ErrorHandler } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { ErrorHandler } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const handler = new ErrorHandler();
 
@@ -332,17 +361,11 @@ describe('services/errorHandler.js', () => {
           handler.addToHistory('INVALID_UID', null);
         }
 
-        assert.strictEqual(
-          handler.errorHistory.length,
-          10,
-          '应该只保留最近10条记录'
-        );
+        assert.strictEqual(handler.errorHistory.length, 10, '应该只保留最近10条记录');
       });
 
       it('应该保存到 localStorage', async () => {
-        const { ErrorHandler } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { ErrorHandler } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const handler = new ErrorHandler();
         handler.addToHistory('NETWORK_ERROR', '连接失败');
@@ -358,9 +381,7 @@ describe('services/errorHandler.js', () => {
 
     describe('saveToLocalStorage() & loadFromLocalStorage()', () => {
       it('应该正确保存和加载历史记录', async () => {
-        const { ErrorHandler } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { ErrorHandler } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const handler1 = new ErrorHandler();
         handler1.addToHistory('INVALID_UID', null);
@@ -370,27 +391,13 @@ describe('services/errorHandler.js', () => {
         const handler2 = new ErrorHandler();
         handler2.loadFromLocalStorage();
 
-        assert.strictEqual(
-          handler2.errorHistory.length,
-          2,
-          '应该加载2条记录'
-        );
-        assert.strictEqual(
-          handler2.errorHistory[0].code,
-          'NETWORK_ERROR',
-          '应该保持顺序'
-        );
-        assert.strictEqual(
-          handler2.errorHistory[1].code,
-          'INVALID_UID',
-          '应该保持顺序'
-        );
+        assert.strictEqual(handler2.errorHistory.length, 2, '应该加载2条记录');
+        assert.strictEqual(handler2.errorHistory[0].code, 'NETWORK_ERROR', '应该保持顺序');
+        assert.strictEqual(handler2.errorHistory[1].code, 'INVALID_UID', '应该保持顺序');
       });
 
       it('应该处理 localStorage 错误', async () => {
-        const { ErrorHandler } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { ErrorHandler } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         // Mock localStorage 抛出错误
         global.localStorage = {
@@ -417,9 +424,7 @@ describe('services/errorHandler.js', () => {
 
     describe('analyzeErrorPattern()', () => {
       it('应该检测频繁出现的错误', async () => {
-        const { ErrorHandler } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { ErrorHandler } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const handler = new ErrorHandler();
 
@@ -430,16 +435,11 @@ describe('services/errorHandler.js', () => {
 
         const advice = handler.analyzeErrorPattern();
         assert.ok(advice, '应该返回建议');
-        assert.ok(
-          advice.includes('请求过于频繁'),
-          '应该包含频率限制建议'
-        );
+        assert.ok(advice.includes('请求过于频繁'), '应该包含频率限制建议');
       });
 
       it('应该在没有模式时返回 null', async () => {
-        const { ErrorHandler } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { ErrorHandler } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const handler = new ErrorHandler();
 
@@ -454,9 +454,7 @@ describe('services/errorHandler.js', () => {
 
     describe('getPatternAdvice()', () => {
       it('应该返回已知错误的建议', async () => {
-        const { ErrorHandler } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { ErrorHandler } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const handler = new ErrorHandler();
 
@@ -466,9 +464,7 @@ describe('services/errorHandler.js', () => {
       });
 
       it('应该对未知错误返回 null', async () => {
-        const { ErrorHandler } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { ErrorHandler } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const handler = new ErrorHandler();
 
@@ -481,9 +477,7 @@ describe('services/errorHandler.js', () => {
   describe('UserGuide', () => {
     describe('constructor', () => {
       it('应该正确初始化实例', async () => {
-        const { UserGuide } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { UserGuide } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const guide = new UserGuide();
 
@@ -496,32 +490,20 @@ describe('services/errorHandler.js', () => {
 
     describe('initTourV2()', () => {
       it('应该初始化引导步骤', async () => {
-        const { UserGuide } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { UserGuide } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const guide = new UserGuide();
         guide.initTourV2();
 
         assert.strictEqual(guide.steps.length, 4, '应该有4个步骤');
-        assert.strictEqual(
-          guide.steps[0].element,
-          '#uidInput',
-          '第一步应该是 uidInput'
-        );
-        assert.strictEqual(
-          guide.steps[2].element,
-          '#generateBtn',
-          '第三步应该使用 #generateBtn'
-        );
+        assert.strictEqual(guide.steps[0].element, '#uidInput', '第一步应该是 uidInput');
+        assert.strictEqual(guide.steps[2].element, '#generateBtn', '第三步应该使用 #generateBtn');
       });
     });
 
     describe('startTour()', () => {
       it('应该开始引导流程并初始化状态', async () => {
-        const { UserGuide } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { UserGuide } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const guide = new UserGuide();
         guide.initTourV2();
@@ -542,9 +524,7 @@ describe('services/errorHandler.js', () => {
       });
 
       it('应该在已激活时不重复开始', async () => {
-        const { UserGuide } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { UserGuide } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const guide = new UserGuide();
         guide.initTourV2();
@@ -556,19 +536,13 @@ describe('services/errorHandler.js', () => {
         guide.startTour(); // 再次调用
         const elementsAfter = createdElements.length;
 
-        assert.strictEqual(
-          elementsBefore,
-          elementsAfter,
-          '不应该创建新元素'
-        );
+        assert.strictEqual(elementsBefore, elementsAfter, '不应该创建新元素');
       });
     });
 
     describe('showStep()', () => {
       it('应该在找不到元素时跳到下一步', async () => {
-        const { UserGuide } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { UserGuide } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const guide = new UserGuide();
         guide.initTourV2();
@@ -579,16 +553,11 @@ describe('services/errorHandler.js', () => {
         guide.showStep();
 
         // 应该已经尝试跳到下一步
-        assert.ok(
-          guide.currentStep > 0 || !guide.isActive,
-          '应该跳到下一步或结束'
-        );
+        assert.ok(guide.currentStep > 0 || !guide.isActive, '应该跳到下一步或结束');
       });
 
       it('应该在超过步骤数时结束引导', async () => {
-        const { UserGuide } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { UserGuide } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const guide = new UserGuide();
         guide.initTourV2();
@@ -603,9 +572,7 @@ describe('services/errorHandler.js', () => {
 
     describe('nextStep()', () => {
       it('应该移动到下一步', async () => {
-        const { UserGuide } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { UserGuide } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const guide = new UserGuide();
         guide.initTourV2();
@@ -630,9 +597,7 @@ describe('services/errorHandler.js', () => {
 
     describe('prevStep()', () => {
       it('应该移动到上一步', async () => {
-        const { UserGuide } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { UserGuide } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const guide = new UserGuide();
         guide.initTourV2();
@@ -657,9 +622,7 @@ describe('services/errorHandler.js', () => {
 
     describe('clearStep()', () => {
       it('应该清除高亮和提示框', async () => {
-        const { UserGuide } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { UserGuide } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const guide = new UserGuide();
 
@@ -677,10 +640,7 @@ describe('services/errorHandler.js', () => {
         guide.clearStep();
 
         // 验证高亮已移除
-        assert.ok(
-          !highlightedElement.classList.contains('guide-highlight'),
-          '应该移除高亮'
-        );
+        assert.ok(!highlightedElement.classList.contains('guide-highlight'), '应该移除高亮');
 
         // 验证提示框已移除
         assert.strictEqual(tooltip._removed, true, '应该移除提示框');
@@ -689,9 +649,7 @@ describe('services/errorHandler.js', () => {
 
     describe('endTour()', () => {
       it('应该结束引导并清理', async () => {
-        const { UserGuide } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { UserGuide } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const guide = new UserGuide();
         guide.startTour();
@@ -714,41 +672,27 @@ describe('services/errorHandler.js', () => {
 
     describe('shouldShowTour()', () => {
       it('应该在未完成时返回 true', async () => {
-        const { UserGuide } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { UserGuide } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const guide = new UserGuide();
 
-        assert.strictEqual(
-          guide.shouldShowTour(),
-          true,
-          '应该返回 true'
-        );
+        assert.strictEqual(guide.shouldShowTour(), true, '应该返回 true');
       });
 
       it('应该在已完成时返回 false', async () => {
-        const { UserGuide } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { UserGuide } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         localStorageData.set('tourCompleted', 'true');
 
         const guide = new UserGuide();
 
-        assert.strictEqual(
-          guide.shouldShowTour(),
-          false,
-          '应该返回 false'
-        );
+        assert.strictEqual(guide.shouldShowTour(), false, '应该返回 false');
       });
     });
 
     describe('positionTooltip()', () => {
       it('应该正确定位提示框（bottom）', async () => {
-        const { UserGuide } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { UserGuide } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const guide = new UserGuide();
 
@@ -762,9 +706,7 @@ describe('services/errorHandler.js', () => {
       });
 
       it('应该正确定位提示框（top）', async () => {
-        const { UserGuide } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { UserGuide } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const guide = new UserGuide();
 
@@ -778,9 +720,7 @@ describe('services/errorHandler.js', () => {
       });
 
       it('应该正确定位提示框（left）', async () => {
-        const { UserGuide } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { UserGuide } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const guide = new UserGuide();
 
@@ -794,9 +734,7 @@ describe('services/errorHandler.js', () => {
       });
 
       it('应该正确定位提示框（right）', async () => {
-        const { UserGuide } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { UserGuide } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const guide = new UserGuide();
 
@@ -810,9 +748,7 @@ describe('services/errorHandler.js', () => {
       });
 
       it('应该正确定位提示框（bottom-left）', async () => {
-        const { UserGuide } = await import(
-          `../src/services/errorHandler.js?t=${Date.now()}`
-        );
+        const { UserGuide } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
         const guide = new UserGuide();
 
@@ -829,9 +765,7 @@ describe('services/errorHandler.js', () => {
 
   describe('全局导出', () => {
     it('应该导出 errorHandler 实例', async () => {
-      const { errorHandler } = await import(
-        `../src/services/errorHandler.js?t=${Date.now()}`
-      );
+      const { errorHandler } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
       assert.ok(errorHandler, '应该导出 errorHandler');
       assert.strictEqual(
@@ -842,16 +776,10 @@ describe('services/errorHandler.js', () => {
     });
 
     it('应该导出 userGuide 实例', async () => {
-      const { userGuide } = await import(
-        `../src/services/errorHandler.js?t=${Date.now()}`
-      );
+      const { userGuide } = await import(`../src/services/errorHandler.js?t=${Date.now()}`);
 
       assert.ok(userGuide, '应该导出 userGuide');
-      assert.strictEqual(
-        typeof userGuide.startTour,
-        'function',
-        '应该有 startTour 方法'
-      );
+      assert.strictEqual(typeof userGuide.startTour, 'function', '应该有 startTour 方法');
     });
   });
 });

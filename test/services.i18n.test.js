@@ -298,6 +298,27 @@ describe('services/i18n.js', () => {
         const text = i18n.t('toast.reminderOn', { count: 3, minutes: 10 });
         assert.strictEqual(text, '已为 3 部番剧开启提醒 (提前 10 分钟)');
       });
+
+      it('预览详情文案应支持中英双语渲染', async () => {
+        const { I18n } = await import(`../src/services/i18n.js?t=${Date.now()}`);
+
+        const i18n = new I18n();
+        i18n.currentLang = 'zh-CN';
+        const zh = [
+          i18n.t('preview.detail.title', { title: '测试番' }),
+          i18n.t('preview.detail.status', { status: '连载中' }),
+          i18n.t('preview.detail.progress', { current: 1, total: 24 }),
+        ].join('\n');
+        assert.strictEqual(zh, '《测试番》\n状态：连载中\n进度：1/24');
+
+        i18n.currentLang = 'en-US';
+        const en = [
+          i18n.t('preview.detail.title', { title: 'Anime' }),
+          i18n.t('preview.detail.status', { status: 'Airing' }),
+          i18n.t('preview.detail.progress', { current: 1, total: 24 }),
+        ].join('\n');
+        assert.strictEqual(en, '"Anime"\nStatus: Airing\nProgress: 1/24');
+      });
     });
 
     describe('setLanguage()', () => {

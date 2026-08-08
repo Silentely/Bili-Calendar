@@ -17,8 +17,6 @@ const CORE_ASSETS = [
   '/icons/icon-192.png',
   '/icons/icon-512.png',
 ];
-/** 离线预览 localStorage 键（与 AnimePreview 对齐，供诊断） */
-const LAST_PREVIEW_HINT = 'bili_last_preview';
 
 async function loadViteAssets() {
   try {
@@ -39,7 +37,7 @@ async function loadViteAssets() {
 
     return Array.from(assets);
   } catch (err) {
-    console.warn('[SW] 读取 Vite manifest 失败，离线预缓存将跳过构建资源:', err);
+    console.warn('⚠️ [SW] 读取 Vite manifest 失败，离线预缓存将跳过构建资源:', err);
     return [];
   }
 }
@@ -125,9 +123,9 @@ sw.addEventListener('fetch', (event) => {
           })
           .catch(() => {
             if (event.request.mode === 'navigate') {
-              // 简易离线回退
+              // 简易离线回退：支持返回首页与暗黑模式
               return new Response(
-                `<!doctype html><meta charset="utf-8"><title>离线</title><style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#fafafa;color:#333} .card{background:#fff;border:1px solid #eee;border-radius:12px;padding:24px;box-shadow:0 6px 24px rgba(0,0,0,.06);max-width:420px;text-align:center} h1{font-size:22px;margin:0 0 10px} p{margin:6px 0 0;color:#666}</style><div class="card"><h1>当前处于离线状态</h1><p>已缓存的页面和资源仍可使用。若曾预览过番剧，重新打开站点后可从本地缓存恢复预览（键: ${LAST_PREVIEW_HINT}）。</p></div>`,
+                `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>离线</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#fafafa;color:#333} .card{background:#fff;border:1px solid #eee;border-radius:12px;padding:24px;box-shadow:0 6px 24px rgba(0,0,0,.06);max-width:420px;text-align:center} h1{font-size:22px;margin:0 0 10px} p{margin:6px 0 0;color:#666} a{display:inline-block;margin-top:16px;padding:8px 20px;border-radius:20px;background:#00a1d6;color:#fff;text-decoration:none;font-size:14px} @media (prefers-color-scheme:dark){body{background:#121212;color:#eee}.card{background:#1e1e1e;border-color:#333;box-shadow:0 6px 24px rgba(0,0,0,.4)}p{color:#aaa}}</style><div class="card"><h1>当前处于离线状态</h1><p>已缓存的页面和资源仍可使用。若曾预览过番剧，重新打开站点后可从本地缓存恢复预览。</p><a href="/">返回首页</a></div>`,
                 { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
               );
             }

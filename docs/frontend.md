@@ -382,13 +382,13 @@ const THEME_CONFIG = {
 
 以下模块提供独立的 UI 功能，均通过 `main.js` 导入并挂载到 `window`：
 
-| 模块           | 文件                  | 导出                  | 功能                                                   |
-| -------------- | --------------------- | --------------------- | ------------------------------------------------------ |
-| **Toast 提示** | `toastService.js`     | `showToast`           | 多类型消息提示（success/error/warning/info），自动关闭 |
-| **加载遮罩**   | `loadingService.js`   | `showLoadingOverlay`  | 全屏加载遮罩，支持文本更新与隐藏控制                   |
-| **进度条**     | `progressService.js`  | `showProgressBar`     | 模拟进度条，支持完成与错误状态                         |
-| **结果动画**   | `animationService.js` | `showResultAnimation` | 成功/失败结果动画（1.5 秒）                            |
-| **剪贴板**     | `clipboardService.js` | `copyFromElement`     | 文本复制，支持现代异步 API 与传统回退方案              |
+| 模块           | 文件                  | 导出                  | 功能                                                                                              |
+| -------------- | --------------------- | --------------------- | ------------------------------------------------------------------------------------------------- |
+| **Toast 提示** | `toastService.js`     | `showToast`           | 多类型消息提示（success/error/warning/info），右上角容器纵向堆叠、自动关闭、同消息去重、最多 5 条 |
+| **加载遮罩**   | `loadingService.js`   | `showLoadingOverlay`  | 全屏加载遮罩，支持文本更新与隐藏控制                                                              |
+| **进度条**     | `progressService.js`  | `showProgressBar`     | 模拟进度条，支持完成与错误状态                                                                    |
+| **结果动画**   | `animationService.js` | `showResultAnimation` | 成功/失败结果动画（1.5 秒）                                                                       |
+| **剪贴板**     | `clipboardService.js` | `copyFromElement`     | 文本复制，支持现代异步 API 与传统回退方案                                                         |
 
 ---
 
