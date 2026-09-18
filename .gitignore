@@ -54,3 +54,5 @@ assets/gep/
 coding-trajectories.jsonl
 .env.evolver
 .env.evolver.local
+# Runtime data
+data/

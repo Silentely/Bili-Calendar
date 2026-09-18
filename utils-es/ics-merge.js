@@ -402,6 +402,28 @@ export function generateMergedICS(bangumis, uid, externalCalendars = []) {
   });
 }
 
+export function validateRedirectUrl(redirectUrl) {
+  let redirectParsed;
+  try {
+    redirectParsed = new URL(redirectUrl);
+  } catch {
+    const err = new Error(`SSRF blocked: invalid redirect URL ${redirectUrl}`);
+    err.code = 'ERR_SSRF_BLOCKED';
+    throw err;
+  }
+  if (!['http:', 'https:'].includes(redirectParsed.protocol)) {
+    const err = new Error(`SSRF blocked: invalid redirect protocol ${redirectParsed.protocol}`);
+    err.code = 'ERR_SSRF_BLOCKED';
+    throw err;
+  }
+  if (isPrivateIPAddress(redirectParsed.hostname)) {
+    const err = new Error(`SSRF blocked: redirect to private address ${redirectParsed.hostname}`);
+    err.code = 'ERR_SSRF_BLOCKED';
+    throw err;
+  }
+  return true;
+}
+
 export async function fetchExternalICS(urls = []) {
   if (!Array.isArray(urls) || urls.length === 0) return [];
 
@@ -425,7 +447,18 @@ export async function fetchExternalICS(urls = []) {
     }
 
     return axios
-      .get(url, { timeout: 8000, responseType: 'text', httpAgent, httpsAgent })
+      .get(url, {
+        timeout: 8000,
+        responseType: 'text',
+        maxContentLength: 5 * 1024 * 1024,
+        maxBodyLength: 5 * 1024 * 1024,
+        maxRedirects: 3,
+        beforeRedirect: (options) => {
+          validateRedirectUrl(options.href);
+        },
+        httpAgent,
+        httpsAgent,
+      })
       .then((res) => {
         if (typeof res.data === 'string') {
           return { url, ics: res.data };
@@ -434,7 +467,10 @@ export async function fetchExternalICS(urls = []) {
         return null;
       })
       .catch((err) => {
-        if (err.code === 'ERR_SSRF_BLOCKED') {
+        if (
+          err.code === 'ERR_SSRF_BLOCKED' ||
+          (err.message && err.message.includes('SSRF blocked'))
+        ) {
           console.warn(`🚫 [SSRF] Blocked request to ${url}: ${err.message}`);
         } else {
           console.warn(`⚠️ 获取外部 ICS 失败: ${url} - ${err.message}`);

@@ -2,6 +2,8 @@
 // utils-es/ip.js
 // IP 地址解析和清理工具（ESM 版本）
 
+import net from 'node:net';
+
 /**
  * 读取单个请求头（兼容 string | string[]）
  * @param {Record<string, string|string[]|undefined>|undefined} headers
@@ -53,7 +55,28 @@ export function normalizeIPAddress(value = '') {
     ip = ip.slice(1, -1);
   }
 
-  return ip.replace(/^::ffff:/i, '');
+  // 处理 IPv4-mapped IPv6 地址（点分十进制 ::ffff:127.0.0.1 或 WHATWG URL 规范化的十六进制 ::ffff:7f00:1）
+  const mappedMatch = ip.match(/^::ffff:(.+)$/i);
+  if (mappedMatch) {
+    const rest = mappedMatch[1];
+    if (net.isIPv4(rest)) {
+      return rest;
+    }
+    const hexParts = rest.split(':');
+    if (hexParts.length === 2) {
+      const high = parseInt(hexParts[0], 16);
+      const low = parseInt(hexParts[1], 16);
+      if (!isNaN(high) && !isNaN(low) && high >= 0 && high <= 0xffff && low >= 0 && low <= 0xffff) {
+        const b1 = (high >> 8) & 0xff;
+        const b2 = high & 0xff;
+        const b3 = (low >> 8) & 0xff;
+        const b4 = low & 0xff;
+        return `${b1}.${b2}.${b3}.${b4}`;
+      }
+    }
+  }
+
+  return ip;
 }
 
 /**
@@ -61,10 +84,11 @@ export function normalizeIPAddress(value = '') {
  *
  * 优先级：
  * 1. Express trust proxy 解析结果（req.ips / req.ip）
- * 2. 平台边缘写入的真实连接 IP（Netlify / Cloudflare 等，不可被客户端随意覆盖）
+ * 2. 若处于可信代理/平台环境，信任边缘注入真实 IP（Netlify / Cloudflare 等）
  * 3. 直连 socket remoteAddress
- * 4. 可信代理环境下的 X-Forwarded-For 最左侧
- * 5. remote-addr 低可信度兜底
+ * 4. 非代理环境下的平台头作为降级（如无 socket 信息的无状态或模拟测试环境）
+ * 5. 可信代理环境下的 X-Forwarded-For 最左侧
+ * 6. remote-addr 低可信度兜底
  *
  * @param {import('express').Request|object} req
  * @returns {string}
@@ -82,28 +106,42 @@ export function extractClientIP(req) {
     candidates.push(req.ip);
   }
 
-  // 平台注入的真实客户端 IP（边缘层写入，优先于可伪造的通用转发头）
   const platformHeaders = [
     'x-nf-client-connection-ip', // Netlify
     'cf-connecting-ip', // Cloudflare
     'true-client-ip', // Akamai 等
   ];
-  for (const name of platformHeaders) {
-    const value = firstForwardedIP(getHeaderValue(req.headers, name));
-    if (value) candidates.push(value);
-  }
 
   const directAddress =
     req.connection?.remoteAddress ||
     req.socket?.remoteAddress ||
     req.connection?.socket?.remoteAddress;
 
+  const trustedProxy = isTrustedProxyEnvironment();
+
+  // 1. 若处于可信代理/平台环境，优先信任边缘层写入的平台头
+  if (trustedProxy) {
+    for (const name of platformHeaders) {
+      const value = firstForwardedIP(getHeaderValue(req.headers, name));
+      if (value) candidates.push(value);
+    }
+  }
+
+  // 2. 直连 socket 地址：非代理环境下具有最高可信度，防止客户端伪造平台头绕过限流
   if (directAddress) {
     candidates.push(directAddress);
   }
 
+  // 3. 非代理环境但在缺少直连 socket 时（如 Mock 或 Serverless 事件），平台头作为候选
+  if (!trustedProxy) {
+    for (const name of platformHeaders) {
+      const value = firstForwardedIP(getHeaderValue(req.headers, name));
+      if (value) candidates.push(value);
+    }
+  }
+
   // 仅在仍无候选且处于可信代理/平台环境时，使用 X-Forwarded-For 最左侧
-  if (candidates.length === 0 && isTrustedProxyEnvironment()) {
+  if (candidates.length === 0 && trustedProxy) {
     const xff = firstForwardedIP(getHeaderValue(req.headers, 'x-forwarded-for'));
     if (xff) candidates.push(xff);
   }

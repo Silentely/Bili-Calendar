@@ -53,8 +53,12 @@ export function requestLogMiddleware(req, res, next) {
     const statusCode = res.statusCode;
     const statusEmoji = statusCode >= 400 ? '❌' : '✅';
     // 单行结构化日志：方法/路径/状态/耗时/IP/请求ID，降低日志量与解析成本
+    const safeUrl = (req.originalUrl || '').replace(
+      /([?&](?:token|key|secret|password)=)[^&]*/gi,
+      '\[REDACTED]'
+    );
     console.log(
-      `${statusEmoji} ${req.method} ${req.originalUrl} - ${statusCode} - ${duration}ms - ip=${ip} - id=${requestId}`
+      `${statusEmoji} ${req.method} ${safeUrl} - ${statusCode} - ${duration}ms - ip=${ip} - id=${requestId}`
     );
     metrics.onResponse(statusCode, duration, routeKey);
   });

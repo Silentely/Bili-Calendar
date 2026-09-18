@@ -1,4 +1,5 @@
 // server.js
+import crypto from 'node:crypto';
 import express from 'express';
 import compression from 'compression';
 import path from 'path';
@@ -84,12 +85,22 @@ const rateLimiter = createRateLimiter();
  * @returns {boolean}
  */
 const requirePushAuth = (req, res) => {
-  if (!PUSH_ADMIN_TOKEN) return true;
-  const header = req.headers['authorization'] || '';
-  const bearer = header.startsWith('Bearer ') ? header.slice(7) : null;
-  const token = bearer || req.query.token;
-  if (token === PUSH_ADMIN_TOKEN) return true;
-  res.status(401).json({ error: 'Unauthorized', message: '缺少推送管理令牌' });
+  if (!PUSH_ADMIN_TOKEN) {
+    res.status(403).json({ error: 'Forbidden', message: '推送测试未启用或未配置管理员令牌' });
+    return false;
+  }
+  const header = req.headers?.['authorization'];
+  const bearer =
+    typeof header === 'string' && header.startsWith('Bearer ') ? header.slice(7) : null;
+  const token = bearer || (typeof req.query?.token === 'string' ? req.query.token : null);
+  if (typeof token === 'string') {
+    const bufA = Buffer.from(token);
+    const bufB = Buffer.from(PUSH_ADMIN_TOKEN);
+    if (bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB)) {
+      return true;
+    }
+  }
+  res.status(401).json({ error: 'Unauthorized', message: '缺少或无效的推送管理令牌' });
   return false;
 };
 
@@ -309,13 +320,13 @@ app.get('/push/public-key', (_req, res) => {
   return res.json({ key });
 });
 
-app.post('/push/subscribe', (req, res) => {
+app.post('/push/subscribe', rateLimiterMiddleware, (req, res) => {
   if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
     res.status(501).json({ error: 'push not configured' });
     return;
   }
-  if (!req.body || !req.body.endpoint) {
-    res.status(400).json({ error: 'invalid subscription' });
+  if (!pushStore.isValidSubscription(req.body)) {
+    res.status(400).json({ error: 'invalid subscription format or forbidden endpoint' });
     return;
   }
   pushStore.add(req.body);

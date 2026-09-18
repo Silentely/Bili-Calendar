@@ -1,4 +1,5 @@
 // netlify/functions/server.js
+import crypto from 'node:crypto';
 import serverless from 'serverless-http';
 import express from 'express';
 import compression from 'compression';
@@ -15,6 +16,7 @@ import {
   formatUptime,
 } from '../../server/lib/middleware.js';
 import { registerMetricsRoutes } from '../../server/lib/metrics-routes.js';
+import { validatePushSubscription, sanitizePushSubscription } from '../../utils-es/push-store.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -68,12 +70,22 @@ app.use(
 // 创建速率限制器实例
 const rateLimiter = createRateLimiter();
 const requirePushAuth = (req, res) => {
-  if (!PUSH_ADMIN_TOKEN) return true;
-  const header = req.headers['authorization'] || '';
-  const bearer = header.startsWith('Bearer ') ? header.slice(7) : null;
-  const token = bearer || req.query.token;
-  if (token === PUSH_ADMIN_TOKEN) return true;
-  res.status(401).json({ error: 'Unauthorized', message: '缺少推送管理令牌' });
+  if (!PUSH_ADMIN_TOKEN) {
+    res.status(403).json({ error: 'Forbidden', message: '推送测试未启用或未配置管理员令牌' });
+    return false;
+  }
+  const header = req.headers?.['authorization'];
+  const bearer =
+    typeof header === 'string' && header.startsWith('Bearer ') ? header.slice(7) : null;
+  const token = bearer || (typeof req.query?.token === 'string' ? req.query.token : null);
+  if (typeof token === 'string') {
+    const bufA = Buffer.from(token);
+    const bufB = Buffer.from(PUSH_ADMIN_TOKEN);
+    if (bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB)) {
+      return true;
+    }
+  }
+  res.status(401).json({ error: 'Unauthorized', message: '缺少或无效的推送管理令牌' });
   return false;
 };
 
@@ -164,16 +176,7 @@ app.get('/status', (req, res) => {
     return res.json(data);
   }
 
-  const statusMessage = `✅ Bili-Calendar Service is running here
-
-服务状态:
-- 运行时间: ${uptimeFormatted}
-- 内存使用: ${mem} MB
-- 环境: ${env}
-- 版本: ${VERSION}
-- 端口: ${process.env.PORT || 'N/A (Serverless)'}
-- 请求统计: 总计 ${data.metrics.requests.total}, 成功 ${data.metrics.requests.success}, 错误 ${data.metrics.requests.errors}, 限流 ${data.metrics.requests.rateLimited}
-- B站API: 调用 ${data.metrics.api.calls}, 错误 ${data.metrics.api.errors}, 平均耗时 ${data.metrics.api.avgLatencyMs}ms, p95 ${data.metrics.api.p95Ms}ms, p99 ${data.metrics.api.p99Ms}ms`;
+  const statusMessage = `✅ Bili-Calendar Service is running here\n\n服务状态:\n- 运行时间: ${uptimeFormatted}\n- 内存使用: ${mem} MB\n- 环境: ${env}\n- 版本: ${VERSION}\n- 端口: ${process.env.PORT || 'N/A (Serverless)'}\n- 请求统计: 总计 ${data.metrics.requests.total}, 成功 ${data.metrics.requests.success}, 错误 ${data.metrics.requests.errors}, 限流 ${data.metrics.requests.rateLimited}\n- B站API: 调用 ${data.metrics.api.calls}, 错误 ${data.metrics.api.errors}, 平均耗时 ${data.metrics.api.avgLatencyMs}ms, p95 ${data.metrics.api.p95Ms}ms, p99 ${data.metrics.api.p99Ms}ms`;
 
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -211,14 +214,18 @@ app.get('/push/public-key', (req, res) => {
   res.json({ key });
 });
 
-app.post('/push/subscribe', (req, res) => {
+app.post('/push/subscribe', rateLimiterMiddleware, (req, res) => {
   if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
     return res.status(501).json({ error: 'push not configured' });
   }
-  if (!req.body || !req.body.endpoint) {
-    return res.status(400).json({ error: 'invalid subscription' });
+  if (!validatePushSubscription(req.body)) {
+    return res.status(400).json({ error: 'invalid subscription format or forbidden endpoint' });
   }
-  pushSubscriptions.add(req.body);
+  if (pushSubscriptions.size >= 1000) {
+    const oldest = pushSubscriptions.values().next().value;
+    pushSubscriptions.delete(oldest);
+  }
+  pushSubscriptions.add(sanitizePushSubscription(req.body));
   res.json({ status: 'ok' });
 });
 
