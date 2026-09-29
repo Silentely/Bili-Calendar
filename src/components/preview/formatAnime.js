@@ -5,11 +5,12 @@
 
 import i18n from '../../services/i18n.js';
 
+/* 状态徽标底色：高饱和粉彩，统一搭配深墨色文字，明暗主题下均保持可读 */
 export const STATUS_COLORS = {
-  watching: '#00a1d6',
-  finished: '#999999',
-  completed: '#4caf50',
-  'not-started': '#ff9800',
+  watching: '#cfe3f2',
+  finished: '#e6ddc9',
+  completed: '#c3e9c9',
+  'not-started': '#f6d977',
 };
 
 export const WEEK_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];

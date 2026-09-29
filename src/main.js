@@ -105,14 +105,23 @@ function initPageAnimation() {
   const container = /** @type {HTMLElement|null} */ (document.querySelector('.main-container'));
   if (!container) return;
 
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
   container.style.opacity = '0';
   container.style.transform = 'translateY(30px)';
-  container.style.transition = 'all 0.6s ease';
+  container.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
 
   setTimeout(() => {
     container.style.opacity = '1';
     container.style.transform = 'translateY(0)';
   }, 100);
+
+  // 入场结束后清除内联样式，避免残留的过渡拖慢主题切换与按钮反馈
+  setTimeout(() => {
+    container.style.transition = '';
+    container.style.transform = '';
+    container.style.opacity = '';
+  }, 700);
 }
 
 function bindKeyboardShortcuts() {

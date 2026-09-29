@@ -1,0 +1,96 @@
+/* 复古新粗野主义设计令牌：暖奶咖画布 + 近黑墨线 + 无模糊硬阴影 */
+
+/*
+ * 主题无关的尺度与常量令牌。
+ * --retro-ink-solid 恒为深墨色，供粉彩色填充块上的文字使用，明暗主题下都保持可读。
+ */
+:root {
+  --retro-radius-sm: 8px;
+  --retro-radius-md: 12px;
+  --retro-radius-lg: 18px;
+  --retro-radius-pill: 999px;
+  --retro-press: 140ms ease-out;
+
+  --retro-ink-solid: #1a1711;
+  --retro-feature-solid: #f8e8ac;
+  --retro-mint-solid: #c3e9c9;
+  --retro-warning-solid: #f6d977;
+  --retro-danger-solid: #ee7971;
+  --retro-info-solid: #cfe3f2;
+}
+
+/*
+ * 明暗两套配色。每条令牌都写完整字面值，不把 var() 嵌进 :root 的复合令牌：
+ * 自定义属性在声明它的元素上就完成 var() 替换，若写成 --retro-line: 2px solid var(--retro-ink)，
+ * 切换到 [data-theme='dark'] 时描边与阴影不会跟着翻转。
+ */
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  /* 画布与表面 */
+  --retro-canvas: #f6f0dd;
+  --retro-surface: #fffdf5;
+  --retro-sunken: #f1e7cf;
+  --retro-feature: #f8e8ac;
+
+  /* 墨线、正文 */
+  --retro-ink: #1a1711;
+  --retro-muted: #665e51;
+
+  /* 语义色：大面积底色用不带后缀者，画布上的文字与描边用 -ink 变体 */
+  --retro-orange: #ff7045;
+  --retro-orange-ink: #b23c14;
+  --retro-mint: #c3e9c9;
+  --retro-mint-ink: #2f6b43;
+  --retro-warning: #f6d977;
+  --retro-warning-ink: #8a5b00;
+  --retro-danger: #ee7971;
+  --retro-danger-ink: #a4302a;
+  --retro-info: #cfe3f2;
+  --retro-info-ink: #1f5f86;
+
+  /* 描边与硬阴影（无模糊） */
+  --retro-line: 2px solid #1a1711;
+  --retro-line-thin: 1.5px solid #1a1711;
+  --retro-line-bold: 3px solid #1a1711;
+  --retro-shadow-sm: 3px 3px 0 #1a1711;
+  --retro-shadow-md: 5px 5px 0 #1a1711;
+  --retro-shadow-lg: 8px 8px 0 #1a1711;
+
+  /* 模态遮罩 */
+  --retro-scrim: rgba(26, 23, 17, 0.55);
+}
+
+/* 暖调深色：表面比画布更亮，墨线转为奶白，硬阴影保留复古掌机的辨识度 */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --retro-canvas: #17130f;
+  --retro-surface: #241f18;
+  --retro-sunken: #2f2820;
+  --retro-feature: #4a3d18;
+
+  --retro-ink: #f6f0dd;
+  --retro-muted: #b3a894;
+
+  --retro-orange: #d9582b;
+  --retro-orange-ink: #ff9a75;
+  --retro-mint: #24402e;
+  --retro-mint-ink: #9fdcae;
+  --retro-warning: #443614;
+  --retro-warning-ink: #f2cf6a;
+  --retro-danger: #442522;
+  --retro-danger-ink: #ff9c95;
+  --retro-info: #1e3446;
+  --retro-info-ink: #9fc9e8;
+
+  --retro-line: 2px solid #f6f0dd;
+  --retro-line-thin: 1.5px solid #f6f0dd;
+  --retro-line-bold: 3px solid #f6f0dd;
+  --retro-shadow-sm: 3px 3px 0 #f6f0dd;
+  --retro-shadow-md: 5px 5px 0 #f6f0dd;
+  --retro-shadow-lg: 8px 8px 0 #f6f0dd;
+
+  --retro-scrim: rgba(0, 0, 0, 0.68);
+}

@@ -1,25 +1,20 @@
-/* 增强版加载动画样式 */
+/* 加载、骨架屏与 Toast 样式 */
+@use './mixins' as *;
 
-/* 骨架屏加载效果 */
+/* 骨架屏加载效果：暖色块节奏脉动，避免大面积渐变 */
 .skeleton-loader {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: skeleton-loading 1.5s infinite;
+  background: var(--retro-sunken);
+  border-radius: var(--retro-radius-sm);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
 }
 
-[data-theme='dark'] .skeleton-loader {
-  background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
-  background-size: 200% 100%;
-}
-
-@keyframes skeleton-loading {
-  0% {
-    background-position: 200% 0;
-  }
+@keyframes skeleton-pulse {
+  0%,
   100% {
-    background-position: -200% 0;
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
   }
 }
 
@@ -28,21 +23,16 @@
   display: flex;
   gap: 15px;
   padding: 15px;
-  border-radius: 8px;
-  background: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: var(--retro-radius-md);
+  background: var(--retro-surface);
+  border: var(--retro-line);
   margin-bottom: 10px;
-}
-
-[data-theme='dark'] .skeleton-anime-card {
-  background: #2a2a2a;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .skeleton-anime-cover {
   width: 80px;
   height: 110px;
-  border-radius: 4px;
+  border-radius: var(--retro-radius-sm);
   flex-shrink: 0;
 }
 
@@ -56,19 +46,19 @@
 .skeleton-title {
   height: 20px;
   width: 70%;
-  border-radius: 4px;
+  border-radius: var(--retro-radius-sm);
 }
 
 .skeleton-subtitle {
   height: 16px;
   width: 50%;
-  border-radius: 4px;
+  border-radius: var(--retro-radius-sm);
 }
 
 .skeleton-desc {
   height: 14px;
   width: 90%;
-  border-radius: 4px;
+  border-radius: var(--retro-radius-sm);
 }
 
 /* 圆形进度加载器 */
@@ -87,18 +77,14 @@
 }
 
 .circular-loader-bg {
-  stroke: #f0f0f0;
-  stroke-width: 4;
+  stroke: var(--retro-sunken);
+  stroke-width: 5;
   fill: none;
 }
 
-[data-theme='dark'] .circular-loader-bg {
-  stroke: #333;
-}
-
 .circular-loader-progress {
-  stroke: #00a1d6;
-  stroke-width: 4;
+  stroke: var(--retro-orange);
+  stroke-width: 5;
   fill: none;
   stroke-dasharray: 157;
   stroke-dashoffset: 157;
@@ -130,9 +116,10 @@
 }
 
 .bouncing-dot {
-  width: 12px;
-  height: 12px;
-  background: #00a1d6;
+  width: 14px;
+  height: 14px;
+  background: var(--retro-orange);
+  border: var(--retro-line);
   border-radius: 50%;
   animation: bounce 1.4s infinite ease-in-out both;
 }
@@ -149,7 +136,7 @@
   0%,
   80%,
   100% {
-    transform: scale(0);
+    transform: scale(0.6);
     opacity: 0.5;
   }
   40% {
@@ -169,22 +156,24 @@
 }
 
 .success-checkmark {
-  width: 80px;
-  height: 80px;
+  width: 84px;
+  height: 84px;
   border-radius: 50%;
-  background: #4caf50;
+  background: var(--retro-mint-solid);
+  border: var(--retro-line-bold);
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: success-pop 0.5s ease;
+  animation: success-pop 0.4s ease-out;
+  box-shadow: var(--retro-shadow-md);
 }
 
 .success-checkmark::after {
   content: '✓';
-  color: white;
-  font-size: 48px;
-  font-weight: bold;
-  animation: checkmark-draw 0.6s ease 0.3s;
+  color: var(--retro-ink-solid);
+  font-size: 44px;
+  font-weight: 800;
+  animation: checkmark-draw 0.5s ease-out 0.2s both;
 }
 
 @keyframes success-pop {
@@ -192,8 +181,8 @@
     transform: scale(0);
     opacity: 0;
   }
-  50% {
-    transform: scale(1.1);
+  60% {
+    transform: scale(1.08);
   }
   100% {
     transform: scale(1);
@@ -213,21 +202,23 @@
 }
 
 .error-cross {
-  width: 80px;
-  height: 80px;
+  width: 84px;
+  height: 84px;
   border-radius: 50%;
-  background: #f44336;
+  background: var(--retro-danger-solid);
+  border: var(--retro-line-bold);
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: error-shake 0.5s ease;
+  animation: error-shake 0.5s ease-out;
+  box-shadow: var(--retro-shadow-md);
 }
 
 .error-cross::after {
   content: '✕';
-  color: white;
-  font-size: 48px;
-  font-weight: bold;
+  color: var(--retro-ink-solid);
+  font-size: 44px;
+  font-weight: 800;
 }
 
 @keyframes error-shake {
@@ -261,11 +252,13 @@
 /* 增强版Toast通知（挂载于 .toast-container 内） */
 .toast-notification-enhanced {
   min-width: 300px;
-  max-width: 500px;
+  max-width: 460px;
   pointer-events: auto;
   opacity: 0;
   transform: translateX(100%);
-  transition: all 0.3s ease;
+  transition:
+    opacity 0.25s ease-out,
+    transform 0.25s ease-out;
 }
 
 .toast-notification-enhanced.show {
@@ -278,56 +271,69 @@
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-left: 4px solid #00a1d6;
-}
-
-[data-theme='dark'] .toast-content-enhanced {
-  background: #2a2a2a;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  background: var(--retro-surface);
+  border: var(--retro-line);
+  border-left-width: 8px;
+  border-radius: var(--retro-radius-md);
+  box-shadow: var(--retro-shadow-sm);
 }
 
 .toast-content-enhanced.success {
-  border-left-color: #4caf50;
+  border-left-color: var(--retro-mint-solid);
 }
 
 .toast-content-enhanced.error {
-  border-left-color: #f44336;
+  border-left-color: var(--retro-danger-solid);
 }
 
 .toast-content-enhanced.warning {
-  border-left-color: #ff9800;
+  border-left-color: var(--retro-warning-solid);
 }
 
 .toast-icon {
   font-size: 20px;
   width: 24px;
   text-align: center;
+  color: var(--retro-orange-ink);
+}
+
+.toast-content-enhanced.success .toast-icon {
+  color: var(--retro-mint-ink);
+}
+
+.toast-content-enhanced.error .toast-icon {
+  color: var(--retro-danger-ink);
+}
+
+.toast-content-enhanced.warning .toast-icon {
+  color: var(--retro-warning-ink);
 }
 
 .toast-message {
   flex: 1;
   font-size: 14px;
+  font-weight: 600;
   line-height: 1.5;
+  color: var(--retro-ink);
 }
 
 .toast-close {
-  border: none;
-  background: none;
-  padding: 4px;
+  border: var(--retro-line-thin);
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  padding: 0;
   margin: 0;
-  color: inherit;
-  font-size: 14px;
+  background: var(--retro-surface);
+  color: var(--retro-ink);
+  font-size: 12px;
   line-height: 1;
   cursor: pointer;
-  opacity: 0.5;
-  transition: opacity 0.2s;
+  transition: background-color var(--retro-press);
 }
 
 .toast-close:hover {
-  opacity: 1;
+  background: var(--retro-feature);
 }
 
 /* 进度条 */
@@ -336,8 +342,9 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  background: rgba(0, 0, 0, 0.1);
+  height: 6px;
+  background: var(--retro-sunken);
+  border-bottom: var(--retro-line-thin);
   z-index: 9999;
   opacity: 0;
   transition: opacity 0.3s;
@@ -349,21 +356,19 @@
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, #00a1d6, #00c9ff);
+  background: var(--retro-orange);
   width: 0;
   transition: width 0.3s ease;
-  box-shadow: 0 0 10px rgba(0, 161, 214, 0.5);
 }
 
-/* 加载时的模糊遮罩 */
+/* 加载遮罩 */
 .loading-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(5px);
+  background: var(--retro-canvas);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -375,10 +380,6 @@
   transition: opacity 0.3s;
 }
 
-[data-theme='dark'] .loading-overlay {
-  background: rgba(0, 0, 0, 0.9);
-}
-
 .loading-overlay.active {
   opacity: 1;
   pointer-events: all;
@@ -386,12 +387,9 @@
 
 .loading-text {
   font-size: 14px;
-  color: #666;
+  font-weight: 600;
+  color: var(--retro-muted);
   animation: pulse 1.5s infinite;
-}
-
-[data-theme='dark'] .loading-text {
-  color: #999;
 }
 
 @keyframes pulse {
@@ -411,7 +409,7 @@
   left: 50%;
   transform: translateX(-50%);
   font-size: 12px;
-  color: #999;
+  color: var(--retro-muted);
   animation: drag-hint 2s infinite;
 }
 

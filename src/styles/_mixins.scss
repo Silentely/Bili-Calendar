@@ -1,0 +1,15 @@
+/* 复用的硬阴影与按下反馈：按下时朝阴影方向位移并移除阴影，布局不抖动 */
+
+@mixin hard-shadow($shadow: var(--retro-shadow-md)) {
+  box-shadow: $shadow;
+  transition:
+    transform var(--retro-press),
+    box-shadow var(--retro-press);
+}
+
+@mixin pressable($shift: 2px) {
+  &:active {
+    transform: translate($shift, $shift);
+    box-shadow: 0 0 0 transparent;
+  }
+}
