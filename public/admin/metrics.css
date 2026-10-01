@@ -29,15 +29,48 @@ body {
   background: var(--retro-canvas);
   color: var(--retro-ink);
   min-height: 100vh;
+  position: relative;
 }
 
 .page {
+  position: relative; /* 建立定位上下文，让内容层叠在背景场景之上 */
+  z-index: 1;
   max-width: 960px;
   margin: 0 auto;
   padding: 28px 20px 40px;
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei',
     sans-serif;
+}
+
+/* 像素风场景装饰层：密集面板页只保留单朵云，置于内容之后 */
+.retro-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+
+.retro-scene svg {
+  position: absolute;
+  display: block;
+  width: 32px;
+  shape-rendering: crispEdges;
+  filter: drop-shadow(2px 2px 0 rgba(26, 23, 17, 0.4));
+}
+
+.retro-scene .scene-cloud {
+  width: 60px;
+  bottom: 18px;
+  right: 16px;
+}
+
+@media (max-width: 900px) {
+  .retro-scene {
+    display: none;
+  }
 }
 
 .topbar {

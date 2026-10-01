@@ -88,6 +88,53 @@
     <script type="module" src="/src/main.js"></script>
   </head>
   <body>
+    <!-- 像素风场景：纯装饰图层，对辅助技术隐藏且不接收指针事件 -->
+    <div class="retro-scene" aria-hidden="true">
+      <svg class="scene-cloud" viewBox="0 0 40 20">
+        <path fill="#afcfc0" d="M14 3h11v3h5v4h5v3h4v5H2v-5h4v-3h4V6h4z" />
+        <path fill="#d9e7d4" d="M14 3h8v3h-8zM10 7h17v4H6v-1h4zM3 13h30v3H3z" />
+      </svg>
+      <svg class="scene-tree" viewBox="0 0 32 40">
+        <path fill="#2a241d" d="M13 27h7v12h-7zM12 3h9v4h4v5h3v6h3v9h-4v5H6v-5H2v-9h3v-6h3V7h4z" />
+        <path fill="#517d5e" d="M12 5h9v4h4v5h3v5h2v7h-5v5H8v-5H4v-7h3v-5h3V9h2z" />
+        <path fill="#79a879" d="M12 5h7v4h-4v5h-5v5H7v-5h3V9h2zM8 21h5v5H8z" />
+        <path fill="#365e4a" d="M20 14h5v5h3v7h-4v5h-9v-5h5z" />
+        <path fill="#8c6444" d="M15 31h4v8h-4z" />
+      </svg>
+      <svg class="scene-house" viewBox="0 0 48 40">
+        <path fill="#2a241d" d="M18 4h12v4h6v4h4v4h4v4h-4v17H8V20H4v-4h4v-4h4V8h6z" />
+        <path fill="#c96747" d="M18 7h12v4h6v4h4v3H8v-3h4v-4h6z" />
+        <path fill="#e9895e" d="M18 7h12v3H18zm-6 5h24v3H12z" />
+        <path fill="#f7e8bd" d="M11 20h26v16H11z" />
+        <path fill="#2a241d" d="M21 25h8v11h-8zM14 23h6v7h-6zm16 0h6v7h-6z" />
+        <path fill="#91c6a1" d="M16 25h3v3h-3zm16 0h3v3h-3z" />
+        <path fill="#a86243" d="M23 27h4v9h-4z" />
+        <path fill="#f7dd80" d="M26 31h1v2h-1z" />
+      </svg>
+      <svg class="scene-grass" viewBox="0 0 64 16">
+        <path
+          fill="#83ad76"
+          d="M0 12h64v4H0zM3 9h2v3H3zm7-5h2v8h-2zm3 5h2v3h-2zm8-3h2v6h-2zm5 4h2v2h-2zm8-7h2v9h-2zm4 5h2v4h-2zm8-2h2v6h-2zm7 4h2v2h-2zm6-5h2v7h-2z"
+        />
+        <path
+          fill="#557c58"
+          d="M0 14h64v2H0zM9 8h2v4H9zm12 2h2v2h-2zm13-2h2v4h-2zm12 1h2v3h-2zm13 0h2v3h-2z"
+        />
+      </svg>
+      <svg class="scene-flower-1" viewBox="0 0 16 20">
+        <path fill="#537d5b" d="M7 10h2v10H7zM3 15h4v2H3zm6-1h4v2H9z" />
+        <path fill="#2a241d" d="M6 2h4v2h3v3h2v3h-3v3H4v-3H1V7h2V4h3z" />
+        <path fill="#fff5d8" d="M6 3h4v3H6zM3 6h4v4H3zm6 0h4v4H9zm-3 3h4v3H6z" />
+        <path fill="#e9b959" d="M6 6h4v4H6z" />
+      </svg>
+      <svg class="scene-flower-2" viewBox="0 0 16 20">
+        <path fill="#537d5b" d="M7 10h2v10H7zM3 15h4v2H3zm6-1h4v2H9z" />
+        <path fill="#2a241d" d="M6 2h4v2h3v3h2v3h-3v3H4v-3H1V7h2V4h3z" />
+        <path fill="#fff5d8" d="M6 3h4v3H6zM3 6h4v4H3zm6 0h4v4H9zm-3 3h4v3H6z" />
+        <path fill="#e9b959" d="M6 6h4v4H6z" />
+      </svg>
+    </div>
+
     <div class="floating-controls">
       <button
         class="theme-switcher"

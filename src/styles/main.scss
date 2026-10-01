@@ -81,6 +81,7 @@ html {
   width: 100%;
   text-align: center;
   position: relative;
+  z-index: 1; /* 内容层始终位于背景装饰场景之上 */
   overflow: hidden;
   @include hard-shadow(var(--retro-shadow-lg));
 }

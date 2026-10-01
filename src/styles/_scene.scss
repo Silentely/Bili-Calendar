@@ -1,0 +1,94 @@
+/* 像素风场景装饰层
+ *
+ * 纯装饰、非交互：置于内容之后、画布之上，不参与任何状态表达与交互。
+ * 该层只出现在页面两侧的安全留白与文档底部，绝不覆盖卡片、表单控件或状态提示。
+ * 场景随宽度收敛：≥1200px 展示完整场景，900–1199px 仅保留云朵，更窄时完全省略。
+ */
+
+body {
+  position: relative;
+}
+
+.retro-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  display: none;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+
+.retro-scene svg {
+  position: absolute;
+  display: block;
+  width: 32px; /* 兜底尺寸：避免未单独设定的精灵退回替换元素默认尺寸 */
+  shape-rendering: crispEdges;
+  /* 硬边投影让奶油色墙体与奶咖画布分离，不使用模糊 */
+  filter: drop-shadow(2px 2px 0 rgba(26, 23, 17, 0.4));
+}
+
+/* 桌面：左侧房屋树丛构成安静的页首边缘，右侧单朵云，底部一条稀疏草地花簇 */
+@media (min-width: 1200px) {
+  .retro-scene {
+    display: block;
+  }
+
+  .retro-scene .scene-tree {
+    width: 44px;
+    top: 262px;
+    left: 18px;
+  }
+
+  .retro-scene .scene-house {
+    width: 96px;
+    top: 232px;
+    left: 92px;
+  }
+
+  .retro-scene .scene-cloud {
+    width: 88px;
+    top: 132px;
+    right: 48px;
+  }
+
+  .retro-scene .scene-grass {
+    width: 128px;
+    bottom: 18px;
+    left: 18px;
+  }
+
+  .retro-scene .scene-flower-1 {
+    width: 16px;
+    bottom: 50px;
+    left: 104px;
+  }
+
+  .retro-scene .scene-flower-2 {
+    width: 16px;
+    bottom: 36px;
+    left: 168px;
+  }
+}
+
+/* 中等宽度：只留一朵云，避免贴近卡片或与浮动按钮争夺右上角 */
+@media (min-width: 900px) and (max-width: 1199px) {
+  .retro-scene {
+    display: block;
+  }
+
+  .retro-scene :is(.scene-tree, .scene-house, .scene-grass, .scene-flower-1, .scene-flower-2) {
+    display: none;
+  }
+
+  .retro-scene .scene-cloud {
+    width: 72px;
+    top: 150px;
+    right: 24px;
+  }
+}
+
+/* 深色画布下场景自然后退一档，避免比内容更抢眼 */
+[data-theme='dark'] .retro-scene {
+  opacity: 0.9;
+}
