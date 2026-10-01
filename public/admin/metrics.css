@@ -1,6 +1,7 @@
 /* 运维面板：与前端一致的复古新粗野主义视觉（独立页面，自带令牌） */
 
 :root {
+  color-scheme: light;
   --retro-canvas: #f6f0dd;
   --retro-surface: #fffdf5;
   --retro-sunken: #f1e7cf;
@@ -17,6 +18,31 @@
   --retro-shadow-md: 5px 5px 0 var(--retro-ink);
   --retro-shadow-lg: 8px 8px 0 var(--retro-ink);
   --retro-press: 140ms ease-out;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --retro-canvas: #17130f;
+    --retro-surface: #241f18;
+    --retro-sunken: #2f2820;
+    --retro-feature: #4a3d18;
+    --retro-ink: #f6f0dd;
+    --retro-muted: #b3a894;
+    --retro-orange: #d9582b;
+    --retro-mint: #24402e;
+    --retro-warning: #443614;
+    --retro-danger: #442522;
+    --retro-info: #1e3446;
+    --retro-line: 2px solid #f6f0dd;
+    --retro-shadow-sm: 3px 3px 0 #f6f0dd;
+    --retro-shadow-md: 5px 5px 0 #f6f0dd;
+    --retro-shadow-lg: 8px 8px 0 #f6f0dd;
+  }
+
+  .retro-scene svg {
+    filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.6));
+  }
 }
 
 * {
@@ -262,5 +288,17 @@ select:focus-visible {
   .bar-row {
     grid-template-columns: 96px 1fr 48px;
     gap: 8px;
+  }
+}
+
+/* 尊重系统的减弱动效偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
