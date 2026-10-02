@@ -1,5 +1,5 @@
 // 番剧预览功能模块
-import i18n from '../services/i18n';
+import i18n from '../services/i18n.js';
 import { escapeHtml } from '../utils/stringUtils.js';
 import {
   WEEK_KEYS,
@@ -175,6 +175,7 @@ export class AnimePreview {
     const leadSuffix = escapeHtml(i18n.t('preview.actions.reminderLeadSuffix'));
     const reminderHint = escapeHtml(i18n.t('preview.reminder.hint'));
     const aggregatePanel = this.renderAggregatePanel();
+
     const filterAll = escapeHtml(i18n.t('preview.filter.all'));
     const filterWatching = escapeHtml(i18n.t('preview.filter.watching'));
     const filterFinished = escapeHtml(i18n.t('preview.filter.finished'));
@@ -212,16 +213,16 @@ export class AnimePreview {
         </div>
         
         <div class="anime-preview-body">
-          <div class="anime-list" id="animeList">
-            ${this.renderAnimeList()}
-          </div>
-        </div>
-        
-        <div class="anime-preview-footer">
           <div class="anime-stats">
             ${this.renderStats()}
           </div>
+          <div class="anime-list" id="animeList">
+            ${this.renderAnimeList()}
+          </div>
           ${aggregatePanel}
+        </div>
+        
+        <div class="anime-preview-footer">
           <div class="reminder-hint">${reminderHint}</div>
           <div class="preview-actions">
             <label class="lead-select">
