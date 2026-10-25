@@ -158,16 +158,19 @@ export class StatsService {
         return false;
       }
 
-      /** @type {unknown} */
+      /** @type {any} */
       const data = await res.json();
       if (
-        Array.isArray(data) &&
+        !Array.isArray(data) ||
+        data.length < 2 ||
         data.some((item) => item && typeof item === 'object' && 'error' in item)
       ) {
-        const errorMsgs = data
-          .filter((item) => item?.error)
-          .map((item) => item.error)
-          .join('; ');
+        const errorMsgs = Array.isArray(data)
+          ? data
+              .filter((item) => item && typeof item === 'object' && 'error' in item)
+              .map((item) => item.error)
+              .join('; ')
+          : 'malformed array';
         console.warn(`⚠️ Upstash 命令级错误: ${errorMsgs}`);
         return false;
       }
@@ -226,6 +229,7 @@ export class StatsService {
         const data = await res.json();
         if (
           Array.isArray(data) &&
+          data.length >= 2 &&
           !data.some((item) => item && typeof item === 'object' && 'error' in item)
         ) {
           const usersRaw =

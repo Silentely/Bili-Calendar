@@ -170,7 +170,7 @@ export function animateCountUp(element, target, durationMs = 1200) {
   // 从当前元素显示的数值开始过渡，避免跳回 0
   const currentText = (element.textContent || '').replace(/[^\d]/g, '');
   const parsedCurrent = parseInt(currentText, 10);
-  const startVal = Number.isFinite(parsedCurrent) ? Math.min(parsedCurrent, target) : 0;
+  const startVal = Number.isFinite(parsedCurrent) ? parsedCurrent : 0;
 
   if (startVal === target) {
     element.textContent = target.toLocaleString();
@@ -245,12 +245,26 @@ function initCopyrightYear() {
 
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
+  if (typeof i18n?.updatePageContent === 'function') {
+    i18n.updatePageContent();
+  }
   initStatsBanner();
   initUserGuide();
-  initCopyrightYear();
   initAggregateConfig();
   bindMainActions();
-  bindKeyboardShortcuts();
+
+  if (cacheManager && typeof cacheManager.initAutoSuggest === 'function') {
+    cacheManager.initAutoSuggest();
+  }
+
   initPageAnimation();
+  bindKeyboardShortcuts();
+
+  const resultBox = document.getElementById('resultBox');
+  if (resultBox) {
+    resultBox.style.display = 'none';
+  }
+
+  initCopyrightYear();
   registerWebMCPTools();
 });
