@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { parseAggregateSourcesQuery, processBangumiApiError } from '../server/lib/handlers.js';
+import {
+  parseAggregateSourcesQuery,
+  processBangumiApiError,
+  handleStatsApi,
+} from '../server/lib/handlers.js';
 
 describe('server/lib/handlers.js', () => {
   it('parseAggregateSourcesQuery: 空参数得到空列表', () => {
@@ -79,5 +83,24 @@ describe('server/lib/handlers.js', () => {
     const result = parseAggregateSourcesQuery('https://example.com/a.ics');
     assert.equal(result.error, undefined);
     assert.deepEqual(result.sourceList, ['https://example.com/a.ics']);
+  });
+
+  it('handleStatsApi: 成功返回统计指标与缓存头', async () => {
+    const headers = {};
+    let jsonData = null;
+    const res = {
+      setHeader(name, value) {
+        headers[name] = value;
+      },
+      json(data) {
+        jsonData = data;
+      },
+    };
+
+    // @ts-ignore
+    await handleStatsApi({}, res);
+    assert.equal(headers['Cache-Control'], 'public, max-age=60');
+    assert.ok(typeof jsonData?.usersCount === 'number');
+    assert.ok(typeof jsonData?.pullsCount === 'number');
   });
 });

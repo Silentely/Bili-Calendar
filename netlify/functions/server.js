@@ -8,7 +8,12 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createRateLimiter } from '../../utils-es/rate-limiter.js';
 import metrics from '../../utils-es/metrics.js';
-import { handleBangumiApi, handleCalendar, handleAggregate } from '../../server/lib/handlers.js';
+import {
+  handleBangumiApi,
+  handleCalendar,
+  handleAggregate,
+  handleStatsApi,
+} from '../../server/lib/handlers.js';
 import {
   securityAndCorsMiddleware,
   requestLogMiddleware,
@@ -199,6 +204,7 @@ app.get('/', (req, res) => {
   res.status(500).send('静态首页缺失，请检查构建配置');
 });
 
+app.get('/api/stats', handleStatsApi);
 app.get('/api/bangumi/:uid', rateLimiterMiddleware, handleBangumiApi);
 
 // 日历与聚合 Handler（与主服务一致，含限流）

@@ -148,6 +148,62 @@ function bindKeyboardShortcuts() {
   });
 }
 
+/**
+ * 平滑数字滚动动效 (CountUp)
+ * @param {HTMLElement} element
+ * @param {number} target
+ * @param {number} [durationMs=1200]
+ */
+export function animateCountUp(element, target, durationMs = 1200) {
+  if (!element || typeof target !== 'number' || isNaN(target)) return;
+  if (target <= 0) {
+    element.textContent = '0';
+    return;
+  }
+  const startTime = performance.now();
+  const startVal = 0;
+
+  /** @param {number} currentTime */
+  function step(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / durationMs, 1);
+    const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+    const current = Math.floor(startVal + (target - startVal) * ease);
+    element.textContent = current.toLocaleString();
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    } else {
+      element.textContent = target.toLocaleString();
+    }
+  }
+
+  requestAnimationFrame(step);
+}
+
+/**
+ * 加载并展示服务累计统计数据
+ */
+export async function initStatsBanner() {
+  const usersEl = document.getElementById('statsUsersCount');
+  const pullsEl = document.getElementById('statsPullsCount');
+  const bannerEl = document.getElementById('statsBanner');
+  if (!usersEl || !pullsEl || !bannerEl) return;
+
+  try {
+    const res = await fetch('/api/stats');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (typeof data.usersCount === 'number') {
+      animateCountUp(usersEl, data.usersCount);
+    }
+    if (typeof data.pullsCount === 'number') {
+      animateCountUp(pullsEl, data.pullsCount);
+    }
+  } catch {
+    // 静默降级，不阻塞前端页面主流程
+  }
+}
+
 function initCopyrightYear() {
   try {
     const yearEl = document.getElementById('copyrightYear');
@@ -162,6 +218,7 @@ function initCopyrightYear() {
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   i18n.updatePageContent();
+  initStatsBanner();
   initUserGuide();
   initAggregateConfig();
   bindMainActions();

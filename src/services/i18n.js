@@ -55,6 +55,12 @@ export class I18n {
         'language.ja': '日本語',
         'language.button': '语言',
 
+        // Stats Banner
+        'stats.usersPrefix': '已有',
+        'stats.usersSuffix': '位伙伴使用',
+        'stats.pullsPrefix': '累计同步',
+        'stats.pullsSuffix': '次日历',
+
         // Input Section
         'input.placeholder': '例如: 614500',
         'input.generate': '生成订阅',
@@ -339,6 +345,12 @@ export class I18n {
         'language.zh-TW': '繁體中文',
         'language.ja': '日本語',
         'language.button': 'Language',
+
+        // Stats Banner
+        'stats.usersPrefix': '',
+        'stats.usersSuffix': 'users served',
+        'stats.pullsPrefix': '',
+        'stats.pullsSuffix': 'calendars synced',
 
         // Input Section
         'input.placeholder': 'e.g., 614500',
@@ -925,6 +937,10 @@ function buildJapaneseLocale(enUS, zhCN) {
     'language.button': '言語',
     'language.zh-TW': '繁體中文',
     'language.ja': '日本語',
+    'stats.usersPrefix': '累計',
+    'stats.usersSuffix': '人が利用中',
+    'stats.pullsPrefix': '同期',
+    'stats.pullsSuffix': '回達成',
     'input.placeholder': '例: 614500',
     'input.generate': '購読を生成',
     'input.preview': 'プレビュー',

@@ -8,7 +8,12 @@ import { fileURLToPath } from 'url';
 import { createRateLimiter } from './utils-es/rate-limiter.js';
 import metrics from './utils-es/metrics.js';
 import createPushStore from './utils-es/push-store.js';
-import { handleBangumiApi, handleCalendar, handleAggregate } from './server/lib/handlers.js';
+import {
+  handleBangumiApi,
+  handleCalendar,
+  handleAggregate,
+  handleStatsApi,
+} from './server/lib/handlers.js';
 import {
   securityAndCorsMiddleware,
   requestLogMiddleware,
@@ -370,6 +375,7 @@ app.get('/', (req, res) => {
 });
 
 // 获取 B站追番数据（实现见 server/lib/handlers.js）
+app.get('/api/stats', handleStatsApi);
 app.get('/api/bangumi/:uid', rateLimiterMiddleware, handleBangumiApi);
 
 // 日历与聚合 Handler 见 server/lib/handlers.js

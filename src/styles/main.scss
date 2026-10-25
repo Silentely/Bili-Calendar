@@ -164,6 +164,71 @@ html {
   line-height: 1.6;
 }
 
+/* 顶部统计横幅 */
+.stats-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin: -14px auto 28px;
+  padding: 8px 20px;
+  background: var(--retro-surface);
+  border: var(--retro-line-thin);
+  border-radius: var(--retro-radius-pill);
+  @include hard-shadow(var(--retro-shadow-sm));
+  width: fit-content;
+  max-width: 100%;
+  font-size: 14px;
+  color: var(--retro-muted);
+  user-select: none;
+  transition: transform var(--retro-press);
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  .stat-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .stat-icon {
+    color: var(--retro-orange-ink);
+    font-size: 14px;
+  }
+
+  .stat-number {
+    font-weight: 800;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 15px;
+    color: var(--retro-ink);
+    padding: 0 2px;
+  }
+
+  .stat-divider {
+    color: var(--retro-muted);
+    opacity: 0.5;
+    font-size: 12px;
+  }
+
+  @media (max-width: 576px) {
+    border-radius: var(--retro-radius-md);
+    padding: 8px 14px;
+    gap: 6px 10px;
+    font-size: 13px;
+
+    .stat-number {
+      font-size: 14px;
+    }
+
+    .stat-divider {
+      display: none;
+    }
+  }
+}
+
 /* 输入区域 */
 .input-section {
   position: relative;

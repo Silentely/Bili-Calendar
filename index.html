@@ -186,6 +186,23 @@
         <p data-i18n="app.subtitle">输入您的B站用户ID(UID)，获取追番日历订阅链接</p>
       </div>
 
+      <!-- 统计横幅 -->
+      <div class="stats-banner" id="statsBanner" aria-label="服务统计数据">
+        <div class="stat-badge">
+          <i class="fas fa-users stat-icon" aria-hidden="true"></i>
+          <span class="stat-label" data-i18n="stats.usersPrefix">已有</span>
+          <span class="stat-number" id="statsUsersCount">--</span>
+          <span class="stat-label" data-i18n="stats.usersSuffix">位伙伴使用</span>
+        </div>
+        <div class="stat-divider" aria-hidden="true">•</div>
+        <div class="stat-badge">
+          <i class="fas fa-calendar-check stat-icon" aria-hidden="true"></i>
+          <span class="stat-label" data-i18n="stats.pullsPrefix">累计同步</span>
+          <span class="stat-number" id="statsPullsCount">--</span>
+          <span class="stat-label" data-i18n="stats.pullsSuffix">次日历</span>
+        </div>
+      </div>
+
       <div class="input-section">
         <div class="input-group">
           <input

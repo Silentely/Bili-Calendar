@@ -9,6 +9,7 @@ import { getBangumiData } from '../../utils-es/bangumi.js';
 import { generateICS, respondWithICS, respondWithEmptyCalendar } from '../../utils-es/ics.js';
 import { generateMergedICS, fetchExternalICS } from '../../utils-es/ics-merge.js';
 import metrics from '../../utils-es/metrics.js';
+import statsService from '../../utils-es/stats-service.js';
 import { isValidUID, validateExternalSource } from '../../utils-es/security.js';
 
 /**
@@ -205,6 +206,11 @@ export async function handleCalendar(req, res, next) {
     console.log(`📅 生成日历文件`);
     const icsContent = generateICS(bangumiList, cleanUid);
     respondWithICS(res, icsContent, cleanUid);
+
+    // 异步非阻塞记录日历成功拉取
+    statsService.recordPull(cleanUid).catch((err) => {
+      console.warn('⚠️ 记录统计失败:', err);
+    });
   } catch (err) {
     console.error(`❌ 处理请求时出错:`, err);
     next(err);
@@ -286,8 +292,29 @@ export async function handleAggregate(req, res, next) {
       'X-Aggregate-Sources-Failed': String(sourceStats.failed),
     });
     res.send(merged);
+
+    // 异步非阻塞记录日历成功拉取
+    statsService.recordPull(cleanUid).catch((err) => {
+      console.warn('⚠️ 记录聚合统计失败:', err);
+    });
   } catch (err) {
     console.error(`❌ 聚合处理出错:`, err);
     next(err);
+  }
+}
+
+/**
+ * GET /api/stats
+ * @param {Request} _req
+ * @param {Response} res
+ */
+export async function handleStatsApi(_req, res) {
+  try {
+    const stats = await statsService.getStats();
+    res.setHeader('Cache-Control', 'public, max-age=60');
+    res.json(stats);
+  } catch (err) {
+    console.error('❌ 获取统计数据失败:', err);
+    res.status(500).json({ error: 'Failed to fetch stats' });
   }
 }
