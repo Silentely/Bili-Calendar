@@ -208,10 +208,7 @@ export async function handleCalendar(req, res, next) {
 
     // 在响应前完成上报，避免 Serverless 环境在 res.send 后立即冻结进程导致网络请求中断超时
     try {
-      await Promise.race([
-        statsService.recordPull(cleanUid),
-        new Promise((resolve) => setTimeout(resolve, 1500)),
-      ]);
+      await statsService.recordPull(cleanUid, { timeoutMs: 1500 });
     } catch (err) {
       console.warn('⚠️ 记录统计失败:', err);
     }
@@ -300,10 +297,7 @@ export async function handleAggregate(req, res, next) {
 
     // 在响应前完成上报，避免 Serverless 环境在 res.send 后立即冻结进程导致网络请求中断超时
     try {
-      await Promise.race([
-        statsService.recordPull(cleanUid),
-        new Promise((resolve) => setTimeout(resolve, 1500)),
-      ]);
+      await statsService.recordPull(cleanUid, { timeoutMs: 1500 });
     } catch (err) {
       console.warn('⚠️ 记录聚合统计失败:', err);
     }
@@ -329,51 +323,5 @@ export async function handleStatsApi(_req, res) {
   } catch (err) {
     console.error('❌ 获取统计数据失败:', err);
     res.status(500).json({ error: 'Failed to fetch stats' });
-  }
-}
-
-/**
- * POST /api/stats/record
- * @param {Request} req
- * @param {Response} res
- */
-export async function handleStatsRecordApi(req, res) {
-  try {
-    let body = req.body;
-    if (Buffer.isBuffer(body)) {
-      try {
-        body = JSON.parse(body.toString('utf-8'));
-      } catch {
-        // 静默忽略
-      }
-    } else if (typeof body === 'string') {
-      try {
-        body = JSON.parse(body);
-      } catch {
-        // 静默忽略
-      }
-    }
-    if (typeof body === 'string') {
-      try {
-        body = JSON.parse(body);
-      } catch {
-        // 静默忽略
-      }
-    }
-    const rawUid = body?.uid || req.query?.uid;
-    const cleanUid =
-      typeof rawUid === 'string' || typeof rawUid === 'number' ? String(rawUid).trim() : '';
-
-    if (!isValidUID(cleanUid)) {
-      res.status(400).json({ error: 'Invalid UID', message: 'UID必须是1-20位纯数字' });
-      return;
-    }
-
-    await statsService.recordPull(cleanUid);
-    const stats = await statsService.getStats();
-    res.json({ ok: true, stats });
-  } catch (err) {
-    console.error('❌ 上报统计数据失败:', err);
-    res.status(500).json({ error: 'Failed to record stats' });
   }
 }

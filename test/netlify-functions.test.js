@@ -75,27 +75,6 @@ describe('netlify/functions/server.js', () => {
     assert.match(response.body, /测试番剧/);
   });
 
-  it('POST /api/stats/record 应上报成功并返回最新统计', async () => {
-    const response = await handler(
-      {
-        httpMethod: 'POST',
-        path: '/api/stats/record',
-        headers: {
-          'content-type': 'application/json',
-          'x-forwarded-for': '127.0.0.1',
-        },
-        queryStringParameters: null,
-        body: JSON.stringify({ uid: '6145028' }),
-        isBase64Encoded: false,
-      },
-      {}
-    );
-    assert.equal(response.statusCode, 200);
-    const body = JSON.parse(response.body);
-    assert.equal(body.ok, true);
-    assert.ok(body.stats.usersCount >= 1);
-  });
-
   it('GET /api/stats 应返回服务统计 JSON', async () => {
     const response = await request('/api/stats');
     const body = JSON.parse(response.body);

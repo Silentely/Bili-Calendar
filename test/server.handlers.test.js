@@ -4,7 +4,6 @@ import {
   parseAggregateSourcesQuery,
   processBangumiApiError,
   handleStatsApi,
-  handleStatsRecordApi,
 } from '../server/lib/handlers.js';
 
 describe('server/lib/handlers.js', () => {
@@ -104,30 +103,5 @@ describe('server/lib/handlers.js', () => {
     assert.equal(headers['CDN-Cache-Control'], 'public, max-age=10');
     assert.ok(typeof jsonData?.usersCount === 'number');
     assert.ok(typeof jsonData?.pullsCount === 'number');
-  });
-
-  it('handleStatsRecordApi: 拒绝非法 UID 并接受合法 UID', async () => {
-    let statusCode = 200;
-    let jsonResult = null;
-    const res = {
-      status(code) {
-        statusCode = code;
-        return this;
-      },
-      json(data) {
-        jsonResult = data;
-      },
-    };
-
-    // 非法 UID
-    // @ts-ignore
-    await handleStatsRecordApi({ body: { uid: 'invalid' } }, res);
-    assert.equal(statusCode, 400);
-
-    // 合法 UID
-    // @ts-ignore
-    await handleStatsRecordApi({ body: { uid: '614500' } }, res);
-    assert.equal(jsonResult?.ok, true);
-    assert.ok(typeof jsonResult?.stats?.usersCount === 'number');
   });
 });

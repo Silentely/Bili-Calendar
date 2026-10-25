@@ -87,7 +87,7 @@ export class StatsService {
   }
 
   /**
-   * 生成 UID 的匿名哈希（保护隐私，截取前 16 位十六进制）
+   * 生成 UID 的伪匿名哈希（保护隐私，截取前 16 位十六进制）
    * @param {string|number} uid
    * @returns {string}
    */
@@ -99,18 +99,23 @@ export class StatsService {
    * 获取基础预设计数值（支持环境变量偏移，方便平滑迁移历史累计）
    */
   getBaseCounts() {
-    const baseUsers = Math.max(0, parseInt(process.env.STATS_BASE_USERS || '0', 10) || 0);
-    const basePulls = Math.max(0, parseInt(process.env.STATS_BASE_PULLS || '0', 10) || 0);
+    const rawUsers = (process.env.STATS_BASE_USERS || '').trim();
+    const rawPulls = (process.env.STATS_BASE_PULLS || '').trim();
+    const parsedUsers = parseInt(rawUsers, 10);
+    const parsedPulls = parseInt(rawPulls, 10);
+    const baseUsers = Number.isSafeInteger(parsedUsers) && parsedUsers > 0 ? parsedUsers : 0;
+    const basePulls = Number.isSafeInteger(parsedPulls) && parsedPulls > 0 ? parsedPulls : 0;
     return { baseUsers, basePulls };
   }
 
   /**
    * 记录一次日历成功拉取
    * @param {string|number} uid
-   * @returns {Promise<void>}
+   * @param {{ signal?: AbortSignal, timeoutMs?: number }} [options]
+   * @returns {Promise<boolean>}
    */
-  async recordPull(uid) {
-    if (!uid) return;
+  async recordPull(uid, options = {}) {
+    if (!uid) return false;
     const uidHash = this.hashUid(uid);
 
     // 总是先更新内存降级存储
@@ -122,8 +127,14 @@ export class StatsService {
 
     // 如果未配置远程 KV，直接完成本地计数
     if (!url || !token) {
-      return;
+      return true;
     }
+
+    const { signal: externalSignal, timeoutMs = 1500 } = options;
+    const timeoutSignal = AbortSignal.timeout(timeoutMs);
+    const requestSignal = externalSignal
+      ? AbortSignal.any([externalSignal, timeoutSignal])
+      : timeoutSignal;
 
     try {
       const pipelineUrl = `${url}/pipeline`;
@@ -139,18 +150,35 @@ export class StatsService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(commands),
-        signal: AbortSignal.timeout(2500),
+        signal: requestSignal,
       });
 
       if (!res.ok) {
         console.warn(`⚠️ 统计上报失败 (HTTP ${res.status})`);
-      } else {
-        // 上报成功后主动使本地缓存失效，确保下一次查询能即时反映最新数据
-        this.cachedStats = null;
+        return false;
       }
+
+      /** @type {unknown} */
+      const data = await res.json();
+      if (
+        Array.isArray(data) &&
+        data.some((item) => item && typeof item === 'object' && 'error' in item)
+      ) {
+        const errorMsgs = data
+          .filter((item) => item?.error)
+          .map((item) => item.error)
+          .join('; ');
+        console.warn(`⚠️ Upstash 命令级错误: ${errorMsgs}`);
+        return false;
+      }
+
+      // 上报成功后主动使本地缓存失效，确保下一次查询能即时反映最新数据
+      this.cachedStats = null;
+      return true;
     } catch (err) {
-      // 容错日志，绝不抛出异常阻断正常业务
+      // 容错日志，绝不抛出异常中断正常业务
       console.warn(`⚠️ 远程统计上报异常:`, err instanceof Error ? err.message : String(err));
+      return false;
     }
   }
 
@@ -190,28 +218,39 @@ export class StatsService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(commands),
-        signal: AbortSignal.timeout(2500),
+        signal: AbortSignal.timeout(2000),
       });
 
       if (res.ok) {
-        /** @type {Array<{result: unknown}|unknown>} */
+        /** @type {unknown} */
         const data = await res.json();
-        const usersRaw =
-          data[0] && typeof data[0] === 'object' && 'result' in data[0] ? data[0].result : data[0];
-        const pullsRaw =
-          data[1] && typeof data[1] === 'object' && 'result' in data[1] ? data[1].result : data[1];
+        if (
+          Array.isArray(data) &&
+          !data.some((item) => item && typeof item === 'object' && 'error' in item)
+        ) {
+          const usersRaw =
+            data[0] && typeof data[0] === 'object' && 'result' in data[0]
+              ? data[0].result
+              : data[0];
+          const pullsRaw =
+            data[1] && typeof data[1] === 'object' && 'result' in data[1]
+              ? data[1].result
+              : data[1];
 
-        const remoteUsers = Math.max(0, Number(usersRaw) || 0);
-        const remotePulls = Math.max(0, Number(pullsRaw) || 0);
+          const remoteUsers = Math.max(0, Number(usersRaw) || 0);
+          const remotePulls = Math.max(0, Number(pullsRaw) || 0);
 
-        const result = {
-          usersCount: baseUsers + remoteUsers,
-          pullsCount: basePulls + remotePulls,
-        };
+          const result = {
+            usersCount: baseUsers + remoteUsers,
+            pullsCount: basePulls + remotePulls,
+          };
 
-        this.cachedStats = result;
-        this.cacheExpiresAt = now + this.cacheTtlMs;
-        return result;
+          this.cachedStats = result;
+          this.cacheExpiresAt = now + this.cacheTtlMs;
+          return result;
+        } else {
+          console.warn('⚠️ Upstash 查询返回了命令级错误，降级返回');
+        }
       }
     } catch (err) {
       console.warn(

@@ -60,13 +60,52 @@ test('statsService interacts with remote KV via pipeline and handles fallback on
     });
     service.reset();
 
-    await service.recordPull('test-uid');
+    const ok = await service.recordPull('test-uid');
+    assert.equal(ok, true);
     assert.equal(mockCalls.length, 1);
     assert.match(mockCalls[0].url, /mock-redis\.upstash\.io\/pipeline/);
 
     const stats = await service.getStats();
     assert.equal(stats.usersCount, 15);
     assert.equal(stats.pullsCount, 120);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('statsService catches command-level error in Upstash pipeline', async () => {
+  const originalFetch = globalThis.fetch;
+
+  // @ts-ignore
+  globalThis.fetch = async (url, options) => {
+    const body = JSON.parse(options.body);
+    if (body[0][0] === 'SCARD') {
+      return {
+        ok: true,
+        json: async () => [{ error: 'ERR command failed' }, { result: 0 }],
+      };
+    }
+    return {
+      ok: true,
+      json: async () => [{ error: 'ERR write failed' }, { result: 1 }],
+    };
+  };
+
+  try {
+    const service = new StatsService({
+      url: 'https://mock-redis.upstash.io',
+      token: 'mock-token',
+      cacheTtlMs: 0,
+    });
+    service.reset();
+
+    const writeOk = await service.recordPull('uid-error');
+    assert.equal(writeOk, false);
+
+    const stats = await service.getStats();
+    // 远程命令报错时降级回退本地数据
+    assert.equal(stats.usersCount, 1);
+    assert.equal(stats.pullsCount, 1);
   } finally {
     globalThis.fetch = originalFetch;
   }

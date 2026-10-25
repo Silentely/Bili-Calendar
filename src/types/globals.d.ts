@@ -18,6 +18,11 @@ interface AggregateConfigApi {
   apply(config?: AggregateConfigState): AggregateConfigResult;
 }
 
+interface StatsBannerData {
+  usersCount?: number;
+  pullsCount?: number;
+}
+
 declare global {
   interface Navigator {
     userLanguage?: string;
@@ -43,5 +48,7 @@ declare global {
     handleSubscribe?: () => Promise<void> | void;
     cycleLanguage?: () => void;
     currentGenerateCallback?: (() => void) | null;
+    updateStatsBanner?: (stats?: StatsBannerData) => void;
+    initStatsBanner?: () => Promise<void>;
   }
 }

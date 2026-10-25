@@ -160,8 +160,24 @@ export function animateCountUp(element, target, durationMs = 1200) {
     element.textContent = '0';
     return;
   }
+
+  // 支持 prefers-reduced-motion
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    element.textContent = target.toLocaleString();
+    return;
+  }
+
+  // 从当前元素显示的数值开始过渡，避免跳回 0
+  const currentText = (element.textContent || '').replace(/[^\d]/g, '');
+  const parsedCurrent = parseInt(currentText, 10);
+  const startVal = Number.isFinite(parsedCurrent) ? Math.min(parsedCurrent, target) : 0;
+
+  if (startVal === target) {
+    element.textContent = target.toLocaleString();
+    return;
+  }
+
   const startTime = performance.now();
-  const startVal = 0;
 
   /** @param {number} currentTime */
   function step(currentTime) {
@@ -223,30 +239,18 @@ function initCopyrightYear() {
       yearEl.textContent = String(new Date().getFullYear());
     }
   } catch {
-    // 年份占位符缺失不影响主流程。
+    // 静默降级，避免阻塞主流程
   }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
-  i18n.updatePageContent();
   initStatsBanner();
   initUserGuide();
+  initCopyrightYear();
   initAggregateConfig();
   bindMainActions();
-
-  if (cacheManager) {
-    cacheManager.initAutoSuggest();
-  }
-
-  initPageAnimation();
   bindKeyboardShortcuts();
-
-  const resultBox = document.getElementById('resultBox');
-  if (resultBox) {
-    resultBox.style.display = 'none';
-  }
-
-  initCopyrightYear();
+  initPageAnimation();
   registerWebMCPTools();
 });
