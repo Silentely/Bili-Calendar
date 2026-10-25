@@ -60,7 +60,7 @@
   },
   "overrides": {
     "postcss": ">=8.5.10",
-    "body-parser": ">=2.3.0",
+    "body-parser": ">=2.4.0",
     "brace-expansion@5": "5.0.12",
     "brace-expansion@1": "1.1.21",
     "immutable": ">=5.1.8",
