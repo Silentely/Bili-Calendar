@@ -13,6 +13,7 @@ import {
   handleCalendar,
   handleAggregate,
   handleStatsApi,
+  handleStatsRecordApi,
 } from '../../server/lib/handlers.js';
 import {
   securityAndCorsMiddleware,
@@ -205,6 +206,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api/stats', handleStatsApi);
+app.post('/api/stats/record', handleStatsRecordApi);
 app.get('/api/bangumi/:uid', rateLimiterMiddleware, handleBangumiApi);
 
 // 日历与聚合 Handler（与主服务一致，含限流）

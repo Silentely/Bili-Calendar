@@ -181,28 +181,40 @@ export function animateCountUp(element, target, durationMs = 1200) {
 }
 
 /**
+ * 更新顶部统计数据横幅
+ * @param {{usersCount?: number, pullsCount?: number}} [stats]
+ */
+export function updateStatsBanner(stats) {
+  const usersEl = document.getElementById('statsUsersCount');
+  const pullsEl = document.getElementById('statsPullsCount');
+  if (!usersEl || !pullsEl || !stats) return;
+
+  if (typeof stats.usersCount === 'number') {
+    animateCountUp(usersEl, stats.usersCount);
+  }
+  if (typeof stats.pullsCount === 'number') {
+    animateCountUp(pullsEl, stats.pullsCount);
+  }
+}
+window.updateStatsBanner = updateStatsBanner;
+
+/**
  * 加载并展示服务累计统计数据
  */
 export async function initStatsBanner() {
-  const usersEl = document.getElementById('statsUsersCount');
-  const pullsEl = document.getElementById('statsPullsCount');
   const bannerEl = document.getElementById('statsBanner');
-  if (!usersEl || !pullsEl || !bannerEl) return;
+  if (!bannerEl) return;
 
   try {
     const res = await fetch('/api/stats');
     if (!res.ok) return;
     const data = await res.json();
-    if (typeof data.usersCount === 'number') {
-      animateCountUp(usersEl, data.usersCount);
-    }
-    if (typeof data.pullsCount === 'number') {
-      animateCountUp(pullsEl, data.pullsCount);
-    }
+    updateStatsBanner(data);
   } catch {
     // 静默降级，不阻塞前端页面主流程
   }
 }
+window.initStatsBanner = initStatsBanner;
 
 function initCopyrightYear() {
   try {

@@ -322,6 +322,22 @@ export async function handleSubscribe() {
       url = `${window.location.origin}/${uid}.ics`;
     }
 
+    // 异步上报使用统计，即时触发写操作并刷新顶部横幅
+    fetch('/api/stats/record', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid }),
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.stats && typeof window.updateStatsBanner === 'function') {
+            window.updateStatsBanner(data.stats);
+          }
+        }
+      })
+      .catch(() => {});
+
     // 无真实网络等待，仅保证进度反馈最短可感知时长
     await new Promise((resolve) => setTimeout(resolve, MIN_SUBSCRIBE_FEEDBACK_MS));
 
