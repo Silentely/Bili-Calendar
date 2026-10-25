@@ -99,7 +99,8 @@ describe('server/lib/handlers.js', () => {
 
     // @ts-ignore
     await handleStatsApi({}, res);
-    assert.equal(headers['Cache-Control'], 'public, max-age=60');
+    assert.equal(headers['Cache-Control'], 'public, max-age=60, s-maxage=60');
+    assert.equal(headers['CDN-Cache-Control'], 'public, max-age=60');
     assert.ok(typeof jsonData?.usersCount === 'number');
     assert.ok(typeof jsonData?.pullsCount === 'number');
   });

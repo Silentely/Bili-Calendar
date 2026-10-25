@@ -56,6 +56,7 @@ export class I18n {
         'language.button': '语言',
 
         // Stats Banner
+        'stats.ariaLabel': '服务统计数据',
         'stats.usersPrefix': '已有',
         'stats.usersSuffix': '位伙伴使用',
         'stats.pullsPrefix': '累计同步',
@@ -347,6 +348,7 @@ export class I18n {
         'language.button': 'Language',
 
         // Stats Banner
+        'stats.ariaLabel': 'Service statistics',
         'stats.usersPrefix': '',
         'stats.usersSuffix': 'users served',
         'stats.pullsPrefix': '',
@@ -937,6 +939,7 @@ function buildJapaneseLocale(enUS, zhCN) {
     'language.button': '言語',
     'language.zh-TW': '繁體中文',
     'language.ja': '日本語',
+    'stats.ariaLabel': 'サービス利用統計',
     'stats.usersPrefix': '累計',
     'stats.usersSuffix': '人が利用中',
     'stats.pullsPrefix': '同期',

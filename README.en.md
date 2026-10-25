@@ -132,13 +132,13 @@ Language preference is automatically saved and restored on next visit.
 
 ### ⌨️ Keyboard Shortcuts
 
-| Shortcut       | Function                |
-| -------------- | ----------------------- |
-| `Enter`        | Generate/Execute action |
-| `Alt + T`      | Toggle dark mode        |
-| `Alt + G`      | Generate subscription   |
-| `Alt + P`      | Preview anime list      |
-| `Esc`          | Close popup/Clear input |
+| Shortcut  | Function                |
+| --------- | ----------------------- |
+| `Enter`   | Generate/Execute action |
+| `Alt + T` | Toggle dark mode        |
+| `Alt + G` | Generate subscription   |
+| `Alt + P` | Preview anime list      |
+| `Esc`     | Close popup/Clear input |
 
 ---
 
@@ -262,24 +262,24 @@ Returns: Service status information for health checks
 
 ### Environment Variables
 
-| Variable                   | Default       | Description                                           |
-| -------------------------- | ------------- | ----------------------------------------------------- |
-| `PORT`                     | 3000          | Service listening port                                |
-| `BILIBILI_COOKIE`          | Empty         | Bilibili Cookie, improves API access success rate     |
-| `NODE_ENV`                 | development   | Runtime environment (development/production)          |
-| `TZ`                       | Asia/Shanghai | Timezone setting                                      |
-| `API_RATE_LIMIT`           | 100           | API call rate limit (times/window)                    |
-| `API_RATE_WINDOW`          | 3600000       | Rate limit time window (milliseconds, default 1 hour) |
-| `ENABLE_RATE_LIMIT`        | true          | Enable rate limiting (true/false)                     |
-| `HTTP_TIMEOUT_MS`          | 25000         | HTTP request timeout (ms; main server `utils/http.cjs`) |
-| `HTTP_RETRY_MAX`           | 3             | HTTP request max retry count (main server)            |
-| `HTTP_RETRY_BASE_DELAY_MS` | 500           | HTTP retry base delay (ms; main server)               |
-| `VAPID_PUBLIC_KEY`         | Empty         | Optional, WebPush public key                          |
-| `VAPID_PRIVATE_KEY`        | Empty         | Optional, WebPush private key                         |
-| `VAPID_SUBJECT`            | mailto:...    | Optional VAPID subject (from generator)               |
-| `PUSH_STORE_FILE`          | ./data/push-subscriptions.json | Optional, persistent subscription file (server deployment) |
-| `PUSH_ADMIN_TOKEN`         | Empty         | Optional token protecting `/push/test` admin endpoint |
-| `TRUST_PROXY`              | disabled      | Optional Express `trust proxy` config (`true`/`false`/hops/IP). Only enable behind trusted proxies |
+| Variable                   | Default                        | Description                                                                                        |
+| -------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------- |
+| `PORT`                     | 3000                           | Service listening port                                                                             |
+| `BILIBILI_COOKIE`          | Empty                          | Bilibili Cookie, improves API access success rate                                                  |
+| `NODE_ENV`                 | development                    | Runtime environment (development/production)                                                       |
+| `TZ`                       | Asia/Shanghai                  | Timezone setting                                                                                   |
+| `API_RATE_LIMIT`           | 100                            | API call rate limit (times/window)                                                                 |
+| `API_RATE_WINDOW`          | 3600000                        | Rate limit time window (milliseconds, default 1 hour)                                              |
+| `ENABLE_RATE_LIMIT`        | true                           | Enable rate limiting (true/false)                                                                  |
+| `HTTP_TIMEOUT_MS`          | 25000                          | HTTP request timeout (ms; main server `utils/http.cjs`)                                            |
+| `HTTP_RETRY_MAX`           | 3                              | HTTP request max retry count (main server)                                                         |
+| `HTTP_RETRY_BASE_DELAY_MS` | 500                            | HTTP retry base delay (ms; main server)                                                            |
+| `VAPID_PUBLIC_KEY`         | Empty                          | Optional, WebPush public key                                                                       |
+| `VAPID_PRIVATE_KEY`        | Empty                          | Optional, WebPush private key                                                                      |
+| `VAPID_SUBJECT`            | mailto:...                     | Optional VAPID subject (from generator)                                                            |
+| `PUSH_STORE_FILE`          | ./data/push-subscriptions.json | Optional, persistent subscription file (server deployment)                                         |
+| `PUSH_ADMIN_TOKEN`         | Empty                          | Optional token protecting `/push/test` admin endpoint                                              |
+| `TRUST_PROXY`              | disabled                       | Optional Express `trust proxy` config (`true`/`false`/hops/IP). Only enable behind trusted proxies |
 
 ### Notes
 

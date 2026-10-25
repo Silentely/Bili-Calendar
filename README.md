@@ -265,24 +265,28 @@ GET /status
 
 ### 环境变量
 
-| 变量名                     | 默认值        | 说明                                |
-| -------------------------- | ------------- | ----------------------------------- |
-| `PORT`                     | 3000          | 服务监听端口                        |
-| `BILIBILI_COOKIE`          | 空            | B站 Cookie，用于提高API访问成功率   |
-| `NODE_ENV`                 | development   | 运行环境（development/production）  |
-| `TZ`                       | Asia/Shanghai | 时区设置                            |
-| `API_RATE_LIMIT`           | 100           | API调用速率限制（次数/时间窗口）    |
-| `API_RATE_WINDOW`          | 3600000       | 速率限制时间窗口（毫秒，默认1小时） |
-| `ENABLE_RATE_LIMIT`        | true          | 是否启用速率限制（true/false）      |
-| `HTTP_TIMEOUT_MS`          | 25000         | HTTP请求超时时间（毫秒，主服务 utils/http.cjs） |
-| `HTTP_RETRY_MAX`           | 3             | HTTP请求最大重试次数（主服务）      |
-| `HTTP_RETRY_BASE_DELAY_MS` | 500           | HTTP重试基础延迟时间（毫秒，主服务） |
-| `VAPID_PUBLIC_KEY`         | 空            | 可选，启用 WebPush 所需公钥         |
-| `VAPID_PRIVATE_KEY`        | 空            | 可选，启用 WebPush 所需私钥         |
-| `VAPID_SUBJECT`            | mailto:...    | 可选，VAPID 识别（可用生成脚本输出） |
-| `PUSH_STORE_FILE`          | ./data/push-subscriptions.json | 可选，推送订阅持久化文件路径（仅主服务） |
-| `PUSH_ADMIN_TOKEN`         | 空            | 可选，保护 `/push/test` 等管理接口的令牌 |
+| 变量名                     | 默认值                         | 说明                                                                                                   |
+| -------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `PORT`                     | 3000                           | 服务监听端口                                                                                           |
+| `BILIBILI_COOKIE`          | 空                             | B站 Cookie，用于提高API访问成功率                                                                      |
+| `NODE_ENV`                 | development                    | 运行环境（development/production）                                                                     |
+| `TZ`                       | Asia/Shanghai                  | 时区设置                                                                                               |
+| `API_RATE_LIMIT`           | 100                            | API调用速率限制（次数/时间窗口）                                                                       |
+| `API_RATE_WINDOW`          | 3600000                        | 速率限制时间窗口（毫秒，默认1小时）                                                                    |
+| `ENABLE_RATE_LIMIT`        | true                           | 是否启用速率限制（true/false）                                                                         |
+| `HTTP_TIMEOUT_MS`          | 25000                          | HTTP请求超时时间（毫秒，主服务 utils/http.cjs）                                                        |
+| `HTTP_RETRY_MAX`           | 3                              | HTTP请求最大重试次数（主服务）                                                                         |
+| `HTTP_RETRY_BASE_DELAY_MS` | 500                            | HTTP重试基础延迟时间（毫秒，主服务）                                                                   |
+| `VAPID_PUBLIC_KEY`         | 空                             | 可选，启用 WebPush 所需公钥                                                                            |
+| `VAPID_PRIVATE_KEY`        | 空                             | 可选，启用 WebPush 所需私钥                                                                            |
+| `VAPID_SUBJECT`            | mailto:...                     | 可选，VAPID 识别（可用生成脚本输出）                                                                   |
+| `PUSH_STORE_FILE`          | ./data/push-subscriptions.json | 可选，推送订阅持久化文件路径（仅主服务）                                                               |
+| `PUSH_ADMIN_TOKEN`         | 空                             | 可选，保护 `/push/test` 等管理接口的令牌                                                               |
 | `TRUST_PROXY`              | 主服务未启用；Netlify 默认 `1` | 可选，配置 Express `trust proxy`（true/false/跳数/IP）。Netlify 还会优先读 `x-nf-client-connection-ip` |
+| `UPSTASH_REDIS_REST_URL`   | 空                             | 可选，Upstash Redis REST API 地址，用于分布式/Serverless 统计持久化                                    |
+| `UPSTASH_REDIS_REST_TOKEN` | 空                             | 可选，Upstash Redis REST API 访问令牌                                                                  |
+| `STATS_BASE_USERS`         | 0                              | 可选，服务独立用户数的预设历史基数偏移                                                                 |
+| `STATS_BASE_PULLS`         | 0                              | 可选，日历同步拉取次数的预设历史基数偏移                                                               |
 
 ### 注意事项
 
@@ -430,14 +434,14 @@ npm run format
 
 ### 前端模块说明
 
-| 模块     | 功能                   | 文件                            |
-| -------- | ---------------------- | ------------------------------- |
-| 主应用   | 核心业务逻辑、主题切换 | `src/main.js`                   |
-| 错误处理 | 智能错误提示和解决方案 | `src/services/errorHandler.js`  |
-| 番剧预览 | 追番列表展示和筛选     | `src/components/AnimePreview.js`|
-| 缓存管理 | 数据缓存和历史记录     | `src/services/cacheManager.js`  |
+| 模块     | 功能                   | 文件                                          |
+| -------- | ---------------------- | --------------------------------------------- |
+| 主应用   | 核心业务逻辑、主题切换 | `src/main.js`                                 |
+| 错误处理 | 智能错误提示和解决方案 | `src/services/errorHandler.js`                |
+| 番剧预览 | 追番列表展示和筛选     | `src/components/AnimePreview.js`              |
+| 缓存管理 | 数据缓存和历史记录     | `src/services/cacheManager.js`                |
 | PWA      | 离线支持和应用安装     | `public/sw.js`, `public/manifest.webmanifest` |
-| 国际化   | 多语言支持             | `src/services/i18n.js`          |
+| 国际化   | 多语言支持             | `src/services/i18n.js`                        |
 
 ---
 

@@ -311,7 +311,8 @@ export async function handleAggregate(req, res, next) {
 export async function handleStatsApi(_req, res) {
   try {
     const stats = await statsService.getStats();
-    res.setHeader('Cache-Control', 'public, max-age=60');
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=60');
+    res.setHeader('CDN-Cache-Control', 'public, max-age=60');
     res.json(stats);
   } catch (err) {
     console.error('❌ 获取统计数据失败:', err);

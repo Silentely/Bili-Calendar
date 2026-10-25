@@ -194,6 +194,10 @@ html {
     gap: 6px;
   }
 
+  .stat-label:empty {
+    display: none;
+  }
+
   .stat-icon {
     color: var(--retro-orange-ink);
     font-size: 14px;

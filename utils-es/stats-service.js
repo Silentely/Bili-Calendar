@@ -18,10 +18,8 @@ export class StatsService {
    * @param {number} [options.cacheTtlMs]
    */
   constructor(options = {}) {
-    this.url =
-      options.url || process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
-    this.token =
-      options.token || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || '';
+    this.optionsUrl = options.url || '';
+    this.optionsToken = options.token || '';
     this.cacheTtlMs = options.cacheTtlMs ?? 60000;
 
     /** @type {StatsResult|null} */
@@ -31,6 +29,33 @@ export class StatsService {
     // 内存降级存储
     this.localUids = new Set();
     this.localPulls = 0;
+  }
+
+  /**
+   * 获取远程 KV 服务地址（动态获取支持运行时环境变量注入）
+   * @returns {string}
+   */
+  getUrl() {
+    const raw =
+      this.optionsUrl || process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
+    let u = raw.trim();
+    while (u.endsWith('/')) {
+      u = u.slice(0, -1);
+    }
+    return u;
+  }
+
+  /**
+   * 获取远程 KV 访问令牌
+   * @returns {string}
+   */
+  getToken() {
+    return (
+      this.optionsToken ||
+      process.env.UPSTASH_REDIS_REST_TOKEN ||
+      process.env.KV_REST_API_TOKEN ||
+      ''
+    );
   }
 
   /**
@@ -55,14 +80,6 @@ export class StatsService {
   /**
    * 获取基础预设计数值（支持环境变量偏移，方便平滑迁移历史累计）
    */
-  getCleanUrl() {
-    let u = this.url.trim();
-    while (u.endsWith('/')) {
-      u = u.slice(0, -1);
-    }
-    return u;
-  }
-
   getBaseCounts() {
     const baseUsers = Math.max(0, parseInt(process.env.STATS_BASE_USERS || '0', 10) || 0);
     const basePulls = Math.max(0, parseInt(process.env.STATS_BASE_PULLS || '0', 10) || 0);
@@ -82,13 +99,16 @@ export class StatsService {
     this.localUids.add(uidHash);
     this.localPulls += 1;
 
-    // 如果未配置远程 KV，直接返回
-    if (!this.url || !this.token) {
+    const url = this.getUrl();
+    const token = this.getToken();
+
+    // 如果未配置远程 KV，直接完成本地计数
+    if (!url || !token) {
       return;
     }
 
     try {
-      const pipelineUrl = `${this.getCleanUrl()}/pipeline`;
+      const pipelineUrl = `${url}/pipeline`;
       const commands = [
         ['INCR', 'bili_calendar:total_pulls'],
         ['SADD', 'bili_calendar:unique_uids', uidHash],
@@ -97,7 +117,7 @@ export class StatsService {
       const res = await fetch(pipelineUrl, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${this.token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(commands),
@@ -118,26 +138,25 @@ export class StatsService {
    * @returns {Promise<StatsResult>}
    */
   async getStats() {
+    const { baseUsers, basePulls } = this.getBaseCounts();
+    const url = this.getUrl();
+    const token = this.getToken();
+
+    // 未配置远程 KV 时，直接返回新鲜的本地降级数据
+    if (!url || !token) {
+      return {
+        usersCount: baseUsers + this.localUids.size,
+        pullsCount: basePulls + this.localPulls,
+      };
+    }
+
     const now = Date.now();
     if (this.cachedStats && now < this.cacheExpiresAt) {
       return this.cachedStats;
     }
 
-    const { baseUsers, basePulls } = this.getBaseCounts();
-
-    // 未配置远程 KV，使用本地降级数据
-    if (!this.url || !this.token) {
-      const result = {
-        usersCount: baseUsers + this.localUids.size,
-        pullsCount: basePulls + this.localPulls,
-      };
-      this.cachedStats = result;
-      this.cacheExpiresAt = now + this.cacheTtlMs;
-      return result;
-    }
-
     try {
-      const pipelineUrl = `${this.getCleanUrl()}/pipeline`;
+      const pipelineUrl = `${url}/pipeline`;
       const commands = [
         ['SCARD', 'bili_calendar:unique_uids'],
         ['GET', 'bili_calendar:total_pulls'],
@@ -146,7 +165,7 @@ export class StatsService {
       const res = await fetch(pipelineUrl, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${this.token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(commands),

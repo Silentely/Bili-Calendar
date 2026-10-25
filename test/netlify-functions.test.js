@@ -1,10 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import { handler } from '../netlify/functions/server.js';
-import {
-  __clearBangumiCacheForTest,
-  __setBangumiHttpClientForTest,
-} from '../utils-es/bangumi.js';
+import { __clearBangumiCacheForTest, __setBangumiHttpClientForTest } from '../utils-es/bangumi.js';
 
 const TEST_UID = '123456';
 
@@ -76,6 +73,15 @@ describe('netlify/functions/server.js', () => {
     assert.match(response.headers['content-type'], /text\/calendar/);
     assert.match(response.body, /BEGIN:VCALENDAR/);
     assert.match(response.body, /测试番剧/);
+  });
+
+  it('GET /api/stats 应返回服务统计 JSON', async () => {
+    const response = await request('/api/stats');
+    const body = JSON.parse(response.body);
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(typeof body.usersCount, 'number');
+    assert.equal(typeof body.pullsCount, 'number');
   });
 
   it('GET /api/bangumi/:uid 应返回番剧 JSON', async () => {
