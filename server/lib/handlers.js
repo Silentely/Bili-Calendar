@@ -205,12 +205,18 @@ export async function handleCalendar(req, res, next) {
 
     console.log(`📅 生成日历文件`);
     const icsContent = generateICS(bangumiList, cleanUid);
-    respondWithICS(res, icsContent, cleanUid);
 
-    // 异步非阻塞记录日历成功拉取
-    statsService.recordPull(cleanUid).catch((err) => {
+    // 在响应前完成上报，避免 Serverless 环境在 res.send 后立即冻结进程导致网络请求中断超时
+    try {
+      await Promise.race([
+        statsService.recordPull(cleanUid),
+        new Promise((resolve) => setTimeout(resolve, 1500)),
+      ]);
+    } catch (err) {
       console.warn('⚠️ 记录统计失败:', err);
-    });
+    }
+
+    respondWithICS(res, icsContent, cleanUid);
   } catch (err) {
     console.error(`❌ 处理请求时出错:`, err);
     next(err);
@@ -291,12 +297,18 @@ export async function handleAggregate(req, res, next) {
       'X-Aggregate-Sources-Fetched': String(sourceStats.fetched),
       'X-Aggregate-Sources-Failed': String(sourceStats.failed),
     });
-    res.send(merged);
 
-    // 异步非阻塞记录日历成功拉取
-    statsService.recordPull(cleanUid).catch((err) => {
+    // 在响应前完成上报，避免 Serverless 环境在 res.send 后立即冻结进程导致网络请求中断超时
+    try {
+      await Promise.race([
+        statsService.recordPull(cleanUid),
+        new Promise((resolve) => setTimeout(resolve, 1500)),
+      ]);
+    } catch (err) {
       console.warn('⚠️ 记录聚合统计失败:', err);
-    });
+    }
+
+    res.send(merged);
   } catch (err) {
     console.error(`❌ 聚合处理出错:`, err);
     next(err);
@@ -311,8 +323,8 @@ export async function handleAggregate(req, res, next) {
 export async function handleStatsApi(_req, res) {
   try {
     const stats = await statsService.getStats();
-    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=60');
-    res.setHeader('CDN-Cache-Control', 'public, max-age=60');
+    res.setHeader('Cache-Control', 'public, max-age=10, s-maxage=10');
+    res.setHeader('CDN-Cache-Control', 'public, max-age=10');
     res.json(stats);
   } catch (err) {
     console.error('❌ 获取统计数据失败:', err);

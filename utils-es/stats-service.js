@@ -20,7 +20,7 @@ export class StatsService {
   constructor(options = {}) {
     this.optionsUrl = options.url || '';
     this.optionsToken = options.token || '';
-    this.cacheTtlMs = options.cacheTtlMs ?? 60000;
+    this.cacheTtlMs = options.cacheTtlMs ?? 10000;
 
     /** @type {StatsResult|null} */
     this.cachedStats = null;
@@ -36,13 +36,25 @@ export class StatsService {
    * @returns {string}
    */
   getUrl() {
-    const raw =
-      this.optionsUrl || process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
-    let u = raw.trim();
-    while (u.endsWith('/')) {
-      u = u.slice(0, -1);
+    let raw = (
+      this.optionsUrl ||
+      process.env.UPSTASH_REDIS_REST_URL ||
+      process.env.KV_REST_API_URL ||
+      ''
+    ).trim();
+
+    if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))) {
+      raw = raw.slice(1, -1).trim();
     }
-    return u;
+
+    if (raw && !raw.startsWith('http://') && !raw.startsWith('https://')) {
+      raw = `https://${raw}`;
+    }
+
+    while (raw.endsWith('/')) {
+      raw = raw.slice(0, -1);
+    }
+    return raw;
   }
 
   /**
@@ -50,12 +62,18 @@ export class StatsService {
    * @returns {string}
    */
   getToken() {
-    return (
+    let t = (
       this.optionsToken ||
       process.env.UPSTASH_REDIS_REST_TOKEN ||
       process.env.KV_REST_API_TOKEN ||
       ''
-    );
+    ).trim();
+
+    if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
+      t = t.slice(1, -1).trim();
+    }
+
+    return t;
   }
 
   /**
@@ -121,11 +139,14 @@ export class StatsService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(commands),
-        signal: AbortSignal.timeout(3000),
+        signal: AbortSignal.timeout(2500),
       });
 
       if (!res.ok) {
         console.warn(`⚠️ 统计上报失败 (HTTP ${res.status})`);
+      } else {
+        // 上报成功后主动使本地缓存失效，确保下一次查询能即时反映最新数据
+        this.cachedStats = null;
       }
     } catch (err) {
       // 容错日志，绝不抛出异常阻断正常业务
@@ -169,7 +190,7 @@ export class StatsService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(commands),
-        signal: AbortSignal.timeout(3000),
+        signal: AbortSignal.timeout(2500),
       });
 
       if (res.ok) {
@@ -205,7 +226,7 @@ export class StatsService {
       pullsCount: basePulls + this.localPulls,
     };
     this.cachedStats = fallbackResult;
-    this.cacheExpiresAt = now + Math.min(this.cacheTtlMs, 10000); // 降级缓存 10 秒后重试
+    this.cacheExpiresAt = now + Math.min(this.cacheTtlMs, 5000);
     return fallbackResult;
   }
 }
