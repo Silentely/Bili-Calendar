@@ -37,6 +37,7 @@ docker-compose.override.yml
 # BMad Method
 .bmad-core/
 .claude/
+skills/
 .ace-tool/
 .omx/
 .omc/
